@@ -8,8 +8,8 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE = 'H' and
-    trim(TABLE_NAME) not in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    --trim(TABLE_NAME)  in ('DMF_MOVIMIENTOS_MVNO');
+    --trim(TABLE_NAME) not in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    trim(TABLE_NAME)  in ('DMF_MOVIMIENTOS_MVNO', 'DMF_RECARGAS_MVNO', 'DMF_PARQUE_MVNO');
 
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
@@ -893,8 +893,9 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ';');
+          UTL_FILE.put_line(fich_salida_pkg, ';');
           UTL_FILE.put_line(fich_salida_pkg,'');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -973,8 +974,9 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ';');
+          UTL_FILE.put_line(fich_salida_pkg, ';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -1053,8 +1055,9 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ';');
+          UTL_FILE.put_line(fich_salida_pkg, ';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -1135,8 +1138,9 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ';');
+          UTL_FILE.put_line(fich_salida_pkg, ';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -1216,8 +1220,9 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ';');
+          UTL_FILE.put_line(fich_salida_pkg, ';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');

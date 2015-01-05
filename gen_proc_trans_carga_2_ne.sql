@@ -961,9 +961,10 @@ begin
             /* Procesamos el campo FILTER */
             dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
             dbms_output.put_line ('Despues de procesar el campo FILTER');
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ''';');
+          UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           
           --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos ;');
@@ -1055,9 +1056,10 @@ begin
             /* Procesamos el campo FILTER */
             dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
             dbms_output.put_line ('Despues de procesar el campo FILTER');
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ''';');
+          UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -1143,8 +1145,9 @@ begin
             
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ''';');
+          UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -1229,8 +1232,9 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos || '' and '' || ''');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ''';');
+          UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
@@ -1316,8 +1320,9 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos || '' and '' || ''');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
           end if;
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter || ''';');
+          UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
           --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
