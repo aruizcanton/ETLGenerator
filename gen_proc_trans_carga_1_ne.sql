@@ -1491,7 +1491,7 @@ begin
     UTL_FILE.put_line(fich_salida_load, 'FCH_CARGA=${1}');
     UTL_FILE.put_line(fich_salida_load, 'FCH_DATOS=${2}');
     UTL_FILE.put_line(fich_salida_load, 'BAN_FORZADO=${3}');
-    UTL_FILE.put_line(fich_salida_load, 'FECHA_HORA=`date +%Y%m%d%H%M%S`');
+    UTL_FILE.put_line(fich_salida_load, 'FECHA_HORA=${FCH_CARGA}_`date +%Y%m%d_%H%M%S`');
     --UTL_FILE.put_line(fich_salida_load, 'echo "load_he_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_load, 'echo "${0}" > ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
