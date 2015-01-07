@@ -354,7 +354,7 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'FCH_CARGA=${1}');
     UTL_FILE.put_line(fich_salida_sh, 'FCH_DATOS=${2}');
     UTL_FILE.put_line(fich_salida_sh, 'BAN_FORZADO=${3}');
-    UTL_FILE.put_line(fich_salida_sh, 'FECHA_HORA=`date +%Y%m%d%H%M%S`');
+    UTL_FILE.put_line(fich_salida_sh, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
     --UTL_FILE.put_line(fich_salida_sh, 'FECHA_HORA = ﻿`date +%d/%m/%Y\ %H:%M:%S`');
     --UTL_FILE.put_line(fich_salida_sh, 'echo "load_SA_' || reg_summary.CONCEPT_NAME || '" > ${MVNO_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_sh, 'echo "${0}" > ${MVNO_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ');
@@ -613,7 +613,8 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'fi');
     UTL_FILE.put_line(fich_salida_sh, '');
     UTL_FILE.put_line(fich_salida_sh, 'echo "La carga de la tabla ' ||  'SA_' || reg_summary.CONCEPT_NAME || ' se ha realizado correctamente." >> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
-    UTL_FILE.put_line(fich_salida_sh, '# Inserto en MTDT_MONITOREO EL RESULTADO DEL PASO');    
+    UTL_FILE.put_line(fich_salida_sh, '# Movemos el fichero cargado a /MVNO/MEX/DESTINO');    
+    UTL_FILE.put_line(fich_salida_sh, 'mv ${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' ${MVNO_DESTINO} >> ${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
     UTL_FILE.put_line(fich_salida_sh, 'exit 0');    
     /******/
     /* FIN DE LA GENERACION DEL sh de CARGA */
