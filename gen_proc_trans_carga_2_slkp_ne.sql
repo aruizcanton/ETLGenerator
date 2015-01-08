@@ -98,7 +98,7 @@ cursor MTDT_TABLA
 
   
   lista_pk                                      list_columns_primary := list_columns_primary (); 
-  tipo_col                                     varchar(50);
+  tipo_col                                     varchar2(50);
   primera_col                               PLS_INTEGER;
   columna                                    VARCHAR2(2000);
   prototipo_fun                             VARCHAR2(2000);
@@ -117,7 +117,8 @@ cursor MTDT_TABLA
   OWNER_DM                            VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
   
-  v_FROM VARCHAR2
+  v_FROM VARCHAR2(500);
+  v_WHERE VARCHAR2(3000);
   
 
 
@@ -198,10 +199,12 @@ cursor MTDT_TABLA
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ')';
         end if;
+        v_FROM := v_FROM || ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+        v_WHERE := v_WHERE || ' AND ' || reg_detalle_in.IE_COLUMN || ' = ' || reg_detalle_in.IE_COLUMN_LKUP || '(+)' || chr(13);
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
         valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
