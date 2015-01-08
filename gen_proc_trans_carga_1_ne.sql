@@ -97,18 +97,18 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
 
   
   lista_pk                                      list_columns_primary := list_columns_primary (); 
-  tipo_col                                     varchar(50);
+  tipo_col                                     varchar2(50);
   primera_col                               PLS_INTEGER;
-  columna                                    VARCHAR(2000);
-  prototipo_fun                             VARCHAR(2000);
+  columna                                    VARCHAR2(2000);
+  prototipo_fun                             VARCHAR2(2000);
   fich_salida_load                        UTL_FILE.file_type;
   fich_salida_exchange              UTL_FILE.file_type;
   fich_salida_pkg                         UTL_FILE.file_type;
-  nombre_fich_carga                   VARCHAR(60);
-  nombre_fich_exchange            VARCHAR(60);
-  nombre_fich_pkg                      VARCHAR(60);
+  nombre_fich_carga                   VARCHAR2(60);
+  nombre_fich_exchange            VARCHAR2(60);
+  nombre_fich_pkg                      VARCHAR2(60);
   lista_scenarios_presentes                                    list_strings := list_strings();
-  campo_filter                                VARCHAR(2000);
+  campo_filter                                VARCHAR2(2000);
   nombre_tabla_reducido           VARCHAR2(30);
   OWNER_SA                             VARCHAR2(60);
   OWNER_T                                VARCHAR2(60);
