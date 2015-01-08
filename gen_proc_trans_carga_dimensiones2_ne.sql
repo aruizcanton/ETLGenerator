@@ -683,7 +683,7 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
                 UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
-                UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || 'app_mvnodm.T_' || nombre_tabla_reducido);
+                UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
                 /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 UTL_FILE.put_line(fich_salida_pkg,'    (');
                 open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
@@ -731,7 +731,7 @@ begin
                 /****/
                 dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                 UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                UTL_FILE.put_line(fich_salida_pkg, '    ' || 'APP_MVNOSA.' || reg_scenario.TABLE_BASE_NAME || ', APP_MVNODM.' || reg_scenario.TABLE_NAME);
+                UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
                 where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
@@ -806,7 +806,7 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
                 UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
-                UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || 'app_mvnodm.T_' || nombre_tabla_reducido);
+                UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
                 /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 UTL_FILE.put_line(fich_salida_pkg,'    (');
                 open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
@@ -854,7 +854,7 @@ begin
                 /****/
                 dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                 UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                UTL_FILE.put_line(fich_salida_pkg, '    ' || 'APP_MVNOSA.' || reg_scenario.TABLE_BASE_NAME || ', APP_MVNODM.' || reg_scenario.TABLE_NAME);
+                UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
                 where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
@@ -932,7 +932,7 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
                 UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
-                UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || 'app_mvnodm.T_' || nombre_tabla_reducido);
+                UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
                 /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 UTL_FILE.put_line(fich_salida_pkg,'    (');
                 open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
@@ -980,7 +980,7 @@ begin
                 /****/
                 dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                 UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                UTL_FILE.put_line(fich_salida_pkg, '    ' || 'APP_MVNOSA.' || reg_scenario.TABLE_BASE_NAME || ', APP_MVNODM.' || reg_scenario.TABLE_NAME);
+                UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
                 where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
