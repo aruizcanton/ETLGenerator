@@ -238,7 +238,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       when 'HARDC' then
         valor_retorno := '    ' || reg_detalle_in.VALUE;
       when 'SEQ' then
-        valor_retorno := '    app_mvnodm.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
+        valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
         --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
           --valor_retorno := '    app_mvnodm.' || reg_detalle_in.VALUE;
           --valor_retorno := '    app_mvnodm.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';

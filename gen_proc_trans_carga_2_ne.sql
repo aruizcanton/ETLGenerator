@@ -251,11 +251,12 @@ cursor MTDT_TABLA
       when 'HARDC' then
         valor_retorno :=  '    ' || reg_detalle_in.VALUE;
       when 'SEQ' then
-        if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
-          valor_retorno := '    ' || reg_detalle_in.VALUE;
-        else
-          valor_retorno := '    ' || reg_detalle_in.VALUE || '.NEXTVAL';
-        end if;
+        valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
+        --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
+        --  valor_retorno := '    ' || reg_detalle_in.VALUE;
+        --else
+        --  valor_retorno := '    ' || reg_detalle_in.VALUE || '.NEXTVAL';
+        --end if;
       when 'BASE' then
         /* Se toma el valor del campo de la tabla de staging */
         valor_retorno :=  '    ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.VALUE;      
