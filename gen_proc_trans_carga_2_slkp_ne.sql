@@ -2,16 +2,16 @@ declare
 
 cursor MTDT_TABLA
   is
-    SELECT
-      DISTINCT TRIM(TABLE_NAME) "TABLE_NAME",
+SELECT
+      DISTINCT TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME",
       --TRIM(TABLE_BASE_NAME) "TABLE_BASE_NAME",
-      TRIM(TABLESPACE) "TABLESPACE"
+      TRIM(mtdt_modelo_logico.TABLESPACE) "TABLESPACE"
     FROM
-      MTDT_TC_SCENARIO
-    WHERE TABLE_TYPE = 'H' and
-    --trim(TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    trim(TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');
-    --trim(TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO');
+      MTDT_TC_SCENARIO, mtdt_modelo_logico
+    WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');  
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -162,7 +162,44 @@ cursor MTDT_TABLA
     return lista_elementos;
   end split_string_coma;
 
-
+  function procesa_condicion_lookup (cadena_in in varchar2) return varchar2
+  is
+  lon_cadena integer;
+  cabeza                varchar2 (1000);
+  sustituto              varchar2(100);
+  cola                      varchar2(1000);    
+  pos                   PLS_integer;
+  pos_ant           PLS_integer;
+  posicion_ant           PLS_integer;
+  cadena_resul varchar(1000);
+  begin
+    dbms_output.put_line ('Entro en procesa_condicion_lookup');
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if lon_cadena > 0 then
+      /* Busco el signo = */
+      sustituto := ' (+)= ';
+      loop
+        dbms_output.put_line ('Entro en el LOOP. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, '=', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length ('='));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        pos_ant := pos + (length ('(+)'));
+        dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
+        pos := pos_ant;
+      end loop;
+    end if; 
+    return cadena_resul;
+  end;
 
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
     valor_retorno VARCHAR (500);
@@ -184,6 +221,8 @@ cursor MTDT_TABLA
     cabeza             VARCHAR2(500);
     cola                   VARCHAR2(500);
     pos_ant            PLS_integer;
+    v_encontrado  VARCHAR2(1);
+    v_alias             VARCHAR2(40);
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -193,6 +232,26 @@ cursor MTDT_TABLA
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         --if (reg_detalle_in.LKUP_COM_RULE <> "") then
+        l_FROM.extend;
+        /* (20150112) Angel Ruiz */
+        /* Puede ocurrir que se se tenga varias veces la misma LookUp pero para campo diferentes */
+        /* lo que se traduce en que hay que crear ALIAS */
+        /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM*/
+        v_encontrado:='N';
+        FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+        LOOP
+          if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
+          /* La misma tabla ya estaba en otro lookup */
+            v_encontrado:='Y';
+          end if;
+        END LOOP;
+        if (v_encontrado='Y') then
+          v_alias := reg_detalle_in.TABLE_LKUP || '_' || l_FROM.count;
+          l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP || ' "' || v_alias || '"' ;
+        else
+          v_alias := reg_detalle_in.TABLE_LKUP;
+          l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+        end if;
         if (reg_detalle_in.LKUP_COM_RULE is not null) then
           /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
           cadena := trim(reg_detalle_in.LKUP_COM_RULE);
@@ -202,22 +261,20 @@ cursor MTDT_TABLA
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN NVL(' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2) ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN NVL(' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2) ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    NVL(' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2)';
+          valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2)';
         end if;
-        l_FROM.extend;
-        l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
         l_WHERE.extend;
         if (l_WHERE.count = 1) then
-          l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
+          l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
         else
-          l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
+          l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
         end if;
         if (reg_detalle_in.TABLE_LKUP_COND is not null) then
           /* Existen condiciones en la tabla de Look Up que hay que introducir*/
           l_WHERE.extend;
-          l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_LKUP_COND;
+          l_WHERE(l_WHERE.last) :=  ' AND ' || procesa_condicion_lookup(reg_detalle_in.TABLE_LKUP_COND);
         end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
