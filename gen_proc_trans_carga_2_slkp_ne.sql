@@ -9,8 +9,8 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE = 'H' and
-    trim(TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    --trim(TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');
+    --trim(TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    trim(TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');
     --trim(TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO');
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
@@ -95,6 +95,8 @@ cursor MTDT_TABLA
   
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(30);
+  type lista_tablas_from is table of varchar(100);
+  type lista_condi_where is table of varchar(150);
 
   
   lista_pk                                      list_columns_primary := list_columns_primary (); 
@@ -117,8 +119,9 @@ cursor MTDT_TABLA
   OWNER_DM                            VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
   
-  v_FROM VARCHAR2(500);
-  v_WHERE VARCHAR2(3000);
+  l_FROM                                      lista_tablas_from := lista_tablas_from();
+  l_WHERE                                   lista_condi_where := lista_condi_where();
+  v_hay_look_up                           VARCHAR2(1):='N';
   
 
 
@@ -199,12 +202,23 @@ cursor MTDT_TABLA
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN NVL(' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2) ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    NVL(' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2)';
         end if;
-        v_FROM := v_FROM || ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
-        v_WHERE := v_WHERE || ' AND ' || reg_detalle_in.IE_COLUMN || ' = ' || reg_detalle_in.IE_COLUMN_LKUP || '(+)' || chr(13);
+        l_FROM.extend;
+        l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+        l_WHERE.extend;
+        if (l_WHERE.count = 1) then
+          l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
+        else
+          l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_LKUP || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
+        end if;
+        if (reg_detalle_in.TABLE_LKUP_COND is not null) then
+          /* Existen condiciones en la tabla de Look Up que hay que introducir*/
+          l_WHERE.extend;
+          l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_LKUP_COND;
+        end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
         valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
@@ -935,6 +949,10 @@ begin
           /****/
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           /****/
+          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
+          l_FROM.delete;
+          l_WHERE.delete;
+          /* Fin de la inicialización */
           UTL_FILE.put_line(fich_salida_pkg,'    SELECT ');
           open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
           primera_col := 1;
@@ -958,17 +976,49 @@ begin
           /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
           /****/    
           dbms_output.put_line ('Despues del SELECT');
+          --dbms_output.put_line ('El valor que han cogifo v_FROM:' || v_FROM);
+          --dbms_output.put_line ('El valor que han cogifo v_WHERE:' || v_WHERE);
           UTL_FILE.put_line(fich_salida_pkg,'    FROM');
           --UTL_FILE.put_line(fich_salida_pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
           UTL_FILE.put_line(fich_salida_pkg, '   ' || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
+          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
+            v_hay_look_up := 'Y';
+          END LOOP;
+          /* FIN */
+          --UTL_FILE.put_line(fich_salida_pkg,'    ' || v_FROM);
           dbms_output.put_line ('Despues del FROM');
           if (reg_scenario.FILTER is not null) then
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             /* Procesamos el campo FILTER */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
             UTL_FILE.put_line(fich_salida_pkg, campo_filter);
             dbms_output.put_line ('Despues de procesar el campo FILTER');
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
+          else
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
           end if;
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
