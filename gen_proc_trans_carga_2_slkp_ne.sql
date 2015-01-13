@@ -11,7 +11,7 @@ SELECT
     WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
     trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -182,7 +182,7 @@ SELECT
       /* Busco el signo = */
       sustituto := ' (+)= ';
       loop
-        dbms_output.put_line ('Entro en el LOOP. La cadena es: ' || cadena_resul);
+        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
         pos := instr(cadena_resul, '=', pos+1);
         exit when pos = 0;
         dbms_output.put_line ('Pos es mayor que 0');
@@ -197,7 +197,27 @@ SELECT
         dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
         pos := pos_ant;
       end loop;
-    end if; 
+      /* Busco LA COMILLA */
+      pos := 0;
+      posicion_ant := 0;
+      sustituto := '''''';
+      loop
+        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cedena es: ' || cadena_resul);
+        pos := instr(cadena_resul, '''', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (''''));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        pos_ant := pos + length ('''''');
+        pos := pos_ant;
+      end loop;
+    end if;
+    
     return cadena_resul;
   end;
 
@@ -223,6 +243,8 @@ SELECT
     pos_ant            PLS_integer;
     v_encontrado  VARCHAR2(1);
     v_alias             VARCHAR2(40);
+    table_columns_lkup  list_strings := list_strings();
+    ie_column_lkup    list_strings := list_strings();
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -240,8 +262,11 @@ SELECT
         v_encontrado:='N';
         FOR indx IN l_FROM.FIRST .. l_FROM.LAST
         LOOP
-          if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
-          /* La misma tabla ya estaba en otro lookup */
+          --if (instr(l_FROM(indx),  reg_detalle_in.TABLE_LKUP, 0)) then
+          --regexp_count(reg_per_val.AGREGATION,'^BAN_',1,'i') >0
+          if (regexp_count(l_FROM(indx), reg_detalle_in.TABLE_LKUP) >0) then
+          --if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
+            /* La misma tabla ya estaba en otro lookup */
             v_encontrado:='Y';
           end if;
         END LOOP;
@@ -261,15 +286,46 @@ SELECT
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN NVL(' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2) ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || ' THEN NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) ELSE ' || trim(constante) || ' END';
         else
-          valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ', -2)';
+          valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
         end if;
-        l_WHERE.extend;
-        if (l_WHERE.count = 1) then
-          l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
+        /* Miramos la parte de las condiciones */
+        /* Puede haber varios campos por los que hacer el JOIN */
+        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+        if (table_columns_lkup.COUNT > 1) then
+          /* Hay varios campos de condicion */
+          FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
+          LOOP
+            l_WHERE.extend;
+            if (l_WHERE.count = 1) then
+               l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+            else
+               l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+            end if;
+          END LOOP;
         else
-          l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || '(+)';
+          /* Solo hay un campo condicion */
+          /* Miramos si la tabla con la que hay que hacer LookUp es una tabla de rangos */
+          l_WHERE.extend;
+          if (instr (reg_detalle_in.TABLE_LKUP,'RANGO') > 0) then
+            if (l_WHERE.count = 1) then
+              l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' >= ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              l_WHERE.extend;
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+            else
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' >= ' || v_alias || '.'  || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              l_WHERE.extend;
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+            end if;
+          else
+            if (l_WHERE.count = 1) then
+              l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+            else
+              l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+            end if;
+          end if;
         end if;
         if (reg_detalle_in.TABLE_LKUP_COND is not null) then
           /* Existen condiciones en la tabla de Look Up que hay que introducir*/
