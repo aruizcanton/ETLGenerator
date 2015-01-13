@@ -193,7 +193,7 @@ SELECT
         cola := substr(cadena_resul, pos + length ('='));
         dbms_output.put_line ('La cola es: ' || cola);
         cadena_resul := cabeza || sustituto || cola;
-        pos_ant := pos + (length ('(+)'));
+        pos_ant := pos + (length (' (+)= '));
         dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
         pos := pos_ant;
       end loop;
@@ -754,20 +754,20 @@ begin
     /******/
     dbms_output.put_line ('Comienzo la generacion del PACKAGE DEFINITION');
     /* Primero de todo miro si hay funciones de LOOKUP para crear */
-    dbms_output.put_line ('Antes de mirar funciones para hacer LOOKUP');
-    open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
-    loop
-      fetch MTDT_TC_LOOKUP
-      into reg_lookup;
-      exit when MTDT_TC_LOOKUP%NOTFOUND;
+    --dbms_output.put_line ('Antes de mirar funciones para hacer LOOKUP');
+    --open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
+    --loop
+      --fetch MTDT_TC_LOOKUP
+      --into reg_lookup;
+      --exit when MTDT_TC_LOOKUP%NOTFOUND;
       /* Se trata de hacer el LOOK UP con la tabla dimension */
-      prototipo_fun := genera_encabezado_funcion_pkg (reg_lookup);
-      UTL_FILE.put_line(fich_salida_pkg,'');
-      UTL_FILE.put_line(fich_salida_pkg, prototipo_fun);
+      --prototipo_fun := genera_encabezado_funcion_pkg (reg_lookup);
+      --UTL_FILE.put_line(fich_salida_pkg,'');
+      --UTL_FILE.put_line(fich_salida_pkg, prototipo_fun);
       
-    end loop;
-    close MTDT_TC_LOOKUP;
-    dbms_output.put_line ('Despues de mirar funciones para hacer LOOKUP');
+    --end loop;
+    --close MTDT_TC_LOOKUP;
+    --dbms_output.put_line ('Despues de mirar funciones para hacer LOOKUP');
     dbms_output.put_line ('Antes de mirar funciones para hacer regla FUNCTION');
     /* Segundo miro si hay funciones de la regla FUNCTION para crear */
 
@@ -936,16 +936,16 @@ begin
 
   
     /* Primero de todo miro si tengo que generar los cuerpos de las funciones de LOOKUP */
-    dbms_output.put_line ('Antes de generar las funciones de LOOKUP');
-    open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
-    loop
-      fetch MTDT_TC_LOOKUP
-      into reg_lookup;
-      exit when MTDT_TC_LOOKUP%NOTFOUND;
+    --dbms_output.put_line ('Antes de generar las funciones de LOOKUP');
+    --open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
+    --loop
+      --fetch MTDT_TC_LOOKUP
+      --into reg_lookup;
+      --exit when MTDT_TC_LOOKUP%NOTFOUND;
       /* Se trata de hacer el LOOK UP con la tabla dimension */
-      genera_cuerpo_funcion_pkg (reg_lookup);      
-    end loop;
-    close MTDT_TC_LOOKUP;
+      --genera_cuerpo_funcion_pkg (reg_lookup);      
+    --end loop;
+    --close MTDT_TC_LOOKUP;
     dbms_output.put_line ('Antes de generar las funciones de FUNCTION');
     /* Segundo de todo miro si tengo que generar los cuerpos de las funciones de FUNCTION */
     open MTDT_TC_FUNCTION (reg_tabla.TABLE_NAME);
@@ -1039,6 +1039,7 @@ begin
           --UTL_FILE.put_line(fich_salida_pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
           UTL_FILE.put_line(fich_salida_pkg, '   ' || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
           /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+          v_hay_look_up:='N';
           FOR indx IN l_FROM.FIRST .. l_FROM.LAST
           LOOP
             UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
@@ -1067,7 +1068,8 @@ begin
             end if;
           else
             if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+              /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
               dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
               /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
               FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
@@ -1137,6 +1139,10 @@ begin
           UTL_FILE.put_line(fich_salida_pkg,')');
           /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
           dbms_output.put_line ('Despues del INTO');
+          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
+          l_FROM.delete;
+          l_WHERE.delete;
+          /* Fin de la inicialización */
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
           dbms_output.put_line ('Entro en el SELECT');
@@ -1160,17 +1166,47 @@ begin
           /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    FROM');
           UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
+          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+          v_hay_look_up:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
+            v_hay_look_up := 'Y';
+          END LOOP;
+          /* FIN */
           dbms_output.put_line ('Despues de generar el FROM');
           /* INICIO generacion parte  WHERE  */
+
           if (reg_scenario.FILTER is not null) then
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos || '' and '' || ''');
-          
             /* Procesamos el campo FILTER */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
             dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
             UTL_FILE.put_line(fich_salida_pkg, campo_filter);
             dbms_output.put_line ('Despues de procesar el campo FILTER');
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
+          else
+            if (v_hay_look_up = 'Y') then
+              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+              /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');         
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
           end if;
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1227,7 +1263,10 @@ begin
           close MTDT_TC_DETAIL;
           UTL_FILE.put_line(fich_salida_pkg,')');
           /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-
+          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
+          l_FROM.delete;
+          l_WHERE.delete;
+          /* Fin de la inicialización */
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
           open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
@@ -1250,15 +1289,45 @@ begin
           /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    FROM');
           UTL_FILE.put_line(fich_salida_pkg, '    '  || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
+          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+          v_hay_look_up:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
+            v_hay_look_up := 'Y';
+          END LOOP;
+          /* FIN */
 
-          /* INICIO generacion parte  WHERE  */
           if (reg_scenario.FILTER is not null) then
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos || '' and '' || ''');
-            
             /* Procesamos el campo FILTER */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+            dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
             UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+            dbms_output.put_line ('Despues de procesar el campo FILTER');
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
+          else
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
           end if;
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1315,7 +1384,10 @@ begin
           close MTDT_TC_DETAIL;
           UTL_FILE.put_line(fich_salida_pkg,')');
           /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-
+          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
+          l_FROM.delete;
+          l_WHERE.delete;
+          /* Fin de la inicialización */
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
           open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
@@ -1338,14 +1410,44 @@ begin
           /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    FROM');
           UTL_FILE.put_line(fich_salida_pkg, '    '  || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-
-          /* INICIO generacion parte  WHERE  */
+          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+          v_hay_look_up:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
+            v_hay_look_up := 'Y';
+          END LOOP;
+          /* FIN */
           if (reg_scenario.FILTER is not null) then
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos || '' and '' || ''');
             /* Procesamos el campo FILTER */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+            dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
             UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+            dbms_output.put_line ('Despues de procesar el campo FILTER');
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
+          else
+            if (v_hay_look_up = 'Y') then
+              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+              /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
           end if;
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1403,7 +1505,10 @@ begin
           close MTDT_TC_DETAIL;
           UTL_FILE.put_line(fich_salida_pkg,')');
           /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-
+          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
+          l_FROM.delete;
+          l_WHERE.delete;
+          /* Fin de la inicialización */
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
           open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
@@ -1426,14 +1531,45 @@ begin
           /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
           UTL_FILE.put_line(fich_salida_pkg,'    FROM');
           UTL_FILE.put_line(fich_salida_pkg, '    '  || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-
+          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+          v_hay_look_up:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
+            v_hay_look_up := 'Y';
+          END LOOP;
+          /* FIN */
+          
           if (reg_scenario.FILTER is not null) then
-            /* INICIO generacion parte  WHERE  */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos || '' and '' || ''');
             /* Procesamos el campo FILTER */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+            dbms_output.put_line ('Antes de procesar el campo FILTER');
             campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
             UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+            dbms_output.put_line ('Despues de procesar el campo FILTER');
+            if (v_hay_look_up = 'Y') then
+            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
+          else
+            if (v_hay_look_up = 'Y') then
+	            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+	            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+              LOOP
+                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+              END LOOP;
+              /* FIN */
+            end if;
           end if;
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
