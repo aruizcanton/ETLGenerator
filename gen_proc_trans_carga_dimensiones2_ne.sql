@@ -30,6 +30,7 @@ cursor MTDT_TABLA
       "GROUP",
       FILTER,
       INTERFACE_COLUMNS,
+      FILTER_CARGA_INI,
       trim(SCENARIO) "SCENARIO",
       DATE_CREATE,
       DATE_MODIFY
@@ -928,7 +929,7 @@ begin
                 --UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION hst_reg_' || reg_scenario.TABLE_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
                 UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION hreg_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
                 UTL_FILE.put_line(fich_salida_pkg, '  IS');
-                UTL_FILE.put_line(fich_salida_pkg, '  num_filas_hst INTEGER;');
+                UTL_FILE.put_line(fich_salida_pkg, '  num_filas_hst INTEGER:=0;');
                 UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');        
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1023,9 +1024,74 @@ begin
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || campo_filter || ';');
                   end if;
                 END IF;
-                
                 UTL_FILE.put_line(fich_salida_pkg,'');
                 UTL_FILE.put_line(fich_salida_pkg,'    num_filas_hst := sql%rowcount;');
+
+/**************************************************/
+                /* Comprobamos que la Dimension no tiene carga inicial manual */
+                if (reg_scenario.FILTER_CARGA_INI is not null) then
+                  /* Si hay un valor en este campo, es que la dimension posee registros cargados al margen de las cargas por interfaz */
+                  /* Con lo que hya que cargarlos en T_* para que no se pierdan */
+                  UTL_FILE.put_line(fich_salida_pkg, '');
+                  UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+                  UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
+                  /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
+                  UTL_FILE.put_line(fich_salida_pkg,'    (');
+                  open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+                  primera_col := 1;
+                  loop
+                    fetch MTDT_TC_DETAIL
+                    into reg_detail;
+                    exit when MTDT_TC_DETAIL%NOTFOUND;
+                    dbms_output.put_line ('Estoy en el Tercer Loop. El campo es: ' || reg_detail.TABLE_COLUMN);
+                    if primera_col = 1 then
+                      UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
+                      primera_col := 0;
+                    else
+                      UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
+                    end if;
+                  end loop;
+                  close MTDT_TC_DETAIL;
+                  UTL_FILE.put_line(fich_salida_pkg,'    )');
+                  dbms_output.put_line ('He pasado la parte del INTO');
+                  /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
+                  /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+                  /****/
+                  UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+                  open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+                  primera_col := 1;
+                  loop
+                    fetch MTDT_TC_DETAIL
+                    into reg_detail;
+                    exit when MTDT_TC_DETAIL%NOTFOUND;
+                    dbms_output.put_line ('Antes de la llamada a la funcion con columna: ' || reg_detail.TABLE_COLUMN);
+                    columna := genera_campo_select (reg_detail);
+                    if primera_col = 1 then
+                      UTL_FILE.put_line(fich_salida_pkg, '    ' || columna);
+                      primera_col := 0;
+                    else
+                      UTL_FILE.put_line(fich_salida_pkg, '    ,' || columna);
+                    end if;        
+                  end loop;
+                  close MTDT_TC_DETAIL;
+                  /****/
+                  /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+                  /****/ 
+                  /****/
+                  /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
+                  /****/
+                  dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
+                  UTL_FILE.put_line(fich_salida_pkg,'    FROM');
+                  UTL_FILE.put_line(fich_salida_pkg,'    ' ||  OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                  UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+                  UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.FILTER_CARGA_INI);
+                  UTL_FILE.put_line(fich_salida_pkg,'');
+                  UTL_FILE.put_line(fich_salida_pkg,'    num_filas_hst := num_filas_hst + sql%rowcount;');
+                end if;                
+/**************************************************/
+                
+                --UTL_FILE.put_line(fich_salida_pkg,'');
+                --UTL_FILE.put_line(fich_salida_pkg,'    num_filas_hst := sql%rowcount;');
                 --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
                 UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_hst;');
                 
