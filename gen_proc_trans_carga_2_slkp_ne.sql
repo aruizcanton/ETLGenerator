@@ -11,7 +11,7 @@ SELECT
     WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
     trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFE_CU_MVNO');  
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -162,7 +162,7 @@ SELECT
     return lista_elementos;
   end split_string_coma;
 
-  function procesa_condicion_lookup (cadena_in in varchar2) return varchar2
+  function procesa_condicion_lookup (cadena_in in varchar2, v_alias_in varchar2 := NULL) return varchar2
   is
   lon_cadena integer;
   cabeza                varchar2 (1000);
@@ -202,7 +202,7 @@ SELECT
       posicion_ant := 0;
       sustituto := '''''';
       loop
-        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cedena es: ' || cadena_resul);
+        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
         pos := instr(cadena_resul, '''', pos+1);
         exit when pos = 0;
         dbms_output.put_line ('Pos es mayor que 0');
@@ -216,6 +216,29 @@ SELECT
         pos_ant := pos + length ('''''');
         pos := pos_ant;
       end loop;
+      /* Sustituyo el nombre de Tabla generico por el nombre que le paso como parametro */
+      if (v_alias_in is not null) then
+        /* Existe un alias que sustituir */
+        pos := 0;
+        posicion_ant := 0;
+        sustituto := v_alias_in;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup para sustituir el ALIAS. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#TABLE_OWNER#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#TABLE_OWNER#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          --pos_ant := pos + length ('''''');
+          --pos := pos_ant;
+        end loop;
+
+      end if;
     end if;
     
     return cadena_resul;
@@ -330,7 +353,7 @@ SELECT
         if (reg_detalle_in.TABLE_LKUP_COND is not null) then
           /* Existen condiciones en la tabla de Look Up que hay que introducir*/
           l_WHERE.extend;
-          l_WHERE(l_WHERE.last) :=  ' AND ' || procesa_condicion_lookup(reg_detalle_in.TABLE_LKUP_COND);
+          l_WHERE(l_WHERE.last) :=  ' AND ' || procesa_condicion_lookup(reg_detalle_in.TABLE_LKUP_COND, v_alias);
         end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
