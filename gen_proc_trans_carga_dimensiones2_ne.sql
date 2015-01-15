@@ -8,7 +8,7 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D', 'I')
-    and TABLE_NAME in ('DMD_ABONADO_MVNO')
+    and TABLE_NAME in ('DMD_CIUDAD')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -1028,10 +1028,12 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg,'    num_filas_hst := sql%rowcount;');
 
 /**************************************************/
+                /* (20150114) Angel Ruiz . VIENE LA PARTE RECIENTE PARA PROCESAR SI LA DIMENSION POSEE CARGA MANUAL INICIAL */
                 /* Comprobamos que la Dimension no tiene carga inicial manual */
                 if (reg_scenario.FILTER_CARGA_INI is not null) then
                   /* Si hay un valor en este campo, es que la dimension posee registros cargados al margen de las cargas por interfaz */
-                  /* Con lo que hya que cargarlos en T_* para que no se pierdan */
+                  /* Con lo que haY que cargarlos en T_* para que no se pierdan */
+                  /* al margen de la logica normal de carga de la dimension */
                   UTL_FILE.put_line(fich_salida_pkg, '');
                   UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
                   UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
@@ -1084,7 +1086,7 @@ begin
                   UTL_FILE.put_line(fich_salida_pkg,'    FROM');
                   UTL_FILE.put_line(fich_salida_pkg,'    ' ||  OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-                  UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.FILTER_CARGA_INI);
+                  UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.FILTER_CARGA_INI || ';');
                   UTL_FILE.put_line(fich_salida_pkg,'');
                   UTL_FILE.put_line(fich_salida_pkg,'    num_filas_hst := num_filas_hst + sql%rowcount;');
                 end if;                
