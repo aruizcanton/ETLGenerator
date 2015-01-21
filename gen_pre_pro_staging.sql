@@ -11,7 +11,7 @@ DECLARE
       SEPARATOR,
       LENGTH,
       DELAYED
-    FROM METADATO.MTDT_INTERFACE_SUMMARY
+    FROM MTDT_INTERFACE_SUMMARY
     WHERE SOURCE <> 'SA';
     --where DELAYED = 'S';
     --and CONCEPT_NAME in ('TRAFD_CU_MVNO', 'TRAFE_CU_MVNO', 'TRAFV_CU_MVNO');
@@ -28,7 +28,7 @@ DECLARE
       NULABLE,
       POSITION
     FROM
-      METADATO.MTDT_INTERFACE_DETAIL
+      MTDT_INTERFACE_DETAIL
     WHERE
       CONCEPT_NAME = concep_name_in and
       SOURCE = source_in
@@ -186,7 +186,7 @@ BEGIN
 /************/
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
       UTL_FILE.put_line(fich_salida_pkg, '/' );
-      UTL_FILE.put_line(fich_salida_pkg, 'GRANT EXECUTE ON ' || OWNER_SA || '.pkg_' || nombre_proceso || ' TO app_mvnotc');
+      UTL_FILE.put_line(fich_salida_pkg, 'GRANT EXECUTE ON ' || OWNER_SA || '.pkg_' || nombre_proceso || ' TO ' || OWNER_SA);
       UTL_FILE.put_line(fich_salida_pkg, '/' );
       UTL_FILE.put_line(fich_salida_pkg, '');
       

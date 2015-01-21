@@ -11,7 +11,7 @@ DECLARE
       SEPARATOR,
       LENGTH,
       DELAYED
-    FROM METADATO.MTDT_INTERFACE_SUMMARY    
+    FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFV_CU_MVNO','TRAFD_CU_MVNO','TRAFE_CU_MVNO');
     --AND DELAYED = 'S';
@@ -29,7 +29,7 @@ DECLARE
       NULABLE,
       POSITION
     FROM
-      METADATO.MTDT_INTERFACE_DETAIL
+      MTDT_INTERFACE_DETAIL
     WHERE
       CONCEPT_NAME = concep_name_in and
       SOURCE = source_in

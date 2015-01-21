@@ -9,7 +9,7 @@
       TYPE,
       SEPARATOR,
       DELAYED
-    FROM METADATO.MTDT_INTERFACE_SUMMARY;
+    FROM MTDT_INTERFACE_SUMMARY;
   
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
@@ -24,7 +24,7 @@
       PARTITIONED,
       POSITION
     FROM
-      METADATO.MTDT_INTERFACE_DETAIL
+      MTDT_INTERFACE_DETAIL
     WHERE
       CONCEPT_NAME = concep_name_in and
       SOURCE = source_in
@@ -44,9 +44,23 @@
       lista_campos_particion            VARCHAR(250);
       no_encontrado                          VARCHAR(1);
       subset                                         VARCHAR(1);
+      OWNER_SA                             VARCHAR2(60);
+      OWNER_T                                VARCHAR2(60);
+      OWNER_DM                            VARCHAR2(60);
+      OWNER_MTDT                       VARCHAR2(60);
+      TABLESPACE_SA                  VARCHAR2(60);
+      
 
 
 BEGIN
+  /* (20150119) ANGEL RUIZ*/
+  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION*/
+  SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
+  SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
+  SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
+  SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
+  /* (20150119) FIN*/
+
   DBMS_OUTPUT.put_line('set echo on;');
   DBMS_OUTPUT.put_line('whenever sqlerror exit 1;');
   OPEN dtd_interfaz_summary;
@@ -54,8 +68,8 @@ BEGIN
     FETCH dtd_interfaz_summary
       INTO reg_summary;
       EXIT WHEN dtd_interfaz_summary%NOTFOUND;  
-      DBMS_OUTPUT.put_line('DROP TABLE app_mvnosa.SA_' || reg_summary.CONCEPT_NAME || ' CASCADE CONSTRAINTS;');
-      DBMS_OUTPUT.put_line('CREATE TABLE app_mvnosa.SA_' || reg_summary.CONCEPT_NAME);
+      DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' CASCADE CONSTRAINTS;');
+      DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
       DBMS_OUTPUT.put_line('(');
       OPEN dtd_interfaz_detail (reg_summary.CONCEPT_NAME, reg_summary.SOURCE);
       primera_col := 1;
@@ -143,7 +157,7 @@ BEGIN
         END LOOP;
       END IF;
       DBMS_OUTPUT.put_line(')'); /* Parentesis final del create*/ 
-      DBMS_OUTPUT.put_line('TABLESPACE DWTBSP_D_MVNO_SA');
+      DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
       /* tomamos el campo por el que va a estar particionada la tabla */
       if lista_par.COUNT > 0 then
         FOR indx IN lista_par.FIRST .. lista_par.LAST
@@ -189,7 +203,7 @@ BEGIN
         END LOOP;
         IF (no_encontrado = 'Y') THEN
           /* Ocurre que hay campos de particionado que no formal parte del indice por lo que no se puede crear un indice local*/
-          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX SA_' || reg_summary.CONCEPT_NAME || '_P ON app_mvnosa.SA_' || reg_summary.CONCEPT_NAME);
+          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX SA_' || reg_summary.CONCEPT_NAME || '_P ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
@@ -200,7 +214,7 @@ BEGIN
             END IF;
           END LOOP;
           DBMS_OUTPUT.put_line('GLOBAL;');
-          DBMS_OUTPUT.put_line('ALTER TABLE app_mvnosa.SA_'  || reg_summary.CONCEPT_NAME || ' ADD CONSTRAINT SA_' || reg_summary.CONCEPT_NAME || '_P PRIMARY KEY (');
+          DBMS_OUTPUT.put_line('ALTER TABLE ' || OWNER_SA || '.SA_'  || reg_summary.CONCEPT_NAME || ' ADD CONSTRAINT SA_' || reg_summary.CONCEPT_NAME || '_P PRIMARY KEY (');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
             IF indx = lista_pk.LAST THEN
@@ -212,7 +226,7 @@ BEGIN
           DBMS_OUTPUT.put_line('USING INDEX SA_' || reg_summary.CONCEPT_NAME || '_P;');
         ELSE
           /* Podemos crear un Indice PK local */
-          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX SA_' || reg_summary.CONCEPT_NAME || '_P ON app_mvnosa.SA_' || reg_summary.CONCEPT_NAME);
+          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX SA_' || reg_summary.CONCEPT_NAME || '_P ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
@@ -223,7 +237,7 @@ BEGIN
             END IF;
           END LOOP;
           DBMS_OUTPUT.put_line('NOLOGGING LOCAL;');
-          DBMS_OUTPUT.put_line('ALTER TABLE app_mvnosa.SA_'  || reg_summary.CONCEPT_NAME || ' ADD CONSTRAINT SA_' || reg_summary.CONCEPT_NAME || '_P PRIMARY KEY (');
+          DBMS_OUTPUT.put_line('ALTER TABLE ' || OWNER_SA || '.SA_'  || reg_summary.CONCEPT_NAME || ' ADD CONSTRAINT SA_' || reg_summary.CONCEPT_NAME || '_P PRIMARY KEY (');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
             IF indx = lista_pk.LAST THEN

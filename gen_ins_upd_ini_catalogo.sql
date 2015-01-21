@@ -11,7 +11,7 @@ DECLARE
       VALUE_AGREGATION,
       FCH_REGISTRO,
       FCH_MODIFICACION
-    FROM  METADATO.MTDT_PERMITED_VALUES
+    FROM  MTDT_PERMITED_VALUES
     order by 
       ID_LIST, 
       CVE;
@@ -21,8 +21,24 @@ DECLARE
   pos_guion integer;
   valor_min varchar(20);
   valor_max varchar(20);
+  
+  OWNER_SA                             VARCHAR2(60);
+  OWNER_T                                VARCHAR2(60);
+  OWNER_DM                            VARCHAR2(60);
+  OWNER_MTDT                       VARCHAR2(60);
+  
 BEGIN
+  /* (20141220) ANGEL RUIZ*/
+  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION*/
+  SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
+  SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
+  SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
+  SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
+  
+  /* (20141220) FIN*/
+
   DBMS_OUTPUT.put_line('set echo on;');
+  DBMS_OUTPUT.put_line('set define off;');    /* (20150120 (Angel Ruiz) Anyadido por si vinieran unpersand para que no saque el prompt */
   DBMS_OUTPUT.put_line('whenever sqlerror exit 1;');
   DBMS_OUTPUT.put_line('');
   OPEN CUR_dtd_permited_values;
@@ -55,13 +71,11 @@ BEGIN
         
         /*+++++++++++++++*/
 
-        DBMS_OUTPUT.put_line('insert into APP_MVNODM.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO' and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori   20141121*/
-            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-          end if;
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         else
           DBMS_OUTPUT.put_line('ID_LIST,');
         end if;
@@ -78,9 +92,7 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO'  and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori como un parche (20141121) */
-            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
-          end if;          
+          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''',');
         end if;
@@ -117,13 +129,11 @@ BEGIN
         /*+++++++++++++++*/
         
       ELSE
-        DBMS_OUTPUT.put_line('insert into APP_MVNODM.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO'  and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori   20141121*/
-            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-          end if;
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         else
           DBMS_OUTPUT.put_line('ID_LIST,');  
         end if;
@@ -145,9 +155,7 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO' and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori como un parche (20141121) */
-            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
-          end if;          
+          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''','); 
         end if;
@@ -191,7 +199,7 @@ BEGIN
       /* ESTAMOS EN LA ACTUALIZACION POSTERIORES DE LOS CATALOGOS */
       /* GENERAREMOS LOS UPDATES  */
       /* Los updates los vamos a implementar con un DELETE seguido de un INSERT */
-      DBMS_OUTPUT.put_line('delete APP_MVNODM.DMD_' || reg_per_val.ITEM_NAME || ' WHERE ' || 'CVE_' || reg_per_val.ITEM_NAME || ' = ' || reg_per_val.CVE || ';');
+      DBMS_OUTPUT.put_line('delete ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' WHERE ' || 'CVE_' || reg_per_val.ITEM_NAME || ' = ' || reg_per_val.CVE || ';');
       /* Generamos el insert que casi una copia identica de la insercion que hacemos la primera vez */
       /* Solo cambia el campo FCH_MODIFICACION */
       IF (regexp_count(reg_per_val.AGREGATION,'^CVE_',1,'i') >0)
@@ -212,13 +220,11 @@ BEGIN
         DBMS_OUTPUT.put_line( ' WHERE ID_' || substr(reg_per_val. AGREGATION,5) || ' = ''' || TRIM(reg_per_val.VALUE_AGREGATION) || ''';');
         */
         
-        DBMS_OUTPUT.put_line('insert into APP_MVNODM.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO'  and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori   20141121*/
-            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-          end if;
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         else
           DBMS_OUTPUT.put_line('ID_LIST,');
         end if;
@@ -235,9 +241,7 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO' and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori como un parche (20141121) */
-            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
-          end if;          
+          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''',');
         end if;
@@ -273,13 +277,11 @@ BEGIN
         
         /*****************************/
       ELSE
-        DBMS_OUTPUT.put_line('insert into APP_MVNODM.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO' and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori   20141121*/
-            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-          end if;
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         else
           DBMS_OUTPUT.put_line('ID_LIST,');  
         end if;
@@ -301,9 +303,7 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          if (reg_per_val.ITEM_NAME <> 'TIPO_ENVIO' and reg_per_val.ITEM_NAME <> 'TIPO_SERVICIO') then /* Metido a posteriori como un parche (20141121) */
-            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
-          end if;          
+          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''','); 
         end if;

@@ -215,7 +215,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         if (posicion >0) then
           cad_pri := substr(valor_retorno, 1, posicion-1);
           cad_seg := substr(valor_retorno, posicion + length('VAR_IVA'));
-          valor_retorno :=  cad_pri || '21' || cad_seg;
+          valor_retorno :=  cad_pri || '16' || cad_seg;
         end if;
         posicion := instr(valor_retorno, 'VAR_FCH_CARGA');
         if (posicion >0) then
