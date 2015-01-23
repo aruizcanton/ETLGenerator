@@ -62,8 +62,8 @@ BEGIN
       /**********************/
     END LOOP;
     CLOSE c_mtdt_modelo_logico_TABLA;
-    DBMS_OUTPUT.put_line('set echo on;');
-    DBMS_OUTPUT.put_line('whenever sqlerror exit 1;');
+    DBMS_OUTPUT.put_line('set echo off;');
+    DBMS_OUTPUT.put_line('exit SUCCESS;');
   END IF;
 END;
 
