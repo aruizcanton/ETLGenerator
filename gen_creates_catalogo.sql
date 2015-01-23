@@ -8,7 +8,7 @@ DECLARE
       AGREGATION,
       MAX(LENGTH(VALUE)) LONGITUD
     FROM MTDT_PERMITED_VALUES
-    --WHERE ITEM_NAME not in ('TIPO_ENVIO', 'TIPO_SERVICIO')
+    WHERE ITEM_NAME not in ('TIPO_ENVIO', 'TIPO_SERVICIO')
     GROUP BY 
       ITEM_NAME,
       ID_LIST,
@@ -111,42 +111,42 @@ BEGIN
         DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+        DBMS_OUTPUT.put_line(-1 || ', ''NA''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
         DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+        DBMS_OUTPUT.put_line(-2 || ', ''GE''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
         DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+        DBMS_OUTPUT.put_line(-3 || ', ''NI''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
       else  /* Se trata del item ID_FUENTE */
         DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+        DBMS_OUTPUT.put_line(-1 || ', ''NA''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
         DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+        DBMS_OUTPUT.put_line(-2 || ', ''GE''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
         DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+        DBMS_OUTPUT.put_line(-3 || ', ''NI''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
       end if;
       DBMS_OUTPUT.put_line('commit;');
     END LOOP;
