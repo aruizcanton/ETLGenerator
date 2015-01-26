@@ -162,6 +162,71 @@ SELECT
     return lista_elementos;
   end split_string_coma;
 
+  function procesa_COM_RULE_lookup (cadena_in in varchar2, v_alias_in varchar2 := NULL) return varchar2
+  is
+  lon_cadena integer;
+  cabeza                varchar2 (1000);
+  sustituto              varchar2(100);
+  cola                      varchar2(1000);    
+  pos                   PLS_integer;
+  pos_ant           PLS_integer;
+  posicion_ant           PLS_integer;
+  cadena_resul varchar(1000);
+  begin
+    dbms_output.put_line ('Entro en procesa_COM_RULE_lookup');
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if lon_cadena > 0 then
+      /* Busco LA COMILLA */
+      pos := 0;
+      posicion_ant := 0;
+      sustituto := '''''';
+      loop
+        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, '''', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (''''));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        pos_ant := pos + length ('''''');
+        pos := pos_ant;
+      end loop;
+      /* Sustituyo el nombre de Tabla generico por el nombre que le paso como parametro */
+      if (v_alias_in is not null) then
+        /* Existe un alias que sustituir */
+        pos := 0;
+        posicion_ant := 0;
+        sustituto := v_alias_in;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup para sustituir el ALIAS. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#TABLE_OWNER#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#TABLE_OWNER#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          --pos_ant := pos + length ('''''');
+          --pos := pos_ant;
+        end loop;
+
+      end if;
+    end if;
+    
+    return cadena_resul;
+  end;
+
+
   function procesa_condicion_lookup (cadena_in in varchar2, v_alias_in varchar2 := NULL) return varchar2
   is
   lon_cadena integer;
@@ -249,12 +314,13 @@ SELECT
     posicion          PLS_INTEGER;
     cad_pri           VARCHAR(500);
     cad_seg         VARCHAR(500);
-    cadena            VARCHAR(100);
+    cadena            VARCHAR(200);
     pos_del_si      NUMBER(3);
     pos_del_then  NUMBER(3);
     pos_del_else  NUMBER(3);
     pos_del_end   NUMBER(3);
-    condicion         VARCHAR2(100);
+    condicion         VARCHAR2(200);
+    condicion_pro         VARCHAR2(200);
     constante         VARCHAR2(100);
     posicion_ant    PLS_integer;
     pos                    PLS_integer;
@@ -268,6 +334,8 @@ SELECT
     v_alias             VARCHAR2(40);
     table_columns_lkup  list_strings := list_strings();
     ie_column_lkup    list_strings := list_strings();
+    tipo_columna  VARCHAR2(30);
+    mitabla_look_up VARCHAR2(30);
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -276,6 +344,15 @@ SELECT
         valor_retorno :=  '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;      
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
+        /* (20150126) Angel Ruiz. Primero recojo la tabla del modelo con la que se hace LookUp. NO puede ser tablas T_* sino su equivalesnte del modelo */
+        dbms_output.put_line('ESTOY EN EL LOOKUP. Al principio');
+        if (regexp_count(reg_detalle_in.TABLE_LKUP,'^DMD_') > 0) then  /* Se trata de una dimension normal y corriente */
+          mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
+        elsif  (regexp_count(reg_detalle_in.TABLE_LKUP,'^T_') >0) then/* Se trata de una tabla T_ */
+          mitabla_look_up:='DMD_' || substr(reg_detalle_in.TABLE_LKUP,3);
+        else
+          mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
+        end if;
         --if (reg_detalle_in.LKUP_COM_RULE <> "") then
         l_FROM.extend;
         /* (20150112) Angel Ruiz */
@@ -308,8 +385,9 @@ SELECT
           pos_del_else := instr(cadena, 'ELSE');
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
+          condicion_pro := procesa_COM_RULE_lookup(condicion);
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || ' THEN NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) ELSE ' || trim(constante) || ' END';
+          valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) ELSE ' || trim(constante) || ' END';
         else
           valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
         end if;
@@ -322,14 +400,31 @@ SELECT
           FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
           LOOP
             l_WHERE.extend;
+            /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
+            /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || mitabla_look_up);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || table_columns_lkup(indx));
+            
+            SELECT DATA_TYPE INTO tipo_columna
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  mitabla_look_up and
+            COLUMN_NAME = TRIM(table_columns_lkup(indx));
             if (l_WHERE.count = 1) then
-               l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              if (instr(tipo_columna, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||', -3)' ||' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              end if;
             else
-               l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              if (instr(tipo_columna, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              else /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', -3)' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              end if;
             end if;
           END LOOP;
-        else
-          /* Solo hay un campo condicion */
+        else    /* Solo hay un campo condicion */
+          
           /* Miramos si la tabla con la que hay que hacer LookUp es una tabla de rangos */
           l_WHERE.extend;
           if (instr (reg_detalle_in.TABLE_LKUP,'RANGO') > 0) then
@@ -343,10 +438,26 @@ SELECT
               l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
             end if;
           else
-            if (l_WHERE.count = 1) then
-              l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
-            else
-              l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+            /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
+            /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || mitabla_look_up);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.TABLE_COLUMN_LKUP);
+            SELECT DATA_TYPE INTO tipo_columna
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  mitabla_look_up and
+            COLUMN_NAME = reg_detalle_in.TABLE_COLUMN_LKUP;
+            if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
+              if (instr(tipo_columna, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              end if;
+            else  /* sino es el primer campo del Where  */
+              if (instr(tipo_columna, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              else     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              end if;
             end if;
           end if;
         end if;
