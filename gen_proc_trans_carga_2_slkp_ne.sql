@@ -1999,6 +1999,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_DM || '.pkg_' || reg_tabla.TABLE_NAME || ' to app_mvnotc;');
     UTL_FILE.put_line(fich_salida_pkg, '/');
+    UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
 
     /******/
     /* INICIO DE LA GENERACION DEL sh de CARGA */

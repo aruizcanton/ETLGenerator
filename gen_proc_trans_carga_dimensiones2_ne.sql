@@ -8,7 +8,7 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D', 'I')
-    and TABLE_NAME in ('DMD_CIUDAD')
+    --and TABLE_NAME in ('DMD_CIUDAD')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -1379,6 +1379,7 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg, 'grant execute on app_mvnodm.pkg_' || reg_tabla.TABLE_NAME || ' to app_mvnotc;');
             UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_DM || '.pkg_' || nombre_proceso || ' to app_mvnotc;');
             UTL_FILE.put_line(fich_salida_pkg, '/');
+            UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
         
           
             /******/
@@ -2100,6 +2101,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' to app_mvnotc;');
             UTL_FILE.put_line(fich_salida_pkg, '/');
+            UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
         
           
             /******/

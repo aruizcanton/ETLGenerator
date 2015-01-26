@@ -188,7 +188,7 @@ BEGIN
       UTL_FILE.put_line(fich_salida_pkg, '/' );
       UTL_FILE.put_line(fich_salida_pkg, 'GRANT EXECUTE ON ' || OWNER_SA || '.pkg_' || nombre_proceso || ' TO ' || OWNER_SA);
       UTL_FILE.put_line(fich_salida_pkg, '/' );
-      UTL_FILE.put_line(fich_salida_pkg, '');
+      UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
       
       UTL_FILE.FCLOSE (fich_salida_pkg);
   END LOOP;
