@@ -10,8 +10,8 @@ SELECT
       MTDT_TC_SCENARIO, mtdt_modelo_logico
     WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
     trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and
-    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO');  
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -95,7 +95,7 @@ SELECT
   
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(30);
-  type lista_tablas_from is table of varchar(100);
+  type lista_tablas_from is table of varchar(200);
   type lista_condi_where is table of varchar(150);
 
   
@@ -335,7 +335,7 @@ SELECT
     table_columns_lkup  list_strings := list_strings();
     ie_column_lkup    list_strings := list_strings();
     tipo_columna  VARCHAR2(30);
-    mitabla_look_up VARCHAR2(30);
+    mitabla_look_up VARCHAR2(200);
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -346,36 +346,48 @@ SELECT
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         /* (20150126) Angel Ruiz. Primero recojo la tabla del modelo con la que se hace LookUp. NO puede ser tablas T_* sino su equivalesnte del modelo */
         dbms_output.put_line('ESTOY EN EL LOOKUP. Al principio');
-        if (regexp_count(reg_detalle_in.TABLE_LKUP,'^DMD_') > 0) then  /* Se trata de una dimension normal y corriente */
-          mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
-        elsif  (regexp_count(reg_detalle_in.TABLE_LKUP,'^T_') >0) then/* Se trata de una tabla T_ */
-          mitabla_look_up:='DMD_' || substr(reg_detalle_in.TABLE_LKUP,3);
-        else
-          mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
-        end if;
+        --if (regexp_count(reg_detalle_in.TABLE_LKUP,'^DMD_') > 0) then  /* Se trata de una dimension normal y corriente */
+        --  mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
+        --elsif  (regexp_count(reg_detalle_in.TABLE_LKUP,'^T_') >0) then/* Se trata de una tabla T_ */
+        --  mitabla_look_up:='DMD_' || substr(reg_detalle_in.TABLE_LKUP,3);
+        --elsif (regexp_count(reg_detalle_in.TABLE_LKUP,'^DMT_') >0) then /* Se trata de una tabla DMT_ */
+        --  mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
+        --elsif (regexp_count(reg_detalle_in.TABLE_LKUP,'^(') >0) then /* Se trata de una subquery */
+        --else
+        --  mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
+        --end if;
         --if (reg_detalle_in.LKUP_COM_RULE <> "") then
         l_FROM.extend;
-        /* (20150112) Angel Ruiz */
-        /* Puede ocurrir que se se tenga varias veces la misma LookUp pero para campo diferentes */
-        /* lo que se traduce en que hay que crear ALIAS */
-        /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM*/
-        v_encontrado:='N';
-        FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-        LOOP
-          --if (instr(l_FROM(indx),  reg_detalle_in.TABLE_LKUP, 0)) then
-          --regexp_count(reg_per_val.AGREGATION,'^BAN_',1,'i') >0
-          if (regexp_count(l_FROM(indx), reg_detalle_in.TABLE_LKUP) >0) then
-          --if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
-            /* La misma tabla ya estaba en otro lookup */
-            v_encontrado:='Y';
-          end if;
-        END LOOP;
-        if (v_encontrado='Y') then
-          v_alias := reg_detalle_in.TABLE_LKUP || '_' || l_FROM.count;
-          l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP || ' "' || v_alias || '"' ;
+        /* (20150130) Angel Ruiz */
+        /* Nueva incidencia. */
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+          /* Aparecen queries en lugar de tablas en la columna de nombre de tabla para LookUp */
+          v_alias := 'LKUP_' || l_FROM.count;
+          mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
+          l_FROM (l_FROM.last) := ', ' || mitabla_look_up;
         else
-          v_alias := reg_detalle_in.TABLE_LKUP;
-          l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+          /* (20150112) Angel Ruiz */
+          /* Puede ocurrir que se se tenga varias veces la misma LookUp pero para campo diferentes */
+          /* lo que se traduce en que hay que crear ALIAS */
+          /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM*/
+          v_encontrado:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            --if (instr(l_FROM(indx),  reg_detalle_in.TABLE_LKUP, 0)) then
+            --regexp_count(reg_per_val.AGREGATION,'^BAN_',1,'i') >0
+            if (regexp_count(l_FROM(indx), reg_detalle_in.TABLE_LKUP) >0) then
+            --if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
+              /* La misma tabla ya estaba en otro lookup */
+              v_encontrado:='Y';
+            end if;
+          END LOOP;
+          if (v_encontrado='Y') then
+            v_alias := reg_detalle_in.TABLE_LKUP || '_' || l_FROM.count;
+            l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP || ' "' || v_alias || '"' ;
+          else
+            v_alias := reg_detalle_in.TABLE_LKUP;
+            l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+          end if;
         end if;
         if (reg_detalle_in.LKUP_COM_RULE is not null) then
           /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
@@ -402,13 +414,13 @@ SELECT
             l_WHERE.extend;
             /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
-            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || mitabla_look_up);
-            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || table_columns_lkup(indx));
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
             
             SELECT DATA_TYPE INTO tipo_columna
             FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  mitabla_look_up and
-            COLUMN_NAME = TRIM(table_columns_lkup(indx));
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = TRIM(ie_column_lkup(indx));
             if (l_WHERE.count = 1) then
               if (instr(tipo_columna, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
@@ -440,12 +452,12 @@ SELECT
           else
             /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
-            dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || mitabla_look_up);
-            dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.TABLE_COLUMN_LKUP);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
             SELECT DATA_TYPE INTO tipo_columna
             FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  mitabla_look_up and
-            COLUMN_NAME = reg_detalle_in.TABLE_COLUMN_LKUP;
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
             if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
               if (instr(tipo_columna, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
@@ -468,7 +480,20 @@ SELECT
         end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
-        valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+        if (reg_detalle_in.LKUP_COM_RULE is not null) then
+          /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
+          cadena := trim(reg_detalle_in.LKUP_COM_RULE);
+          pos_del_si := instr(cadena, 'SI');
+          pos_del_then := instr(cadena, 'THEN');
+          pos_del_else := instr(cadena, 'ELSE');
+          pos_del_end := instr(cadena, 'END');  
+          condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
+          condicion_pro := procesa_COM_RULE_lookup(condicion);
+          constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
+          valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) ELSE ' || trim(constante) || ' END';
+        else
+          valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+        end if;
       when 'DLOAD' then
         valor_retorno :=  '    ' || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''';
       when 'DSYS' then
@@ -1100,7 +1125,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'    if (exis_partition = 0) then' );      
     UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la particion */'); 
     --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') UPDATE INDEXES'';');
-    UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+    UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
     UTL_FILE.put_line(fich_salida_pkg,'   end if;'); 
     UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
     UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
@@ -1956,7 +1981,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
     UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);    
     UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
-    UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || ' .T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
+    UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
     UTL_FILE.put_line(fich_salida_pkg, '        WITHOUT VALIDATION'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
