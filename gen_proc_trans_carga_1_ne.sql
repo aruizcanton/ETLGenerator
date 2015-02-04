@@ -1605,6 +1605,11 @@ begin
     UTL_FILE.put_line(fich_salida_load, 'BAN_FORZADO=${3}');
     UTL_FILE.put_line(fich_salida_load, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
     --UTL_FILE.put_line(fich_salida_load, 'echo "load_he_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+    UTL_FILE.put_line(fich_salida_load, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
+    UTL_FILE.put_line(fich_salida_load, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
+    UTL_FILE.put_line(fich_salida_load, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
+    UTL_FILE.put_line(fich_salida_load, 'fi');
+    UTL_FILE.put_line(fich_salida_load, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');
     UTL_FILE.put_line(fich_salida_load, 'echo "${0}" > ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${MVNO_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
@@ -1765,6 +1770,11 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, 'BAN_FORZADO=${3}');
     UTL_FILE.put_line(fich_salida_exchange, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
     --UTL_FILE.put_line(fich_salida_exchange, 'echo "load_ex_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+    UTL_FILE.put_line(fich_salida_exchange, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
+    UTL_FILE.put_line(fich_salida_exchange, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
+    UTL_FILE.put_line(fich_salida_exchange, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
+    UTL_FILE.put_line(fich_salida_exchange, 'fi');
+    UTL_FILE.put_line(fich_salida_exchange, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');    
     UTL_FILE.put_line(fich_salida_exchange, 'echo "${0}" > ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_exchange, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_exchange, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
