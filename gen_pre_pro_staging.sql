@@ -63,6 +63,7 @@ DECLARE
       OWNER_T                                VARCHAR2(60);
       OWNER_DM                            VARCHAR2(60);
       OWNER_MTDT                       VARCHAR2(60);
+      OWNER_TC                            VARCHAR2(60);
       nombre_proceso                      VARCHAR(30);
 
 
@@ -73,6 +74,7 @@ BEGIN
   SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
   SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
+  SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   /* (20141219) FIN*/
   OPEN dtd_interfaz_summary;
@@ -186,8 +188,8 @@ BEGIN
 /************/
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
       UTL_FILE.put_line(fich_salida_pkg, '/' );
-      UTL_FILE.put_line(fich_salida_pkg, 'GRANT EXECUTE ON ' || OWNER_SA || '.pkg_' || nombre_proceso || ' TO ' || OWNER_SA);
-      UTL_FILE.put_line(fich_salida_pkg, '/' );
+      UTL_FILE.put_line(fich_salida_pkg, 'GRANT EXECUTE ON ' || OWNER_SA || '.pkg_' || nombre_proceso || ' TO ' || OWNER_TC || ';');
+      --UTL_FILE.put_line(fich_salida_pkg, '/' );
       UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
       
       UTL_FILE.FCLOSE (fich_salida_pkg);
