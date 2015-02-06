@@ -530,7 +530,7 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' \'); 
     UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${MVNO_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
     UTL_FILE.put_line(fich_salida_sh, '  LOG=${MVNO_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
-    UTL_FILE.put_line(fich_salida_sh, '  BAD=${MVNO_DESCARTADOS}/' || 'DMDIST_' || reg_summary.COUNTRY || '_' || reg_summary.SOURCE || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+    UTL_FILE.put_line(fich_salida_sh, '  BAD=${MVNO_DESCARTADOS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
     UTL_FILE.put_line(fich_salida_sh, 'else');
     UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="${INTERFAZ}: No existe fichero a cargar. ' || '${MVNO_FUENTE}/' || nombre_interface_a_cargar || '."');
     UTL_FILE.put_line(fich_salida_sh, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
