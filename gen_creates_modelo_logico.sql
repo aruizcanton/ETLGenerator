@@ -220,7 +220,7 @@ BEGIN
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
                         cadena_values := 'NULL';
                       else
-                        cadena_values := '''NA''';
+                        cadena_values := '''NA#''';
                       end if;
                     end if;
                   WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
@@ -231,7 +231,7 @@ BEGIN
                     if (longitud_des_numerico > 8) then
                       cadena_values := '''NO APLICA''';
                     else
-                      cadena_values := '''NA''';
+                      cadena_values := '''NA#''';
                     end if;
                   ELSE
                     cadena_values := 'NULL';
@@ -249,7 +249,7 @@ BEGIN
                         if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
                           cadena_values := cadena_values || ', NULL';
                         else
-                          cadena_values := cadena_values || ', ''NA''';
+                          cadena_values := cadena_values || ', ''NA#''';
                         end if;
                     end if;
                   WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
@@ -260,7 +260,7 @@ BEGIN
                     if (longitud_des_numerico > 8) then
                       cadena_values := cadena_values || ', ''NO APLICA''';
                     else
-                      cadena_values := cadena_values || ', ''NA''';
+                      cadena_values := cadena_values || ', ''NA#''';
                     end if;
                   ELSE
                     cadena_values := cadena_values || ', NULL';
@@ -294,7 +294,7 @@ BEGIN
                         if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
                           cadena_values := 'NULL';
                         else
-                          cadena_values := '''GE''';
+                          cadena_values := '''GE#''';
                         end if;
                     end if;
                   WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
@@ -305,7 +305,7 @@ BEGIN
                     if (longitud_des_numerico > 7) then
                       cadena_values := '''GENERICO''';
                     else
-                      cadena_values := '''GE''';
+                      cadena_values := '''GE#''';
                     end if;
                   ELSE
                     cadena_values := 'NULL';
@@ -323,7 +323,7 @@ BEGIN
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
                         cadena_values := cadena_values || ', NULL';
                       else
-                        cadena_values := cadena_values || ', ''GE''';
+                        cadena_values := cadena_values || ', ''GE#''';
                       end if;
                     end if;
                   WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
@@ -334,7 +334,7 @@ BEGIN
                     if (longitud_des_numerico > 7) then
                       cadena_values := cadena_values || ', ''GENERICO''';
                     else
-                      cadena_values := cadena_values || ', ''GE''';
+                      cadena_values := cadena_values || ', ''GE#''';
                     end if;
                   ELSE
                     cadena_values := cadena_values || ', NULL';
@@ -368,7 +368,7 @@ BEGIN
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
                         cadena_values := 'NULL';
                       else
-                        cadena_values := '''NI''';
+                        cadena_values := '''NI#''';
                       end if;
                     end if;
                   WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
@@ -379,7 +379,7 @@ BEGIN
                     if (longitud_des_numerico > 11) then
                       cadena_values := '''NO INFORMADO''';
                     else
-                      cadena_values := '''NI''';
+                      cadena_values := '''NI#''';
                     end if;
                   ELSE
                     cadena_values := 'NULL';
@@ -397,7 +397,7 @@ BEGIN
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
                         cadena_values := cadena_values || ', NULL';
                       else                  
-                        cadena_values := cadena_values || ', ''NI''';
+                        cadena_values := cadena_values || ', ''NI#''';
                       end if;
                     end if;
                   WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
@@ -408,7 +408,7 @@ BEGIN
                     if (longitud_des_numerico > 11) then
                       cadena_values := cadena_values || ', ''NO INFORMADO''';
                     else
-                      cadena_values := cadena_values || ', ''NI''';
+                      cadena_values := cadena_values || ', ''NI#''';
                     end if;
                   ELSE
                     cadena_values := cadena_values || ', NULL';
