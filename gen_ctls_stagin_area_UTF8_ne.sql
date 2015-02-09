@@ -3,14 +3,14 @@ DECLARE
   CURSOR dtd_interfaz_summary
   IS
     SELECT 
-      CONCEPT_NAME,
-      SOURCE,
-      INTERFACE_NAME,
-      COUNTRY,
-      TYPE,
-      SEPARATOR,
-      LENGTH,
-      DELAYED
+      TRIM(CONCEPT_NAME) "CONCEPT_NAME",
+      TRIM(SOURCE) "SOURCE",
+      TRIM(INTERFACE_NAME) "INTERFACE_NAME",
+      TRIM(COUNTRY) "COUNTRY",
+      TRIM(TYPE) "TYPE",
+      TRIM(SEPARATOR) "SEPARATOR",
+      TRIM(LENGTH) "LENGTH",
+      TRIM(DELAYED) "DELAYED"
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFV_CU_MVNO','TRAFD_CU_MVNO','TRAFE_CU_MVNO');
@@ -20,19 +20,19 @@ DECLARE
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
     SELECT 
-      CONCEPT_NAME,
-      SOURCE,
-      COLUMNA,
-      KEY,
-      TYPE,
-      LENGTH,
-      NULABLE,
+      TRIM(CONCEPT_NAME) "CONCEPT_NAME",
+      TRIM(SOURCE) "SOURCE",
+      TRIM(COLUMNA) "COLUMNA",
+      TRIM(KEY) "KEY",
+      TRIM(TYPE) "TYPE",
+      TRIM(LENGTH) "LENGTH",
+      TRIM(NULABLE) "NULABLE",
       POSITION
     FROM
       MTDT_INTERFACE_DETAIL
     WHERE
-      CONCEPT_NAME = concep_name_in and
-      SOURCE = source_in
+      TRIM(CONCEPT_NAME) = concep_name_in and
+      TRIM(SOURCE) = source_in
     ORDER BY POSITION;
 
       reg_summary dtd_interfaz_summary%rowtype;
@@ -52,7 +52,7 @@ DECLARE
       fich_salida_sh                          UTL_FILE.file_type;
       nombre_fich                              VARCHAR(40);
       nombre_fich_sh                        VARCHAR(40);  
-      tipo_col                                      VARCHAR(150);
+      tipo_col                                      VARCHAR(300);
       nombre_interface_a_cargar   VARCHAR(150);
       nombre_flag_a_cargar            VARCHAR(150);
       pos_ini_pais                             PLS_integer;
@@ -64,6 +64,11 @@ DECLARE
       OWNER_DM                            VARCHAR2(60);
       OWNER_MTDT                       VARCHAR2(60);
       nombre_proceso                      VARCHAR(30);
+      parte_entera                              VARCHAR2(60);
+      parte_decimal                           VARCHAR2(60);
+      long_parte_entera                    PLS_integer;
+      long_parte_decimal                  PLS_integer;
+      mascara                                     VARCHAR2(250);
 
 
   
@@ -142,7 +147,35 @@ BEGIN
               end if;
             end if;
           WHEN reg_datail.TYPE = 'IM' THEN
-            tipo_col := '';
+            /* Tratamos el tema de los importes para que vengan con separador de miles el . y separador de decimales la , */
+            tipo_col:='';
+            mascara:='';
+            dbms_output.put_line('Estoy en el caso de IMPORTES');
+            parte_entera := substr(reg_datail.LENGTH, 1, instr(reg_datail.LENGTH, ',') -1);
+            dbms_output.put_line('Parte entera:' || parte_entera);
+            long_parte_entera := to_number(parte_entera);
+            parte_decimal := substr(reg_datail.LENGTH, instr(reg_datail.LENGTH, ',') +1);
+            dbms_output.put_line('Parte decimal:' || parte_decimal);
+            long_parte_decimal := to_number(parte_decimal);
+            dbms_output.put_line('La longitud de parte decimal:' || long_parte_decimal);
+            dbms_output.put_line('La longitud de parte entera:' || long_parte_entera);
+            for contador in 1 .. long_parte_entera-long_parte_decimal
+            loop
+              mascara := mascara || '9';
+            end loop;
+            for contador in 1 .. long_parte_decimal
+            loop
+              if contador = 1 then
+                mascara := mascara || 'D9';
+              else
+                mascara := mascara || '9';
+              end if;
+            end loop;
+            dbms_output.put_line('Despues del bucle');
+            dbms_output.put_line('Mascara: ' || mascara);
+            tipo_col := '"TO_NUMBER(:' || reg_datail.COLUMNA || ', ''' || mascara || ''', ''NLS_NUMERIC_CHARACTERS='''',.'''''')"';
+            dbms_output.put_line('Tipo de columna: ' || tipo_col);
+            --tipo_col :='';
           WHEN reg_datail.TYPE = 'TI' THEN
             tipo_col := 'CHAR (8)';
           END CASE;
