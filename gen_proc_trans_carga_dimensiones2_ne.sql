@@ -1483,7 +1483,8 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             UTL_FILE.put_line(fich_salida_load, '#Permite los acentos y U');
-            UTL_FILE.put_line(fich_salida_load, 'export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_load, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_load, 'export NLS_LANG');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
@@ -1648,7 +1649,8 @@ begin
             UTL_FILE.put_line(fich_salida_hist, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             UTL_FILE.put_line(fich_salida_hist, '#Permite los acentos y U');
-            UTL_FILE.put_line(fich_salida_hist, 'export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_hist, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_hist, 'export NLS_LANG');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
@@ -1813,7 +1815,8 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             UTL_FILE.put_line(fich_salida_exchange, '#Permite los acentos y U');
-            UTL_FILE.put_line(fich_salida_exchange, 'export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_exchange, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_exchange, 'export NLS_LANG');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
@@ -2221,7 +2224,8 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
             UTL_FILE.put_line(fich_salida_load, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
             UTL_FILE.put_line(fich_salida_load, '#Permite los acentos y U');
-            UTL_FILE.put_line(fich_salida_load, 'export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_load, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+            UTL_FILE.put_line(fich_salida_load, 'export NLS_LANG');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');

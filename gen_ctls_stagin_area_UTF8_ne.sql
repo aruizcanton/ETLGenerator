@@ -371,7 +371,8 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ');
     --UTL_FILE.put_line(fich_salida_sh, 'set -x');
     UTL_FILE.put_line(fich_salida_sh, '#Permite los acentos y U');
-    UTL_FILE.put_line(fich_salida_sh, 'export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+    UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+    UTL_FILE.put_line(fich_salida_sh, 'export NLS_LANG');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
