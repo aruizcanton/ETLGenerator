@@ -3,31 +3,32 @@ DECLARE
   CURSOR dtd_interfaz_summary
   IS
     SELECT 
-      CONCEPT_NAME,
-      SOURCE,
-      INTERFACE_NAME,
-      COUNTRY,
-      TYPE,
-      SEPARATOR,
-      LENGTH,
-      DELAYED
+      TRIM(CONCEPT_NAME) "CONCEPT_NAME",
+      TRIM(SOURCE) "SOURCE",
+      TRIM(INTERFACE_NAME) "INTERFACE_NAME",
+      TRIM(COUNTRY) "COUNTRY",
+      TRIM(TYPE) "TYPE",
+      TRIM(SEPARATOR) "SEPARATOR",
+      TRIM(LENGTH) "LENGTH",
+      TRIM(DELAYED) "DELAYED"
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
-    --and CONCEPT_NAME in ('TRAFV_CU_MVNO','TRAFD_CU_MVNO','TRAFE_CU_MVNO');
+    --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
     --AND DELAYED = 'S';
     --WHERE CONCEPT_NAME NOT IN ( 'EMPRESA', 'ESTADO_CEL', 'FINALIZACION_LLAMADA', 'POSICION_TRAZO_LLAMADA', 'TRONCAL', 'TIPO_REGISTRO', 'MSC');
   
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
     SELECT 
-      CONCEPT_NAME,
-      SOURCE,
-      COLUMNA,
-      KEY,
-      TYPE,
-      LENGTH,
-      NULABLE,
-      POSITION
+      TRIM(CONCEPT_NAME) "CONCEPT_NAME",
+      TRIM(SOURCE) "SOURCE",
+      TRIM(COLUMNA) "COLUMNA",
+      TRIM(KEY) "KEY",
+      TRIM(TYPE) "TYPE",
+      TRIM(LENGTH) "LENGTH",
+      TRIM(NULABLE) "NULABLE",
+      POSITION,
+      TRIM(FORMAT) "FORMAT"
     FROM
       MTDT_INTERFACE_DETAIL
     WHERE
@@ -52,7 +53,7 @@ DECLARE
       fich_salida_sh                          UTL_FILE.file_type;
       nombre_fich                              VARCHAR(40);
       nombre_fich_sh                        VARCHAR(40);  
-      tipo_col                                      VARCHAR(150);
+      tipo_col                                      VARCHAR(1000);
       nombre_interface_a_cargar   VARCHAR(150);
       nombre_flag_a_cargar            VARCHAR(150);
       pos_ini_pais                             PLS_integer;
@@ -65,6 +66,44 @@ DECLARE
       OWNER_MTDT                       VARCHAR2(60);
       nombre_proceso                      VARCHAR(30);
 
+  function procesa_campo_formateo (cadena_in in varchar2, nombre_campo_in in varchar2) return varchar2
+  is
+  lon_cadena integer;
+  cabeza                varchar2 (1000);
+  sustituto              varchar2(100);
+  cola                      varchar2(1000);    
+  pos                   PLS_integer;
+  pos_ant           PLS_integer;
+  posicion_ant           PLS_integer;
+  cadena_resul varchar(1000);
+  begin
+    dbms_output.put_line ('Entro en procesa_campo_formateo');
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if lon_cadena > 0 then
+      /* Busco el nombre del campo = */
+      sustituto := ':' || nombre_campo_in;
+      loop
+        dbms_output.put_line ('Entro en el LOOP de procesa_campo_formateo. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, nombre_campo_in, pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (nombre_campo_in));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        pos_ant := pos + (length (':' || nombre_campo_in));
+        dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
+        pos := pos_ant;
+      end loop;
+    end if;
+    return cadena_resul;
+  end;
 
   
 BEGIN
@@ -117,12 +156,36 @@ BEGIN
           EXIT WHEN dtd_interfaz_detail%NOTFOUND;
           CASE 
           WHEN reg_datail.TYPE = 'AN' THEN
-            tipo_col := 'CHAR (' || reg_datail.LENGTH || ')';
+            /*(20150116) Angel Ruiz. introduzco formateo en la columnas */
+            if (reg_datail.format is not null) then
+              /* Hay formateo de la columna */
+              tipo_col := 'CHAR (' || reg_datail.LENGTH || ') "' || procesa_campo_formateo (reg_datail.format, reg_datail.COLUMNA) || '"';
+            else
+              if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+                tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              elsif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
+                tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
+              else
+                tipo_col := 'CHAR (' || reg_datail.LENGTH || ')';
+              end if;
+            end if;
           WHEN reg_datail.TYPE = 'NU' THEN
             --tipo_col := 'TO_NUMBER (' || reg_datail.LENGTH || ')';
-            tipo_col := '';
+            /* (20160209) Angel Ruiz */
+            /* si el campo es COD_* entonces voy a ponerle un control para que si viene un NULL introduzca un valor -3 (NI#) */
+            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null) then
+              tipo_col := '"NVL(TRIM(:' || reg_datail.COLUMNA || '), -3)"';
+            else            
+              tipo_col := '';
+            end if;
           WHEN reg_datail.TYPE = 'DE' THEN
-            tipo_col := '';
+            /* (20160209) Angel Ruiz */
+            /* si el campo es COD_* entonces voy a ponerle un control para que si viene un NULL introduzca un valor -3 (NI#) */
+            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null) then
+              tipo_col := '"NVL(TRIM(:' || reg_datail.COLUMNA || '), -3)"';
+            else            
+              tipo_col := '';
+            end if;
           WHEN reg_datail.TYPE = 'FE' THEN
             if (reg_datail.LENGTH = 14) then
               /* (20141217) Angel Ruiz */
@@ -182,12 +245,36 @@ BEGIN
           num_column := num_column+1;
           CASE 
           WHEN reg_datail.TYPE = 'AN' THEN
-            tipo_col := 'CHAR';
+            /*(20150116) Angel Ruiz. introduzco formateo en la columnas */
+            if (reg_datail.format is not null) then
+              /* Hay formateo de la columna */
+              tipo_col := 'CHAR "' || procesa_campo_formateo (reg_datail.format, reg_datail.COLUMNA) || '"';
+            else
+              if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+                tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              elsif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
+                tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
+              else
+                tipo_col := 'CHAR';
+              end if;
+            end if;
           WHEN reg_datail.TYPE = 'NU' THEN
-            tipo_col := 'INTEGER EXTERNAL';
+            /* (20160209) Angel Ruiz */
+            /* si el campo es COD_* entonces voy a ponerle un control para que si viene un NULL introduzca un valor -3 (NI#) */
+            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null) then
+              tipo_col := 'INTEGER EXTERNAL "NVL(TRIM(:' || reg_datail.COLUMNA || '), -3)"';
+            else            
+              tipo_col := 'INTEGER EXTERNAL';
+            end if;
             --tipo_col := '';
           WHEN reg_datail.TYPE = 'DE' THEN
-            tipo_col := 'DECIMAL EXTERNAL';
+            /* (20160209) Angel Ruiz */
+            /* si el campo es COD_* entonces voy a ponerle un control para que si viene un NULL introduzca un valor -3 (NI#) */
+            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null) then
+              tipo_col := 'DECIMAL EXTERNAL "NVL(TRIM(:' || reg_datail.COLUMNA || '), -3)"';
+            else            
+              tipo_col := 'DECIMAL EXTERNAL';
+            end if;
             --tipo_col := '';
           WHEN reg_datail.TYPE = 'FE' THEN
             if (reg_datail.LENGTH = 14) then
