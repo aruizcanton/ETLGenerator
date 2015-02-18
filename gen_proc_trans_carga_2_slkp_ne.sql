@@ -10,8 +10,8 @@ SELECT
       MTDT_TC_SCENARIO, mtdt_modelo_logico
     WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
     trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and
-    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
 
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -390,6 +390,16 @@ SELECT
             l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
           end if;
         end if;
+
+        /* Miramos la parte de las condiciones */
+        /* Puede haber varios campos por los que hacer LookUp y por lo tanto JOIN */
+        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+        
+        /****************************************************************************/
+        /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL SELECT */
+        /****************************************************************************/
+
         if (reg_detalle_in.LKUP_COM_RULE is not null) then
           /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
           cadena := trim(reg_detalle_in.LKUP_COM_RULE);
@@ -402,14 +412,42 @@ SELECT
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
           valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) ELSE ' || trim(constante) || ' END';
         else
-          valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
+          /* Construyo el campo de SELECT */
+          if (table_columns_lkup.COUNT > 1) then      /* Hay varios campos de condicion */
+            valor_retorno := 'CASE WHEN (';
+            FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
+            LOOP
+              SELECT * INTO l_registro
+              FROM ALL_TAB_COLUMNS
+              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+              COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+                if (indx = 1) then
+                  valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                else
+                  valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                end if;
+              else 
+                if (indx = 1) then
+                  valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                else
+                  valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                end if;
+              end if;
+            END LOOP;
+            valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) END';
+          else
+            valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
+          end if;
+
         end if;
-        /* Miramos la parte de las condiciones */
-        /* Puede haber varios campos por los que hacer el JOIN */
-        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
-        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
-        if (table_columns_lkup.COUNT > 1) then
-          /* Hay varios campos de condicion */
+        
+        /****************************************************************************/
+        /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL WHERE */
+        /****************************************************************************/
+        
+        if (table_columns_lkup.COUNT > 1) then      /* Hay varios campos de condicion */
           FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
           LOOP
             l_WHERE.extend;
@@ -418,6 +456,7 @@ SELECT
             dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
             
+            /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
             SELECT * INTO l_registro
             FROM ALL_TAB_COLUMNS
             WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and

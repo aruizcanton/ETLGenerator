@@ -422,6 +422,48 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE;');
     end if;
     UTL_FILE.put_line (fich_salida_pkg, '  BEGIN');
+    /**********************************************************/
+    /* (20150217) Angel Ruiz. Incidencia debido a que no esta retornando bien el valor de LookUp cuando se hace LookUp por varios campos */
+    if (lkup_columns.COUNT > 1) then
+      UTL_FILE.put_line (fich_salida_pkg, '');
+      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
+      LOOP
+        SELECT * INTO l_registro
+        FROM ALL_TAB_COLUMNS
+        WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
+        COLUMN_NAME = trim(lkup_columns(indx));
+
+        if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+          if (indx = 1) then
+            UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN ' || 'IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
+          else
+            if (indx = lkup_columns.LAST) then
+              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' ||lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO'') then');
+            else
+              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' ||lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
+            end if;
+          end if;
+        else
+          if (indx = 1) then
+            UTL_FILE.put_line (fich_salida_pkg, '    ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+          else
+            if (indx = lkup_columns.LAST) then
+              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3) then');
+            else
+              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+            end if;
+          end if;
+        end if;
+      END LOOP;
+      UTL_FILE.put_line (fich_salida_pkg, '      l_row := -3;');
+      UTL_FILE.put_line (fich_salida_pkg, '  else');
+    end if;
+
+    UTL_FILE.put_line (fich_salida_pkg, '');
+
+    /*********************************************************/
+    
+    
     UTL_FILE.put_line (fich_salida_pkg, '    SELECT nvl(' || reg_lookup_in.VALUE || ', -2) INTO l_row');
     /*(20150130) Angel Ruiz */
     /* Nueva Incidencia. */
@@ -474,6 +516,12 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       --  UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in and ' || reg_lookup_in.TABLE_LKUP_COND || ';' );
       --end if;
     end if;
+    /* (20150217) Angel Ruiz. Incidencia debido a que no esta retornando bien el valor de LookUp cuando se hace LookUp por varios campos */
+    if (lkup_columns.COUNT > 1) then
+      UTL_FILE.put_line (fich_salida_pkg, '');
+      UTL_FILE.put_line (fich_salida_pkg, '  end if;');
+    end if;
+    /***********************************/
     UTL_FILE.put_line (fich_salida_pkg, '');
     UTL_FILE.put_line (fich_salida_pkg, '    RETURN l_row;');
     UTL_FILE.put_line (fich_salida_pkg, '');
