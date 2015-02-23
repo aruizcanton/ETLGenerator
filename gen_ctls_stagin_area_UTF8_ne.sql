@@ -447,7 +447,7 @@ BEGIN
     --UTL_FILE.put_line(fich_salida_sh, 'FECHA_HORA = ﻿`date +%d/%m/%Y\ %H:%M:%S`');
     --UTL_FILE.put_line(fich_salida_sh, 'echo "load_SA_' || reg_summary.CONCEPT_NAME || '" > ${MVNO_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_sh, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
-    UTL_FILE.put_line(fich_salida_sh, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
+    UTL_FILE.put_line(fich_salida_sh, 'if [ ! -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
     UTL_FILE.put_line(fich_salida_sh, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
     UTL_FILE.put_line(fich_salida_sh, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');
@@ -709,7 +709,7 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '');
     UTL_FILE.put_line(fich_salida_sh, 'echo "La carga de la tabla ' ||  'SA_' || reg_summary.CONCEPT_NAME || ' se ha realizado correctamente." >> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
     UTL_FILE.put_line(fich_salida_sh, '# Movemos el fichero cargado a /MVNO/MEX/DESTINO');    
-    UTL_FILE.put_line(fich_salida_sh, 'if ! [ -d ${MVNO_DESTINO}/${FCH_CARGA} ] ; then');
+    UTL_FILE.put_line(fich_salida_sh, 'if [ ! -d ${MVNO_DESTINO}/${FCH_CARGA} ] ; then');
     UTL_FILE.put_line(fich_salida_sh, '  mkdir ${MVNO_DESTINO}/${FCH_CARGA}');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
     UTL_FILE.put_line(fich_salida_sh, 'mv ${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' ${MVNO_DESTINO}/${FCH_CARGA} >> ${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
