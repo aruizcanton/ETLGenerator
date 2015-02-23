@@ -70,7 +70,8 @@ cursor MTDT_TABLA
   CURSOR MTDT_TC_LOOKUP (table_name_in IN VARCHAR2)
   IS
     SELECT
-      DISTINCT
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(TABLE_COLUMN) "TABLE_COLUMN",
       TRIM(TABLE_BASE_NAME) "TABLE_BASE_NAME",
       TRIM(TABLE_LKUP) "TABLE_LKUP",
       TABLE_COLUMN_LKUP "TABLE_COLUMN_LKUP",
@@ -121,13 +122,17 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   nombre_fich_exchange            VARCHAR2(60);
   nombre_fich_pkg                      VARCHAR2(60);
   lista_scenarios_presentes                                    list_strings := list_strings();
+  lista_lkup                                    list_strings := list_strings();
   campo_filter                                VARCHAR2(2000);
-  nombre_tabla_reducido           VARCHAR2(30);
-  OWNER_SA                             VARCHAR2(60);
-  OWNER_T                                VARCHAR2(60);
-  OWNER_DM                            VARCHAR2(60);
+  nombre_tabla_reducido							VARCHAR2(30);
+  OWNER_SA                         VARCHAR2(60);
+  OWNER_T                          VARCHAR2(60);
+  OWNER_DM                         VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
-
+  nombre_funcion                   VARCHAR2(100);
+  v_encontrado											VARCHAR2(1):= 'N';
+  v_contador                        PLS_INTEGER:=0;
+	
 
   function split_string_coma ( cadena_in in varchar2) return list_strings
   is
@@ -195,7 +200,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         /* La tabla de LookUp puede ser una SELECT y no solo una tabla */
         if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
           /* Aparecen queries en lugar de tablas para LookUp */
-          v_nombre_func_lookup := 'LK_' || reg_detalle_in.VALUE;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
+          v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
         else
             v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_LKUP;  /* Llamo a mi funcion de LookUp esta concatenacion */
         end if;
@@ -356,13 +361,14 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     mitabla_look_up VARCHAR2(200);
     v_nombre_func_lookup             VARCHAR2(40);
     v_nombre_tabla                          VARCHAR2(30);
+    l_registro          ALL_TAB_COLUMNS%rowtype;
 
   begin
     /* Se trata de hacer el LOOK UP con la tabla dimension */
     /* (20150130) Angel Ruiz . Nueva incidencia. */
     if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then
       /* Aparecen queries en lugar de tablas para LookUp */
-      v_nombre_func_lookup := 'LK_' || reg_lookup_in.VALUE;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
+      v_nombre_func_lookup := 'LK_' || reg_lookup_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo destino del LookUp */
       v_nombre_tabla := reg_lookup_in.TABLE_BASE_NAME;  /* Si lo que tengo es una SELECT tengo que recurrir al nombre de la tabla BASE para posteriormente saber el tipo de campo  */
     else
       v_nombre_func_lookup := 'LK_' || reg_lookup_in.TABLE_LKUP;  /* Llamo a mi funcion de LookUp esta concatenacion */
@@ -385,10 +391,10 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || ie_lkup_columns(indx) || '%TYPE';
           end if;
         END LOOP;
-        valor_retorno := valor_retorno || ') return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.VALUE || '%TYPE RESULT_CACHE';
+        valor_retorno := valor_retorno || ') return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE';
         UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
       else        
-        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || reg_lookup_in.IE_COLUMN_LKUP || '%TYPE) return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE';
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || reg_lookup_in.IE_COLUMN_LKUP || '%TYPE) return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE';
         UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
       end if;
     else
@@ -417,7 +423,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     /* Se trata de hacer el LOOK UP con la tabla dimension */
     /* (20150130) Angel Ruiz . Nueva incidencia. */
     if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then
-      UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.VALUE || '%TYPE;');
+      UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE;');
     else
       UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE;');
     end if;
@@ -445,7 +451,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           end if;
         else
           if (indx = 1) then
-            UTL_FILE.put_line (fich_salida_pkg, '    ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+            UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
           else
             if (indx = lkup_columns.LAST) then
               UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3) then');
@@ -804,17 +810,47 @@ begin
     /******/
     /* COMIEZO LA GENERACION DEL PACKAGE DEFINITION */
     /******/
-        /* Primero de todo miro si hay funciones de LOOKUP para crear */
+    
+    /* Primero de todo miro si hay funciones de LOOKUP para crear */
+    lista_lkup.delete;
+    v_contador:=0;
     open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
     loop
       fetch MTDT_TC_LOOKUP
       into reg_lookup;
       exit when MTDT_TC_LOOKUP%NOTFOUND;
+      if (instr(reg_lookup.TABLE_LKUP, 'SELECT ') > 0) then
+      	/* Se trata de una LookUp con una SELECT en lugar de una Tabla */
+      	nombre_funcion := 'LK_' || reg_lookup.TABLE_COLUMN;
+      else
+      	nombre_funcion := 'LK_' || reg_lookup.TABLE_LKUP;
+      end if;
       /* Se trata de hacer el LOOK UP con la tabla dimension */
-      prototipo_fun := genera_encabezado_funcion_pkg (reg_lookup);
-      UTL_FILE.put_line(fich_salida_pkg,'');
-      UTL_FILE.put_line(fich_salida_pkg, prototipo_fun);
-      
+      /* Buscamos si la funcion de lookup ya la hemos generado, ya que si ya esta generada no hay que generarla de nuevo */
+    	v_encontrado := 'N';
+      if (v_contador = 0) then
+      	lista_lkup.EXTEND;
+      	lista_lkup (lista_lkup.last) := nombre_funcion;
+      	prototipo_fun := genera_encabezado_funcion_pkg (reg_lookup);
+	      UTL_FILE.put_line(fich_salida_pkg,'');
+	      UTL_FILE.put_line(fich_salida_pkg, prototipo_fun);
+        v_contador:=v_contador+1;
+      else
+        for indx in lista_lkup.FIRST .. lista_lkup.LAST
+        loop
+          if (lista_lkup(indx) = nombre_funcion) then
+            v_encontrado := 'Y';
+          end if;
+        end loop;
+        if (v_encontrado = 'N') then
+          lista_lkup.EXTEND;
+          lista_lkup (lista_lkup.last) := nombre_funcion;
+          prototipo_fun := genera_encabezado_funcion_pkg (reg_lookup);
+          UTL_FILE.put_line(fich_salida_pkg,'');
+          UTL_FILE.put_line(fich_salida_pkg, prototipo_fun);
+        end if;
+        v_contador:=v_contador+1;
+      end if;
     end loop;
     close MTDT_TC_LOOKUP;
 
@@ -915,6 +951,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '/' );
 
     /* GENERACION DEL PACKAGE BODY */
+    
     UTL_FILE.put_line(fich_salida_pkg,'CREATE OR REPLACE PACKAGE BODY ' || OWNER_DM || '.pkg_' || reg_scenario.TABLE_NAME || ' AS');
     UTL_FILE.put_line(fich_salida_pkg,'');
 
@@ -958,15 +995,47 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;'); 
   
     /* Primero de todo miro si tengo que generar los cuerpos de las funciones de LOOKUP */
+    lista_lkup.delete;
+    v_contador:=0;
     open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
     loop
       fetch MTDT_TC_LOOKUP
       into reg_lookup;
       exit when MTDT_TC_LOOKUP%NOTFOUND;
+      if (instr(reg_lookup.TABLE_LKUP, 'SELECT ') > 0) then
+      	/* Se trata de una LookUp con una SELECT en lugar de una Tabla */
+      	nombre_funcion := 'LK_' || reg_lookup.TABLE_COLUMN;
+      else
+      	nombre_funcion := 'LK_' || reg_lookup.TABLE_LKUP;
+      end if;
       /* Se trata de hacer el LOOK UP con la tabla dimension */
-      genera_cuerpo_funcion_pkg (reg_lookup);      
+      /* Buscamos si la funcion de lookup ya la hemos generado, ya que si ya esta generada no hay que generarla de nuevo */
+    	v_encontrado := 'N';
+      if (v_contador = 0) then
+      	lista_lkup.EXTEND;
+      	lista_lkup (lista_lkup.last) := nombre_funcion;
+        genera_cuerpo_funcion_pkg (reg_lookup);
+        v_contador:=v_contador+1;
+      else
+        for indx in lista_lkup.FIRST .. lista_lkup.LAST
+        loop
+          if (lista_lkup(indx) = nombre_funcion) then
+            v_encontrado := 'Y';
+          end if;
+        end loop;
+        if (v_encontrado = 'N') then
+          lista_lkup.EXTEND;
+          lista_lkup (lista_lkup.last) := nombre_funcion;
+          genera_cuerpo_funcion_pkg (reg_lookup);
+        end if;
+        v_contador:=v_contador+1;
+      end if;
     end loop;
     close MTDT_TC_LOOKUP;
+    /********************************************/
+
+    /********************************************/
+    
     /* Segundo de todo miro si tengo que generar los cuerpos de las funciones de FUNCTION */
     open MTDT_TC_FUNCTION (reg_tabla.TABLE_NAME);
     loop
