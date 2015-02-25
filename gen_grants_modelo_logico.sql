@@ -41,6 +41,7 @@ DECLARE
   TABLESPACE_SA                  VARCHAR2(60);
   OWNER_TC                            VARCHAR2(60);
   OWNER_DWH                         VARCHAR2(60);
+  OWNER_RD                            VARCHAR2(60);
   
   
 BEGIN
@@ -52,6 +53,7 @@ BEGIN
   SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
   SELECT VALOR INTO OWNER_DWH FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DWH';
+  SELECT VALOR INTO OWNER_RD FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_RD';
   /* (20150119) FIN*/
 
   SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_LOGICO;
@@ -67,11 +69,12 @@ BEGIN
       INTO r_mtdt_modelo_logico_TABLA;
       EXIT WHEN c_mtdt_modelo_logico_TABLA%NOTFOUND;
       nombre_tabla_reducido := substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
-      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_TC || ';');
-      DBMS_OUTPUT.put_line('GRANT select  on app_mvnodm.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_DWH || ';');
+      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_TC || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_DWH || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_RD || ';');
       /* Ahora creamos para la tabla TEMPORAL pero solo para aquellas que no se van a cargar como carga inicial */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
-        DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.T_' || nombre_tabla_reducido || ' to ' || OWNER_TC || ';');
+        DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ' to ' || OWNER_TC || ';');
       end if;
       DBMS_OUTPUT.put_line('');
       

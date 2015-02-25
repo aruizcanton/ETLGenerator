@@ -24,7 +24,8 @@ DECLARE
   OWNER_MTDT                       VARCHAR2(60);
   TABLESPACE_SA                  VARCHAR2(60);
   OWNER_TC                            VARCHAR2(60);
-  OWNER_DWH                         VARCHAR2(60);  
+  OWNER_DWH                         VARCHAR2(60);
+  OWNER_RD                            VARCHAR2(60);
 BEGIN
 
   /* (20150119) ANGEL RUIZ*/
@@ -35,6 +36,7 @@ BEGIN
   SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
   SELECT VALOR INTO OWNER_DWH FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DWH';
+  SELECT VALOR INTO OWNER_RD FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_RD';
   /* (20150119) FIN*/
 
   SELECT COUNT(*) INTO num_filas FROM MTDT_PERMITED_VALUES;
@@ -50,8 +52,9 @@ BEGIN
       INTO reg_per_val;
       EXIT WHEN dtd_permited_values%NOTFOUND;
       --clave_foranea :=0;
-      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_TC || ';');
-      DBMS_OUTPUT.put_line('GRANT select  on app_mvnodm.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_DWH || ';');
+      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_TC || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_DWH || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_RD || ';');
       DBMS_OUTPUT.put_line('');
     END LOOP;
     CLOSE dtd_permited_values;
