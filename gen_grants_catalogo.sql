@@ -7,7 +7,7 @@ DECLARE
       ID_LIST,
       AGREGATION,
       MAX(LENGTH(VALUE)) LONGITUD
-    FROM METADATO.MTDT_PERMITED_VALUES
+    FROM MTDT_PERMITED_VALUES
     WHERE ITEM_NAME not in ('TIPO_ENVIO', 'TIPO_SERVICIO')
     GROUP BY 
       ITEM_NAME,
@@ -18,9 +18,26 @@ DECLARE
   num_filas INTEGER; /* ALMACENAREMOS EL NUMERO DE FILAS DE LA TABLA MTDT_PERMITED_VALUES  */
   longitud_campo INTEGER;
   clave_foranea INTEGER;  /* 0 Si la tabla no tiene clave foranea. 1 si la tiene  */
+  OWNER_SA                             VARCHAR2(60);
+  OWNER_T                                VARCHAR2(60);
+  OWNER_DM                            VARCHAR2(60);
+  OWNER_MTDT                       VARCHAR2(60);
+  TABLESPACE_SA                  VARCHAR2(60);
+  OWNER_TC                            VARCHAR2(60);
+  OWNER_DWH                         VARCHAR2(60);  
 BEGIN
 
-  SELECT COUNT(*) INTO num_filas FROM METADATO.MTDT_PERMITED_VALUES;
+  /* (20150119) ANGEL RUIZ*/
+  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION*/
+  SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
+  SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
+  SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
+  SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
+  SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  SELECT VALOR INTO OWNER_DWH FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DWH';
+  /* (20150119) FIN*/
+
+  SELECT COUNT(*) INTO num_filas FROM MTDT_PERMITED_VALUES;
   /* COMPROBAMOS QUE TENEMOS FILAS EN NUESTRA TABLA MTDT_PERMITED_VALUES  */
   IF num_filas > 0 THEN
     /* hay filas en la tabla y por lo tanto el proceso tiene cosas que hacer  */
@@ -33,8 +50,8 @@ BEGIN
       INTO reg_per_val;
       EXIT WHEN dtd_permited_values%NOTFOUND;
       --clave_foranea :=0;
-      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.DMD_' || reg_per_val.ITEM_NAME || ' to app_mvnotc;');
-      DBMS_OUTPUT.put_line('GRANT select  on app_mvnodm.DMD_' || reg_per_val.ITEM_NAME || ' to app_mvnodwh;');
+      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_TC || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on app_mvnodm.DMD_' || reg_per_val.ITEM_NAME || ' to ' || OWNER_DWH || ';');
       DBMS_OUTPUT.put_line('');
     END LOOP;
     CLOSE dtd_permited_values;

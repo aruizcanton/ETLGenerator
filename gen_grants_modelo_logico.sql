@@ -7,7 +7,7 @@ DECLARE
       TRIM(TABLE_NAME) "TABLE_NAME",
       TRIM(TABLESPACE) "TABLESPACE",
       TRIM(CI) "CI"
-    FROM METADATO.MTDT_MODELO_LOGICO
+    FROM MTDT_MODELO_LOGICO
     WHERE CI <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
 
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
@@ -18,7 +18,7 @@ DECLARE
       DATA_TYPE,
       PK,
       CI
-    FROM METADATO.MTDT_MODELO_LOGICO
+    FROM MTDT_MODELO_LOGICO
     WHERE
       TRIM(TABLE_NAME) = table_name_in;
 
@@ -34,10 +34,27 @@ DECLARE
   cadena_values VARCHAR2(255);
   concept_name VARCHAR2 (30);
   nombre_tabla_reducido VARCHAR2(30);
+  OWNER_SA                             VARCHAR2(60);
+  OWNER_T                                VARCHAR2(60);
+  OWNER_DM                            VARCHAR2(60);
+  OWNER_MTDT                       VARCHAR2(60);
+  TABLESPACE_SA                  VARCHAR2(60);
+  OWNER_TC                            VARCHAR2(60);
+  OWNER_DWH                         VARCHAR2(60);
   
   
 BEGIN
-  SELECT COUNT(*) INTO num_filas FROM METADATO.MTDT_MODELO_LOGICO;
+  /* (20150119) ANGEL RUIZ*/
+  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION*/
+  SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
+  SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
+  SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
+  SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
+  SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  SELECT VALOR INTO OWNER_DWH FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DWH';
+  /* (20150119) FIN*/
+
+  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_LOGICO;
   /* COMPROBAMOS QUE TENEMOS FILAS EN NUESTRA TABLA MTDT_MODELO_LOGICO  */
   IF num_filas > 0 THEN
     /* hay filas en la tabla y por lo tanto el proceso tiene cosas que hacer  */
@@ -50,11 +67,11 @@ BEGIN
       INTO r_mtdt_modelo_logico_TABLA;
       EXIT WHEN c_mtdt_modelo_logico_TABLA%NOTFOUND;
       nombre_tabla_reducido := substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
-      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to app_mvnotc;');
-      DBMS_OUTPUT.put_line('GRANT select  on app_mvnodm.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to app_mvnodwh;');
+      DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_TC || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on app_mvnodm.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_DWH || ';');
       /* Ahora creamos para la tabla TEMPORAL pero solo para aquellas que no se van a cargar como carga inicial */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
-        DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.T_' || nombre_tabla_reducido || ' to app_mvnotc;');
+        DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on app_mvnodm.T_' || nombre_tabla_reducido || ' to ' || OWNER_TC || ';');
       end if;
       DBMS_OUTPUT.put_line('');
       

@@ -68,7 +68,7 @@ BEGIN
     FETCH dtd_interfaz_summary
       INTO reg_summary;
       EXIT WHEN dtd_interfaz_summary%NOTFOUND;  
-      DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' CASCADE CONSTRAINTS;');
+      --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' CASCADE CONSTRAINTS;');
       DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
       DBMS_OUTPUT.put_line('(');
       OPEN dtd_interfaz_detail (reg_summary.CONCEPT_NAME, reg_summary.SOURCE);
