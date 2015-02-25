@@ -614,13 +614,13 @@ BEGIN
     --end if;
     UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
     --UTL_FILE.put_line(fich_salida_sh, 'if [ -f ${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ] && [ -f ${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ] ; then');
-    UTL_FILE.put_line(fich_salida_sh, 'if [ -f ${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' ] && [ -f ${MVNO_FUENTE}/' || nombre_flag_a_cargar || ' ] ; then');    
-    UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' \'); 
+    UTL_FILE.put_line(fich_salida_sh, 'if [ -f ${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ] && [ -f ${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ] ; then');    
+    UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
     UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${MVNO_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
     UTL_FILE.put_line(fich_salida_sh, '  LOG=${MVNO_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
     UTL_FILE.put_line(fich_salida_sh, '  BAD=${MVNO_DESCARTADOS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
     UTL_FILE.put_line(fich_salida_sh, 'else');
-    UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="${INTERFAZ}: No existe fichero a cargar. ' || '${MVNO_FUENTE}/' || nombre_interface_a_cargar || '."');
+    UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="${INTERFAZ}: No existe fichero a cargar. ' || '${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
     UTL_FILE.put_line(fich_salida_sh, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
     UTL_FILE.put_line(fich_salida_sh, '  echo ${SUBJECT} >> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
     UTL_FILE.put_line(fich_salida_sh, '  echo `date` >> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
@@ -712,8 +712,8 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'if [ ! -d ${MVNO_DESTINO}/${FCH_CARGA} ] ; then');
     UTL_FILE.put_line(fich_salida_sh, '  mkdir ${MVNO_DESTINO}/${FCH_CARGA}');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
-    UTL_FILE.put_line(fich_salida_sh, 'mv ${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' ${MVNO_DESTINO}/${FCH_CARGA} >> ${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    UTL_FILE.put_line(fich_salida_sh, 'mv ${MVNO_FUENTE}/' || nombre_flag_a_cargar || ' ${MVNO_DESTINO}/${FCH_CARGA} >> ${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    UTL_FILE.put_line(fich_salida_sh, 'mv ${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ${MVNO_DESTINO}/${FCH_CARGA} >> ${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    UTL_FILE.put_line(fich_salida_sh, 'mv ${MVNO_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ${MVNO_DESTINO}/${FCH_CARGA} >> ${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
     UTL_FILE.put_line(fich_salida_sh, 'exit 0');    
     /******/
     /* FIN DE LA GENERACION DEL sh de CARGA */
