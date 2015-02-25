@@ -7,7 +7,7 @@ DECLARE
       TRIM(TABLE_NAME) "TABLE_NAME",
       TRIM(TABLESPACE) "TABLESPACE",
       TRIM(CI) "CI"
-    FROM METADATO.MTDT_MODELO_LOGICO
+    FROM MTDT_MODELO_LOGICO
     WHERE CI <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
 
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
@@ -20,7 +20,7 @@ DECLARE
       CI,
       TRIM(VDEFAULT) "VDEFAULT",
       TRIM(TABLESPACE) "TABLESPACE"
-    FROM METADATO.MTDT_MODELO_LOGICO
+    FROM MTDT_MODELO_LOGICO
     WHERE
       TRIM(TABLE_NAME) = table_name_in;
 
@@ -36,14 +36,31 @@ DECLARE
   cadena_values VARCHAR2(500);
   concept_name VARCHAR2 (30);
   nombre_tabla_reducido VARCHAR2(30);
+  v_nombre_particion VARCHAR2(30);
   pos_abre_paren PLS_integer;
   pos_cierra_paren PLS_integer;
   longitud_des varchar2(5);
   longitud_des_numerico PLS_integer;
   
+  OWNER_SA                             VARCHAR2(60);
+  OWNER_T                                VARCHAR2(60);
+  OWNER_DM                            VARCHAR2(60);
+  OWNER_MTDT                       VARCHAR2(60);
+  TABLESPACE_DIM                VARCHAR2(60);
   
 BEGIN
-  SELECT COUNT(*) INTO num_filas FROM METADATO.MTDT_MODELO_LOGICO;
+
+  /* (20141219) ANGEL RUIZ*/
+  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION*/
+  SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
+  SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
+  SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
+  SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
+  SELECT VALOR INTO TABLESPACE_DIM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_DIM';
+  
+  /* (20141219) FIN*/
+
+  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_LOGICO;
   /* COMPROBAMOS QUE TENEMOS FILAS EN NUESTRA TABLA MTDT_MODELO_LOGICO  */
   IF num_filas > 0 THEN
     /* hay filas en la tabla y por lo tanto el proceso tiene cosas que hacer  */
@@ -56,8 +73,8 @@ BEGIN
       INTO r_mtdt_modelo_logico_TABLA;
       EXIT WHEN c_mtdt_modelo_logico_TABLA%NOTFOUND;
       nombre_tabla_reducido := substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
-      DBMS_OUTPUT.put_line('DROP TABLE APP_MVNODM.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' CASCADE CONSTRAINTS;');
-      DBMS_OUTPUT.put_line('CREATE TABLE APP_MVNODM.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
+      --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' CASCADE CONSTRAINTS;');
+      DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
       DBMS_OUTPUT.put_line('(');
       concept_name := substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 5);
       OPEN c_mtdt_modelo_logico_COLUMNA (r_mtdt_modelo_logico_TABLA.TABLE_NAME);
@@ -114,7 +131,9 @@ BEGIN
       --DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_COLUMNA.TABLESPACE);
       if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMF_',1,'i') >0)  then  /* Se trata de una tabla de HECHOS  */
         --  /* Hay que particonarla */
-        DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE);
+        if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
+          DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE);
+        end if;
         --  if (r_mtdt_modelo_logico_TABLA.TABLE_NAME='DMF_PARQUE_MVNO') then
         --    DBMS_OUTPUT.put_line('TABLESPACE ' || 'DWTBSP_D_MVNO_PARQUE');
         --    end if;
@@ -137,17 +156,28 @@ BEGIN
         --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate-1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate,'YYYYMMDD') || '),');   
         --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+1,'YYYYMMDD') || '),');   
         --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate+1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+2,'YYYYMMDD') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate+2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+3,'YYYYMMDD') || ')');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+3,'YYYYMMDD') || ')');   
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate+2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+3,'YYYYMMDD') || ')');  
+        /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
+        if (length(nombre_tabla_reducido) <= 18) then
+          v_nombre_particion := 'PA_' || nombre_tabla_reducido;
+        else
+          v_nombre_particion := nombre_tabla_reducido;
+        end if;
+        /********/
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+3,'YYYYMMDD') || ')');   
         DBMS_OUTPUT.put_line(');');
       else
         --DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_COLUMNA.TABLESPACE || ';');
         --DBMS_OUTPUT.put_line('TABLESPACE ' || 'DWTBSP_D_MVNO_DIM' || ';');
-        DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE || ';');
+        if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
+          DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE || ';');
+        else
+          DBMS_OUTPUT.put_line(';');
+        end if;
       end if;
       --DBMS_OUTPUT.put_line(';');
       lista_pk.DELETE;      /* Borramos los elementos de la lista */
@@ -156,8 +186,8 @@ BEGIN
       /* Ahora creamos la tabla TEMPORAL pero solo para aquellas que no se van a cargar como carga inicial */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
         /* Aquellas que no tienen ningún tipo de carga inicial */
-        DBMS_OUTPUT.put_line('DROP TABLE APP_MVNODM.T_' || nombre_tabla_reducido || ' CASCADE CONSTRAINTS;');
-        DBMS_OUTPUT.put_line('CREATE TABLE APP_MVNODM.T_' || nombre_tabla_reducido);
+        --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ' CASCADE CONSTRAINTS;');
+        DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
         DBMS_OUTPUT.put_line('(');
         concept_name := substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 5);
         OPEN c_mtdt_modelo_logico_COLUMNA (r_mtdt_modelo_logico_TABLA.TABLE_NAME);
@@ -191,7 +221,11 @@ BEGIN
           END LOOP;
         END IF;
         DBMS_OUTPUT.put_line(')');  /* Parentesis final del create */
-        DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE || ';');
+        if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
+          DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE || ';');
+        else
+          DBMS_OUTPUT.put_line(';');
+        end if;
         --if (r_mtdt_modelo_logico_TABLA.TABLE_NAME='DMF_PARQUE_MVNO') then
         --  DBMS_OUTPUT.put_line('TABLESPACE ' || 'DWTBSP_D_MVNO_PARQUE;');
         --elsif (r_mtdt_modelo_logico_TABLA.TABLE_NAME='DMF_RECARGAS_MVNO') then
@@ -218,13 +252,13 @@ BEGIN
         if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMD_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0) then
           /* Solo si se trata de una dimension generamos los inserts por defecto y la secuencia */
           if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
-            DBMS_OUTPUT.put_line('DROP SEQUENCE APP_MVNODM.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
-            DBMS_OUTPUT.put_line('CREATE SEQUENCE APP_MVNODM.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
+            --DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
+            DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
             DBMS_OUTPUT.put_line('MINVALUE 1 START WITH 1 INCREMENT BY 1;');
           end if;
           DBMS_OUTPUT.put_line('');        
           /* Primero el INSERT "NO APLICA" */
-          DBMS_OUTPUT.put_line('INSERT INTO APP_MVNODM.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
+          DBMS_OUTPUT.put_line('INSERT INTO ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
           DBMS_OUTPUT.put_line('(');
           OPEN c_mtdt_modelo_logico_COLUMNA (r_mtdt_modelo_logico_TABLA.TABLE_NAME);
           primera_col := 1;
@@ -310,7 +344,7 @@ BEGIN
           DBMS_OUTPUT.put_line('(' || cadena_values || ');');
           CLOSE c_mtdt_modelo_logico_COLUMNA;
           /* Siguiente insert "GENERICO" */
-          DBMS_OUTPUT.put_line('INSERT INTO APP_MVNODM.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
+          DBMS_OUTPUT.put_line('INSERT INTO ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
           DBMS_OUTPUT.put_line('(');
           OPEN c_mtdt_modelo_logico_COLUMNA (r_mtdt_modelo_logico_TABLA.TABLE_NAME);
           primera_col := 1;
@@ -396,7 +430,7 @@ BEGIN
           DBMS_OUTPUT.put_line('(' || cadena_values || ');');
           CLOSE c_mtdt_modelo_logico_COLUMNA;
           /* Siguiente INSERT "NO INFORMADO" */
-          DBMS_OUTPUT.put_line('INSERT INTO APP_MVNODM.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
+          DBMS_OUTPUT.put_line('INSERT INTO ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
           DBMS_OUTPUT.put_line('(');
           OPEN c_mtdt_modelo_logico_COLUMNA (r_mtdt_modelo_logico_TABLA.TABLE_NAME);
           primera_col := 1;

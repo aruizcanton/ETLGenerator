@@ -49,8 +49,8 @@ BEGIN
       INTO reg_per_val;
       EXIT WHEN dtd_permited_values%NOTFOUND;
       clave_foranea :=0;
-      DBMS_OUTPUT.put_line('');
-      DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' CASCADE CONSTRAINTS;');
+      --DBMS_OUTPUT.put_line('');
+      --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' CASCADE CONSTRAINTS;');
       DBMS_OUTPUT.put_line('');
       DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME);
       DBMS_OUTPUT.put_line('(');
