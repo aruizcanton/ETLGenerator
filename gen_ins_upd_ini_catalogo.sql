@@ -2,13 +2,13 @@ DECLARE
   CURSOR  CUR_dtd_permited_values  
   is
     select 
-      ID_LIST,
-      CVE,
-      ITEM_NAME,
-      VALUE,
+      TRIM(ID_LIST) "ID_LIST",
+      TRIM(CVE) "CVE",
+      TRIM(ITEM_NAME) "ITEM_NAME",
+      TRIM(VALUE) "VALUE",
       SUBSTRC(DESCRIPTION,0,100) DESCRIPTION,
-      AGREGATION,
-      VALUE_AGREGATION,
+      TRIM(AGREGATION) "AGREGATION",
+      TRIM(VALUE_AGREGATION) "VALUE_AGREGATION",
       FCH_REGISTRO,
       FCH_MODIFICACION
     FROM  MTDT_PERMITED_VALUES
@@ -75,7 +75,9 @@ BEGIN
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          end if;
         else
           DBMS_OUTPUT.put_line('ID_LIST,');
         end if;
@@ -92,7 +94,9 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          end if;
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''',');
         end if;
@@ -133,7 +137,9 @@ BEGIN
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          end if;
         else
           DBMS_OUTPUT.put_line('ID_LIST,');  
         end if;
@@ -155,7 +161,9 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          end if;
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''','); 
         end if;
@@ -224,7 +232,9 @@ BEGIN
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          end if;
         else
           DBMS_OUTPUT.put_line('ID_LIST,');
         end if;
@@ -241,7 +251,9 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          end if;
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''',');
         end if;
@@ -281,7 +293,9 @@ BEGIN
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          end if;
         else
           DBMS_OUTPUT.put_line('ID_LIST,');  
         end if;
@@ -303,7 +317,9 @@ BEGIN
         DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
-          DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
+            DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''', ''MAN'',');
+          end if;
         else
           DBMS_OUTPUT.put_line(''''|| reg_per_val.ID_LIST || ''','); 
         end if;
