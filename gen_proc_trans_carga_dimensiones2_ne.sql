@@ -7,7 +7,7 @@ cursor MTDT_TABLA
       TRIM(TABLE_TYPE) "TABLE_TYPE"
     FROM
       MTDT_TC_SCENARIO
-    WHERE TABLE_TYPE in ('D', 'I')
+    WHERE TABLE_TYPE in ('D','I')
     --and TABLE_NAME in ('DMD_ABONADO_MVNO')
     order by
     TABLE_TYPE;
@@ -57,7 +57,7 @@ cursor MTDT_TABLA
       DATE_CREATE,
       DATE_MODIFY
   FROM
-      METADATO.MTDT_TC_DETAIL
+      MTDT_TC_DETAIL
   WHERE
       trim(TABLE_NAME) = table_name_in and
       trim(SCENARIO) = scenario_in;
@@ -74,7 +74,7 @@ cursor MTDT_TABLA
       TRIM(IE_COLUMN_LKUP) "IE_COLUMN_LKUP",
       "VALUE"
     FROM
-      METADATO.MTDT_TC_DETAIL
+      MTDT_TC_DETAIL
   WHERE
       trim(RUL) = 'LKUP' and
       trim(TABLE_NAME) = table_name_in;
@@ -89,7 +89,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       IE_COLUMN_LKUP "IE_COLUMN_LKUP",
       TRIM("VALUE") "VALUE"
     FROM
-      METADATO.MTDT_TC_DETAIL
+      MTDT_TC_DETAIL
   WHERE
       trim(RUL) = 'FUNCTION' and
       TRIM(TABLE_NAME) = table_name_in;
@@ -137,6 +137,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   OWNER_T                                VARCHAR2(60);
   OWNER_DM                            VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
+  NAME_DM                                VARCHAR(60);
+  OWNER_TC                              VARCHAR(60);
   nombre_funcion                   VARCHAR2(100);
   v_encontrado											VARCHAR2(1):= 'N';
   v_contador                        PLS_INTEGER:=0;  
@@ -571,6 +573,71 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           dbms_output.put_line ('La cola es: ' || cola);
           cadena_resul := cabeza || sustituto || cola;
         end loop;
+        /* Busco OWNER_DM */
+        sustituto := OWNER_DM;
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_DM#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_DM#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_SA */
+        sustituto := OWNER_SA; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_SA#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_SA#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_T */
+        sustituto := OWNER_T; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_T#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_T#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_MTDT */
+        sustituto := OWNER_MTDT; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_MTDT#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_MTDT#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        
       end if;
       return cadena_resul;
     end;
@@ -625,6 +692,71 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           dbms_output.put_line ('La cola es: ' || cola);
           cadena_resul := cabeza || sustituto || cola;
         end loop;
+        /* Busco OWNER_DM */
+        sustituto := OWNER_DM;
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_DM#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_DM#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_SA */
+        sustituto := OWNER_SA; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_SA#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_SA#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_T */
+        sustituto := OWNER_T; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_T#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_T#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_MTDT */
+        sustituto := OWNER_MTDT; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_MTDT#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_MTDT#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        
       end if;
       return cadena_resul;
     end;
@@ -637,6 +769,9 @@ begin
   SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
+  SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
+  SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  
   /* (20141222) FIN*/
 
   open MTDT_TABLA;
@@ -663,7 +798,7 @@ begin
             fich_salida_pkg := UTL_FILE.FOPEN ('SALIDA',nombre_fich_pkg,'W');
             fich_salida_exchange := UTL_FILE.FOPEN ('SALIDA',nombre_fich_exchange,'W');
             fich_salida_hist := UTL_FILE.FOPEN ('SALIDA',nombre_fich_hist,'W');
-        
+            dbms_output.put_line ('El nombre del PAQUETE es: ' || '.pkg_' || nombre_proceso);
             UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AS');
             lista_scenarios_presentes.delete;
             /******/
@@ -1307,7 +1442,7 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
            UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_ne_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
-           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar :=' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.siguiente_paso (''load_ne_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar :=' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_ne_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
            UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
            UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -1343,7 +1478,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, numero_reg_updt);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, numero_reg_updt);');
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
             
@@ -1358,7 +1493,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;        /* commit de la insercion del fin fallido*/');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1377,7 +1512,7 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '');
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
-           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.siguiente_paso (''load_dh_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_dh_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
            UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
            UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -1401,7 +1536,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
             
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -1416,7 +1551,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1434,7 +1569,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_ex_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
             UTL_FILE.put_line(fich_salida_pkg, '    /* Lo primero que se hace es mirar que paso es el primero a ejecutar */');
-            UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.siguiente_paso (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
@@ -1449,15 +1584,15 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME ' || reg_tabla.TABLE_NAME || ' TO ' || nombre_tabla_reducido || '_OLD''' || ';');    
             UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''';');    
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, 0, num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, 0, num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el segundo paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');    
-            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO APP_MVNODM.' || reg_tabla.TABLE_NAME || ' SELECT * FROM APP_MVNODM.T_' || nombre_tabla_reducido || ';');
+            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             --UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el tercer paso */');
@@ -1482,10 +1617,10 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '      /* Comienza en el segundo paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');    
-            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO APP_MVNODM.' || reg_tabla.TABLE_NAME || ' SELECT * FROM APP_MVNODM.T_' || nombre_tabla_reducido || ';');
+            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');            
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             
@@ -1539,7 +1674,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
             
@@ -1558,7 +1693,7 @@ begin
             /******/    
             UTL_FILE.put_line(fich_salida_pkg, '');
             --UTL_FILE.put_line(fich_salida_pkg, 'grant execute on app_mvnodm.pkg_' || reg_tabla.TABLE_NAME || ' to app_mvnotc;');
-            UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_DM || '.pkg_' || nombre_proceso || ' to app_mvnotc;');
+            UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_DM || '.pkg_' || nombre_proceso || ' to ' || OWNER_TC || ';');
             UTL_FILE.put_line(fich_salida_pkg, '/');
             UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
         
@@ -1584,7 +1719,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, '# Archivo    :       load_ne_' ||  reg_tabla.TABLE_NAME || '.sh                            #');
             UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_load, '# Autor      : <SYNAPSYS>.                                                  #');
-            UTL_FILE.put_line(fich_salida_load, '# Proposito  : Shell que ejecuta los procesos de STAGING para MVNOS.        #');
+            UTL_FILE.put_line(fich_salida_load, '# Proposito  : Shell que ejecuta los procesos de STAGING para ' || NAME_DM || '.        #');
             UTL_FILE.put_line(fich_salida_load, '# Parametros :                                                              #');
             UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_load, '# Ejecucion  :                                                              #');
@@ -1611,7 +1746,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'InsertaFinFallido()');
             UTL_FILE.put_line(fich_salida_load, '{');
             UTL_FILE.put_line(fich_salida_load, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_load, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_load, '   then');
             UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${INTERFAZ}:Error en InsertarFinFallido"');
@@ -1625,7 +1760,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'InsertaFinOK()');
             UTL_FILE.put_line(fich_salida_load, '{');
             UTL_FILE.put_line(fich_salida_load, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_load, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_load, '   then');
             UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
@@ -1639,7 +1774,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_ENTORNO}/entornoMVNO_MEX.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
             UTL_FILE.put_line(fich_salida_load, '# Comprobamos si el numero de parametros es el correcto');
             UTL_FILE.put_line(fich_salida_load, 'if [ $# -ne 3 ] ; then');
             UTL_FILE.put_line(fich_salida_load, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
@@ -1653,15 +1788,15 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
             --UTL_FILE.put_line(fich_salida_load, 'echo "load_ne_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FCH_CARGA}' || '.log ');
             UTL_FILE.put_line(fich_salida_load, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
-            UTL_FILE.put_line(fich_salida_load, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
-            UTL_FILE.put_line(fich_salida_load, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_load, 'if ! [ -d ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA} ] ; then');
+            UTL_FILE.put_line(fich_salida_load, '  mkdir ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
             UTL_FILE.put_line(fich_salida_load, 'fi');
-            UTL_FILE.put_line(fich_salida_load, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');
-            UTL_FILE.put_line(fich_salida_load, 'echo "${0}" > ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_load, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_load, NAME_DM || '_TRAZAS=${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_load, 'echo "${0}" > ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_load, 'echo "Forzado: ${BAN_FORZADO}"  >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             UTL_FILE.put_line(fich_salida_load, '#Permite los acentos y U');
             UTL_FILE.put_line(fich_salida_load, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
@@ -1675,26 +1810,26 @@ begin
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilBD.sh');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilArchivo.sh');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilUnix.sh');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilMVNO.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
             UTL_FILE.put_line(fich_salida_load, '');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# Cuentas  Produccion / Desarrollo                                             #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, 'if [ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.102" ]||[ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.184" ]; then');
             UTL_FILE.put_line(fich_salida_load, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_load, 'else');
             UTL_FILE.put_line(fich_salida_load, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_load, 'fi');
             UTL_FILE.put_line(fich_salida_load, '');
             UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
@@ -1702,7 +1837,7 @@ begin
         
         /***********************/
             UTL_FILE.put_line(fich_salida_load, '# Llamada a sql_plus');
-            UTL_FILE.put_line(fich_salida_load, 'sqlplus -s /nolog <<EOF >> ${MVNO_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+            UTL_FILE.put_line(fich_salida_load, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
             UTL_FILE.put_line(fich_salida_load, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
             UTL_FILE.put_line(fich_salida_load, 'whenever sqlerror exit 1;');
             UTL_FILE.put_line(fich_salida_load, 'whenever oserror exit 2;');
@@ -1726,13 +1861,13 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'if [ ${err_salida} -ne 0 ]; then');
             UTL_FILE.put_line(fich_salida_load, '  SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a load_ne_' || reg_tabla.TABLE_NAME || '. Error:  ${err_salida}."');
             UTL_FILE.put_line(fich_salida_load, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-            UTL_FILE.put_line(fich_salida_load, '  echo ${SUBJECT} >> ' || '${MVNO_TRAZAS}/' || 'load_ne' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
-            UTL_FILE.put_line(fich_salida_load, '  echo `date` >> ' || '${MVNO_TRAZAS}/' || 'load_ne' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_load, '  echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_ne' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
+            UTL_FILE.put_line(fich_salida_load, '  echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_ne' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             --UTL_FILE.put_line(fich_salida_load, '  InsertaFinFallido');
             UTL_FILE.put_line(fich_salida_load, '  exit 1');
             UTL_FILE.put_line(fich_salida_load, 'fi');
             UTL_FILE.put_line(fich_salida_load, '');
-            UTL_FILE.put_line(fich_salida_load, 'echo "El proceso load_' ||  'ne_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${MVNO_TRAZAS}/' || 'load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_load, 'echo "El proceso load_' ||  'ne_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_ne_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             UTL_FILE.put_line(fich_salida_load, 'exit 0');
             /******/
             /* FIN DE LA GENERACION DEL sh de NUEVOS Y EXISTENTES */
@@ -1750,7 +1885,7 @@ begin
             UTL_FILE.put_line(fich_salida_hist, '# Archivo    :       load_dh_' ||  reg_tabla.TABLE_NAME || '.sh                            #');
             UTL_FILE.put_line(fich_salida_hist, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_hist, '# Autor      : <SYNAPSYS>.                                                  #');
-            UTL_FILE.put_line(fich_salida_hist, '# Proposito  : Shell que ejecuta los procesos de STAGING para MVNOS.        #');
+            UTL_FILE.put_line(fich_salida_hist, '# Proposito  : Shell que ejecuta los procesos de STAGING para ' || NAME_DM || 'S.        #');
             UTL_FILE.put_line(fich_salida_hist, '# Parametros :                                                              #');
             UTL_FILE.put_line(fich_salida_hist, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_hist, '# Ejecucion  :                                                              #');
@@ -1777,7 +1912,7 @@ begin
             UTL_FILE.put_line(fich_salida_hist, 'InsertaFinFallido()');
             UTL_FILE.put_line(fich_salida_hist, '{');
             UTL_FILE.put_line(fich_salida_hist, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_hist, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_hist, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_hist, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_hist, '   then');
             UTL_FILE.put_line(fich_salida_hist, '      SUBJECT="${INTERFAZ}:Error en InsertarFinFallido"');
@@ -1791,7 +1926,7 @@ begin
             UTL_FILE.put_line(fich_salida_hist, 'InsertaFinOK()');
             UTL_FILE.put_line(fich_salida_hist, '{');
             UTL_FILE.put_line(fich_salida_hist, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_hist, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_hist, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_hist, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_hist, '   then');
             UTL_FILE.put_line(fich_salida_hist, '      SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
@@ -1805,7 +1940,7 @@ begin
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
-            UTL_FILE.put_line(fich_salida_hist, '. ${MVNO_ENTORNO}/entornoMVNO_MEX.sh');
+            UTL_FILE.put_line(fich_salida_hist, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
             UTL_FILE.put_line(fich_salida_hist, '# Comprobamos si el numero de parametros es el correcto');
             UTL_FILE.put_line(fich_salida_hist, 'if [ $# -ne 3 ] ; then');
             UTL_FILE.put_line(fich_salida_hist, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
@@ -1817,17 +1952,17 @@ begin
             UTL_FILE.put_line(fich_salida_hist, 'FCH_DATOS=${2}');
             UTL_FILE.put_line(fich_salida_hist, 'BAN_FORZADO=${3}');
             UTL_FILE.put_line(fich_salida_hist, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
-            --UTL_FILE.put_line(fich_salida_hist, 'echo "load_dh_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FCH_CARGA}' || '.log ');
+            --UTL_FILE.put_line(fich_salida_hist, 'echo "load_dh_' || reg_tabla.TABLE_NAME || '" > ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FCH_CARGA}' || '.log ');
             UTL_FILE.put_line(fich_salida_hist, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
-            UTL_FILE.put_line(fich_salida_hist, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
-            UTL_FILE.put_line(fich_salida_hist, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_hist, 'if ! [ -d ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA} ] ; then');
+            UTL_FILE.put_line(fich_salida_hist, '  mkdir ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
             UTL_FILE.put_line(fich_salida_hist, 'fi');
-            UTL_FILE.put_line(fich_salida_hist, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');
-            UTL_FILE.put_line(fich_salida_hist, 'echo "${0}" > ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_hist, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_hist, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_hist, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_hist, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_hist, NAME_DM || '_TRAZAS=${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_hist, 'echo "${0}" > ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_hist, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_hist, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_hist, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_hist, 'echo "Forzado: ${BAN_FORZADO}"  >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             UTL_FILE.put_line(fich_salida_hist, '#Permite los acentos y U');
             UTL_FILE.put_line(fich_salida_hist, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
@@ -1841,26 +1976,26 @@ begin
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, '# LIBRERIAS                                                                    #');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
-            UTL_FILE.put_line(fich_salida_hist, '. ${MVNO_UTILIDADES}/UtilBD.sh');
-            UTL_FILE.put_line(fich_salida_hist, '. ${MVNO_UTILIDADES}/UtilArchivo.sh');
-            UTL_FILE.put_line(fich_salida_hist, '. ${MVNO_UTILIDADES}/UtilUnix.sh');
-            UTL_FILE.put_line(fich_salida_hist, '. ${MVNO_UTILIDADES}/UtilMVNO.sh');
+            UTL_FILE.put_line(fich_salida_hist, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+            UTL_FILE.put_line(fich_salida_hist, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+            UTL_FILE.put_line(fich_salida_hist, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+            UTL_FILE.put_line(fich_salida_hist, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
             UTL_FILE.put_line(fich_salida_hist, '');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, '# Cuentas  Produccion / Desarrollo                                             #');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, 'if [ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.102" ]||[ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.184" ]; then');
             UTL_FILE.put_line(fich_salida_hist, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_hist, 'else');
             UTL_FILE.put_line(fich_salida_hist, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_hist, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_hist, 'fi');
             UTL_FILE.put_line(fich_salida_hist, '');
             UTL_FILE.put_line(fich_salida_hist, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
@@ -1868,7 +2003,7 @@ begin
             
             /**************/
             UTL_FILE.put_line(fich_salida_hist, '# Llamada a sql_plus');
-            UTL_FILE.put_line(fich_salida_hist, 'sqlplus -s /nolog <<EOF >> ${MVNO_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+            UTL_FILE.put_line(fich_salida_hist, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
             UTL_FILE.put_line(fich_salida_hist, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
             UTL_FILE.put_line(fich_salida_hist, 'whenever sqlerror exit 1;');
             UTL_FILE.put_line(fich_salida_hist, 'whenever oserror exit 2;');
@@ -1890,13 +2025,13 @@ begin
             UTL_FILE.put_line(fich_salida_hist, 'if [ ${err_salida} -ne 0 ]; then');
             UTL_FILE.put_line(fich_salida_hist, '  SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a load_dh_' || reg_tabla.TABLE_NAME || '. Error:  ${err_salida}."');
             UTL_FILE.put_line(fich_salida_hist, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-            UTL_FILE.put_line(fich_salida_hist, '  echo ${SUBJECT} >> ' || '${MVNO_TRAZAS}/' || 'load_dh' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
-            UTL_FILE.put_line(fich_salida_hist, '  echo `date` >> ' || '${MVNO_TRAZAS}/' || 'load_dh' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_hist, '  echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_dh' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
+            UTL_FILE.put_line(fich_salida_hist, '  echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_dh' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             --UTL_FILE.put_line(fich_salida_hist, '  InsertaFinFallido');
             UTL_FILE.put_line(fich_salida_hist, '  exit 1');
             UTL_FILE.put_line(fich_salida_hist, 'fi');
             UTL_FILE.put_line(fich_salida_hist, '');
-            UTL_FILE.put_line(fich_salida_hist, 'echo "El proceso  load_' ||  'dh_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${MVNO_TRAZAS}/' || 'load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_hist, 'echo "El proceso  load_' ||  'dh_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_dh_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             UTL_FILE.put_line(fich_salida_hist, 'exit 0');
         
             /******/
@@ -1916,7 +2051,7 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, '# Archivo    :       load_ex_' ||  reg_tabla.TABLE_NAME || '.sh                            #');
             UTL_FILE.put_line(fich_salida_exchange, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_exchange, '# Autor      : <SYNAPSYS>.                                                  #');
-            UTL_FILE.put_line(fich_salida_exchange, '# Proposito  : Shell que ejecuta los procesos de STAGING para MVNOS.        #');
+            UTL_FILE.put_line(fich_salida_exchange, '# Proposito  : Shell que ejecuta los procesos de STAGING para ' || NAME_DM || 'S.        #');
             UTL_FILE.put_line(fich_salida_exchange, '# Parametros :                                                              #');
             UTL_FILE.put_line(fich_salida_exchange, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_exchange, '# Ejecucion  :                                                              #');
@@ -1943,7 +2078,7 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, 'InsertaFinFallido()');
             UTL_FILE.put_line(fich_salida_exchange, '{');
             UTL_FILE.put_line(fich_salida_exchange, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_exchange, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_exchange, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_exchange, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_exchange, '   then');
             UTL_FILE.put_line(fich_salida_exchange, '      SUBJECT="${INTERFAZ}:Error en InsertarFinFallido"');
@@ -1957,7 +2092,7 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, 'InsertaFinOK()');
             UTL_FILE.put_line(fich_salida_exchange, '{');
             UTL_FILE.put_line(fich_salida_exchange, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_exchange, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_exchange, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_exchange, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_exchange, '   then');
             UTL_FILE.put_line(fich_salida_exchange, '      SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
@@ -1971,7 +2106,7 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-            UTL_FILE.put_line(fich_salida_exchange, '. ${MVNO_ENTORNO}/entornoMVNO_MEX.sh');
+            UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
             UTL_FILE.put_line(fich_salida_exchange, '# Comprobamos si el numero de parametros es el correcto');
             UTL_FILE.put_line(fich_salida_exchange, 'if [ $# -ne 3 ] ; then');
             UTL_FILE.put_line(fich_salida_exchange, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
@@ -1983,17 +2118,17 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, 'FCH_DATOS=${2}');
             UTL_FILE.put_line(fich_salida_exchange, 'BAN_FORZADO=${3}');
             UTL_FILE.put_line(fich_salida_exchange, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
-            --UTL_FILE.put_line(fich_salida_exchange, 'echo "load_ex_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FCH_CARGA}' || '.log ');
+            --UTL_FILE.put_line(fich_salida_exchange, 'echo "load_ex_' || reg_tabla.TABLE_NAME || '" > ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FCH_CARGA}' || '.log ');
             UTL_FILE.put_line(fich_salida_exchange, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
-            UTL_FILE.put_line(fich_salida_exchange, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
-            UTL_FILE.put_line(fich_salida_exchange, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_exchange, 'if ! [ -d ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA} ] ; then');
+            UTL_FILE.put_line(fich_salida_exchange, '  mkdir ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
             UTL_FILE.put_line(fich_salida_exchange, 'fi');
-            UTL_FILE.put_line(fich_salida_exchange, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');
-            UTL_FILE.put_line(fich_salida_exchange, 'echo "${0}" > ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_exchange, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_exchange, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_exchange, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_exchange, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_exchange, NAME_DM || '_TRAZAS=${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_exchange, 'echo "${0}" > ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_exchange, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_exchange, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_exchange, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_exchange, 'echo "Forzado: ${BAN_FORZADO}"  >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             UTL_FILE.put_line(fich_salida_exchange, '#Permite los acentos y U');
             UTL_FILE.put_line(fich_salida_exchange, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
@@ -2007,26 +2142,26 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-            UTL_FILE.put_line(fich_salida_exchange, '. ${MVNO_UTILIDADES}/UtilBD.sh');
-            UTL_FILE.put_line(fich_salida_exchange, '. ${MVNO_UTILIDADES}/UtilArchivo.sh');
-            UTL_FILE.put_line(fich_salida_exchange, '. ${MVNO_UTILIDADES}/UtilUnix.sh');
-            UTL_FILE.put_line(fich_salida_exchange, '. ${MVNO_UTILIDADES}/UtilMVNO.sh');
+            UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+            UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+            UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+            UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
             UTL_FILE.put_line(fich_salida_exchange, '');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, '# Cuentas  Produccion / Desarrollo                                             #');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, 'if [ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.102" ]||[ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.184" ]; then');
             UTL_FILE.put_line(fich_salida_exchange, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_exchange, 'else');
             UTL_FILE.put_line(fich_salida_exchange, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_exchange, 'fi');
             UTL_FILE.put_line(fich_salida_exchange, '');
             UTL_FILE.put_line(fich_salida_exchange, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
@@ -2034,7 +2169,7 @@ begin
             
             /*************/
             UTL_FILE.put_line(fich_salida_exchange, '# Llamada a sql_plus');
-            UTL_FILE.put_line(fich_salida_exchange, 'sqlplus -s /nolog <<EOF >> ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+            UTL_FILE.put_line(fich_salida_exchange, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
             UTL_FILE.put_line(fich_salida_exchange, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
             UTL_FILE.put_line(fich_salida_exchange, 'whenever sqlerror exit 1');
             UTL_FILE.put_line(fich_salida_exchange, 'whenever oserror exit 2');
@@ -2056,13 +2191,13 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, 'if [ ${err_salida} -ne 0 ]; then');
             UTL_FILE.put_line(fich_salida_exchange, '  SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a load_ex_' || reg_tabla.TABLE_NAME || '. Error:  ${err_salida}."');
             UTL_FILE.put_line(fich_salida_exchange, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-            UTL_FILE.put_line(fich_salida_exchange, '  echo ${SUBJECT} >> ' || '${MVNO_TRAZAS}/' || 'load_ex' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
-            UTL_FILE.put_line(fich_salida_exchange, '  echo `date` >> ' || '${MVNO_TRAZAS}/' || 'load_ex' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_exchange, '  echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_ex' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
+            UTL_FILE.put_line(fich_salida_exchange, '  echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_ex' || '_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             --UTL_FILE.put_line(fich_salida_exchange, '  InsertaFinFallido');
             UTL_FILE.put_line(fich_salida_exchange, '  exit 1');
             UTL_FILE.put_line(fich_salida_exchange, 'fi');
             UTL_FILE.put_line(fich_salida_exchange, '');
-            UTL_FILE.put_line(fich_salida_exchange, 'echo "El proceso de exchange load_' ||  'ex_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${MVNO_TRAZAS}/' || 'load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_exchange, 'echo "El proceso de exchange load_' ||  'ex_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             UTL_FILE.put_line(fich_salida_exchange, '');
             UTL_FILE.put_line(fich_salida_exchange, 'exit 0');
             /******/
@@ -2166,13 +2301,13 @@ begin
                 
                 if num_sce_integra > 1 then
                   
-                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO app_mvnosa.' || reg_scenario.TABLE_NAME);
+                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO ' || OWNER_SA || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg, '    (');
                   UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
                   UTL_FILE.put_line(fich_salida_pkg, '    )');
                 else
-                  UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''app_mvnosa.'' || ''' || reg_scenario.TABLE_NAME || ''';');
-                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO app_mvnosa.' || reg_scenario.TABLE_NAME);
+                  UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''' || OWNER_SA || '.'' || ''' || reg_scenario.TABLE_NAME || ''';');
+                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO ' || OWNER_SA || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg, '    (');
                   UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
                   UTL_FILE.put_line(fich_salida_pkg, '    )');
@@ -2181,7 +2316,7 @@ begin
                   /* Significa que se crea a partir de todos los campos de la tabla */
                   UTL_FILE.put_line(fich_salida_pkg, '    SELECT');
                   UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.INTERFACE_COLUMNS);
-                  UTL_FILE.put_line(fich_salida_pkg, '    FROM app_mvnosa.' || reg_scenario.TABLE_BASE_NAME);
+                  UTL_FILE.put_line(fich_salida_pkg, '    FROM ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME);
                   if (reg_scenario.FILTER is not null) then
                     UTL_FILE.put_line(fich_salida_pkg, '    WHERE ' || procesa_campo_filter_dinam(reg_scenario.FILTER));
                   end if;
@@ -2243,7 +2378,7 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
            UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
-           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := app_mvnomt.pkg_DMF_MONITOREO_MVNO.siguiente_paso (''load_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
            UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
            UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -2267,7 +2402,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in,''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in,''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new);');
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
             
@@ -2282,7 +2417,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_MVNO.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;    /* Hacemos el commit del inserta_monitoreo*/');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -2298,7 +2433,7 @@ begin
             /* FIN DE LA GENERACION DEL PACKAGE */
             /******/    
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' to app_mvnotc;');
+            UTL_FILE.put_line(fich_salida_pkg, 'grant execute on ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' to ' || OWNER_TC || ';');
             UTL_FILE.put_line(fich_salida_pkg, '/');
             UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
         
@@ -2324,7 +2459,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, '# Archivo    :       load_ ' ||  reg_tabla.TABLE_NAME || '.sh                            #');
             UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_load, '# Autor      : <SYNAPSYS>.                                                  #');
-            UTL_FILE.put_line(fich_salida_load, '# Proposito  : Shell que ejecuta los procesos de STAGING para MVNOS.        #');
+            UTL_FILE.put_line(fich_salida_load, '# Proposito  : Shell que ejecuta los procesos de STAGING para ' || NAME_DM || 'S.        #');
             UTL_FILE.put_line(fich_salida_load, '# Parametros :                                                              #');
             UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
             UTL_FILE.put_line(fich_salida_load, '# Ejecucion  :                                                              #');
@@ -2351,7 +2486,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'InsertaFinFallido()');
             UTL_FILE.put_line(fich_salida_load, '{');
             UTL_FILE.put_line(fich_salida_load, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_' || reg_tabla.TABLE_NAME || '.sh 1 1 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_load, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_load, '   then');
             UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${INTERFAZ}:Error en InsertarFinFallido"');
@@ -2365,7 +2500,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'InsertaFinOK()');
             UTL_FILE.put_line(fich_salida_load, '{');
             UTL_FILE.put_line(fich_salida_load, '   #Se especifican parametros usuario y la BD');
-            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${MVNO_SQL}/insert_monitoreo.sql ' || 'load_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+            UTL_FILE.put_line(fich_salida_load, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_' || reg_tabla.TABLE_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
             UTL_FILE.put_line(fich_salida_load, '   if [ $? -ne 0 ]');
             UTL_FILE.put_line(fich_salida_load, '   then');
             UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
@@ -2379,7 +2514,7 @@ begin
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_ENTORNO}/entornoMVNO_MEX.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
             UTL_FILE.put_line(fich_salida_load, '# Comprobamos si el numero de parametros es el correcto');
             UTL_FILE.put_line(fich_salida_load, 'if [ $# -ne 3 ] ; then');
             UTL_FILE.put_line(fich_salida_load, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
@@ -2395,15 +2530,15 @@ begin
             --UTL_FILE.put_line(fich_salida_sh, 'set -x');
             --UTL_FILE.put_line(fich_salida_load, 'echo "load_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FCH_CARGA}' || '.log ');
             UTL_FILE.put_line(fich_salida_load, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
-            UTL_FILE.put_line(fich_salida_load, 'if ! [ -d ${MVNO_TRAZAS}/${FCH_CARGA} ] ; then');
-            UTL_FILE.put_line(fich_salida_load, '  mkdir ${MVNO_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_load, 'if ! [ -d ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA} ] ; then');
+            UTL_FILE.put_line(fich_salida_load, '  mkdir ${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
             UTL_FILE.put_line(fich_salida_load, 'fi');
-            UTL_FILE.put_line(fich_salida_load, 'MVNO_TRAZAS=${MVNO_TRAZAS}/${FCH_CARGA}');
-            UTL_FILE.put_line(fich_salida_load, 'echo "${0}" > ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
-            UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
-            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
-            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
-            UTL_FILE.put_line(fich_salida_load, 'echo "Forzado: ${BAN_FORZADO}"  >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
+            UTL_FILE.put_line(fich_salida_load, NAME_DM || '_TRAZAS=${' || NAME_DM || '_TRAZAS}/${FCH_CARGA}');
+            UTL_FILE.put_line(fich_salida_load, 'echo "${0}" > ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
+            UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date +%d/%m/%Y\ %H:%M:%S`"  >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
+            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Carga: ${FCH_CARGA}"  >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
+            UTL_FILE.put_line(fich_salida_load, 'echo "Fecha de Datos: ${FCH_DATOS}"  >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
+            UTL_FILE.put_line(fich_salida_load, 'echo "Forzado: ${BAN_FORZADO}"  >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');    
             UTL_FILE.put_line(fich_salida_load, '#Permite los acentos y U');
             UTL_FILE.put_line(fich_salida_load, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
             UTL_FILE.put_line(fich_salida_load, 'export NLS_LANG');
@@ -2416,26 +2551,26 @@ begin
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilBD.sh');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilArchivo.sh');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilUnix.sh');
-            UTL_FILE.put_line(fich_salida_load, '. ${MVNO_UTILIDADES}/UtilMVNO.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+            UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
             UTL_FILE.put_line(fich_salida_load, '');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# Cuentas  Produccion / Desarrollo                                             #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, 'if [ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.102" ]||[ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.184" ]; then');
             UTL_FILE.put_line(fich_salida_load, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_load, 'else');
             UTL_FILE.put_line(fich_salida_load, '  ### Cuentas para mantenimiento');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${MVNO_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${MVNO_CONFIGURACION}/TelefonosMantto.txt`');
-            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${MVNO_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_Usuario_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${' || NAME_DM || '_CONFIGURACION}/Correos_Mtto_ReportesBI.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_DWH=`cat ${' || NAME_DM || '_CONFIGURACION}/TelefonosMantto.txt`');
+            UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
             UTL_FILE.put_line(fich_salida_load, 'fi');
             UTL_FILE.put_line(fich_salida_load, '');
             UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
@@ -2443,7 +2578,7 @@ begin
         
         /***********************/
             UTL_FILE.put_line(fich_salida_load, '# Llamada a sql_plus');
-            UTL_FILE.put_line(fich_salida_load, 'sqlplus -s /nolog <<EOF >> ${MVNO_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+            UTL_FILE.put_line(fich_salida_load, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
             UTL_FILE.put_line(fich_salida_load, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
             UTL_FILE.put_line(fich_salida_load, 'whenever sqlerror exit 1;');
             UTL_FILE.put_line(fich_salida_load, 'whenever oserror exit 2;');
@@ -2466,13 +2601,13 @@ begin
             UTL_FILE.put_line(fich_salida_load, 'if [ ${err_salida} -ne 0 ]; then');
             UTL_FILE.put_line(fich_salida_load, '  SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a load_' || reg_tabla.TABLE_NAME || '. Error:  ${err_salida}."');
             UTL_FILE.put_line(fich_salida_load, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-            UTL_FILE.put_line(fich_salida_load, '  echo ${SUBJECT} >> ' || '${MVNO_TRAZAS}/' || 'load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
-            UTL_FILE.put_line(fich_salida_load, '  echo `date` >> ' || '${MVNO_TRAZAS}/' || 'load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_load, '  echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');        
+            UTL_FILE.put_line(fich_salida_load, '  echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             --UTL_FILE.put_line(fich_salida_load, '  InsertaFinFallido');
             UTL_FILE.put_line(fich_salida_load, '  exit 1');
             UTL_FILE.put_line(fich_salida_load, 'fi');
             UTL_FILE.put_line(fich_salida_load, '');
-            UTL_FILE.put_line(fich_salida_load, 'echo "El proceso load_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${MVNO_TRAZAS}/' || 'load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
+            UTL_FILE.put_line(fich_salida_load, 'echo "El proceso load_' || reg_tabla.TABLE_NAME || ' se ha realizado correctamente." >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}.log');
             UTL_FILE.put_line(fich_salida_load, 'exit 0');
             /******/
             /* FIN DE LA GENERACION DEL sh de NUEVOS Y EXISTENTES */
