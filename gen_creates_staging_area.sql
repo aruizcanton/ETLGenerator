@@ -121,7 +121,7 @@ BEGIN
             DBMS_OUTPUT.put_line(', ' || reg_datail.COLUMNA || '          '  || tipo_col);
           END IF;
         END IF;
-        IF reg_datail.KEY = 'S' then
+        IF upper(reg_datail.KEY) = 'S'  then
           lista_pk.EXTEND;
           lista_pk(lista_pk.LAST) := reg_datail.COLUMNA;
         END IF;

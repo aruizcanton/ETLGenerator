@@ -110,7 +110,7 @@ BEGIN
             DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
           END IF;
         END IF;
-        IF r_mtdt_modelo_logico_COLUMNA.PK = 'S' then
+        IF upper(trim(r_mtdt_modelo_logico_COLUMNA.PK)) = 'S' then
           lista_pk.EXTEND;
           lista_pk(lista_pk.LAST) := r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME;
         END IF;
@@ -229,7 +229,7 @@ BEGIN
           ELSE  /* si no es primera columna */
               DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
           END IF;
-          IF r_mtdt_modelo_logico_COLUMNA.PK = 'S' then
+          IF upper(trim(r_mtdt_modelo_logico_COLUMNA.PK)) = 'S' then
             lista_pk.EXTEND;
             lista_pk(lista_pk.LAST) := r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME;
           END IF;
