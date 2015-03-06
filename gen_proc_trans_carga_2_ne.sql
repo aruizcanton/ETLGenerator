@@ -190,6 +190,9 @@ cursor MTDT_TABLA
     cabeza             VARCHAR2(500);
     cola                   VARCHAR2(500);
     pos_ant            PLS_integer;
+    v_nombre_func_lookup             VARCHAR2(40);
+    v_nombre_paquete                    VARCHAR2(40);
+    v_nombre_tabla_reducido         VARCHAR2(40);        
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -199,6 +202,22 @@ cursor MTDT_TABLA
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         --if (reg_detalle_in.LKUP_COM_RULE <> "") then
+        
+        /* (20150306) ANGEL RUIZ. Hay un error que corrijo */
+        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
+        if (length(reg_detalle_in.TABLE_NAME) < 25) then
+        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
+        else
+        v_nombre_paquete := v_nombre_tabla_reducido;
+        end if;
+       /* (20150130) Angel Ruiz. Nueva Incidencia. */
+        /* La tabla de LookUp puede ser una SELECT y no solo una tabla */
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+          /* Aparecen queries en lugar de tablas para LookUp */
+          v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
+        else
+            v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_LKUP;  /* Llamo a mi funcion de LookUp esta concatenacion */
+        end if;        
         if (reg_detalle_in.LKUP_COM_RULE is not null) then
           /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
           cadena := trim(reg_detalle_in.LKUP_COM_RULE);
@@ -208,9 +227,9 @@ cursor MTDT_TABLA
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
         end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */

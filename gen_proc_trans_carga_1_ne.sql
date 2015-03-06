@@ -186,6 +186,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     condicion         VARCHAR2(2000);
     constante         VARCHAR2(2000);
     v_nombre_func_lookup             VARCHAR2(40);
+    v_nombre_paquete                    VARCHAR2(40);
+    v_nombre_tabla_reducido         VARCHAR2(40);    
     
   begin
     /* Seleccionamos el escenario primero */
@@ -196,6 +198,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         --if (trim(reg_detalle_in.LKUP_COM_RULE) <> "") then
+        
+        /* (20150306) ANGEL RUIZ. Hay un error que corrijo */
+        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
+        if (length(reg_detalle_in.TABLE_NAME) < 25) then
+        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
+        else
+        v_nombre_paquete := v_nombre_tabla_reducido;
+        end if;        
+        
         /* (20150130) Angel Ruiz. Nueva Incidencia. */
         /* La tabla de LookUp puede ser una SELECT y no solo una tabla */
         if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
@@ -213,9 +224,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
         end if;
         --valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LKUP_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
       when 'FUNCTION' then
