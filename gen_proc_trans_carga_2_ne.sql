@@ -168,279 +168,6 @@ cursor MTDT_TABLA
     return lista_elementos;
   end split_string_coma;
 
-
-
-  function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (500);
-    posicion          PLS_INTEGER;
-    cad_pri           VARCHAR(500);
-    cad_seg         VARCHAR(500);
-    cadena            VARCHAR(100);
-    pos_del_si      NUMBER(3);
-    pos_del_then  NUMBER(3);
-    pos_del_else  NUMBER(3);
-    pos_del_end   NUMBER(3);
-    condicion         VARCHAR2(100);
-    constante         VARCHAR2(100);
-    posicion_ant    PLS_integer;
-    pos                    PLS_integer;
-    cadena_resul  VARCHAR(500);
-    sustituto           VARCHAR(30);
-    lon_cadena     PLS_integer;
-    cabeza             VARCHAR2(500);
-    cola                   VARCHAR2(500);
-    pos_ant            PLS_integer;
-    v_nombre_func_lookup             VARCHAR2(40);
-    v_nombre_paquete                    VARCHAR2(40);
-    v_nombre_tabla_reducido         VARCHAR2(40);        
-  begin
-    /* Seleccionamos el escenario primero */
-      case reg_detalle_in.RUL
-      when 'KEEP' then
-        /* Se mantienen el valor del campo de la tabla que estamos cargando */
-        valor_retorno :=  '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;      
-      when 'LKUP' then
-        /* Se trata de hacer el LOOK UP con la tabla dimension */
-        --if (reg_detalle_in.LKUP_COM_RULE <> "") then
-        
-        /* (20150306) ANGEL RUIZ. Hay un error que corrijo */
-        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
-        if (length(reg_detalle_in.TABLE_NAME) < 25) then
-        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
-        else
-        v_nombre_paquete := v_nombre_tabla_reducido;
-        end if;
-       /* (20150130) Angel Ruiz. Nueva Incidencia. */
-        /* La tabla de LookUp puede ser una SELECT y no solo una tabla */
-        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
-          /* Aparecen queries en lugar de tablas para LookUp */
-          v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
-        else
-            v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_LKUP;  /* Llamo a mi funcion de LookUp esta concatenacion */
-        end if;        
-        if (reg_detalle_in.LKUP_COM_RULE is not null) then
-          /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
-          cadena := trim(reg_detalle_in.LKUP_COM_RULE);
-          pos_del_si := instr(cadena, 'SI');
-          pos_del_then := instr(cadena, 'THEN');
-          pos_del_else := instr(cadena, 'ELSE');
-          pos_del_end := instr(cadena, 'END');  
-          condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
-          constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
-        else
-          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
-        end if;
-      when 'FUNCTION' then
-        /* se trata de la regla FUNCTION */
-        valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
-      when 'DLOAD' then
-        valor_retorno :=  '    ' || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''';
-      when 'DSYS' then
-        valor_retorno :=  '    ' || 'SYSDATE';
-      when 'CODE' then
-        /* 20141204 Angel Ruiz. Como es codigo dinamico he de detectar si hay una comilla para poner dos */
-        /* Esto lo añado nuevo y solo en este generador pq genera procesos que soportan retrasados */
-        pos := 0;
-        posicion_ant := 0;
-        cadena_resul:= trim(reg_detalle_in.VALUE);
-        lon_cadena := length (cadena_resul);
-        if lon_cadena > 0 then
-          /* Busco LA COMILLA */
-          sustituto := '''''';
-          loop
-            dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
-            pos := instr(cadena_resul, '''', pos+1);
-            exit when pos = 0;
-            dbms_output.put_line ('Pos es mayor que 0');
-            dbms_output.put_line ('Primer valor de Pos: ' || pos);
-            cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-            dbms_output.put_line ('La cabeza es: ' || cabeza);
-            dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-            cola := substr(cadena_resul, pos + length (''''));
-            dbms_output.put_line ('La cola es: ' || cola);
-            cadena_resul := cabeza || sustituto || cola;
-            pos_ant := pos + length ('''''');
-            pos := pos_ant;
-          end loop;
-        end if;
-          /************/
-        --valor_retorno := '    ' || trim(reg_detalle_in.VALUE);
-        valor_retorno := cadena_resul;
-        posicion := instr(valor_retorno, 'VAR_IVA');
-        if (posicion >0) then
-          cad_pri := substr(valor_retorno, 1, posicion-1);
-          cad_seg := substr(valor_retorno, posicion + length('VAR_IVA'));
-          valor_retorno :=  cad_pri || '21' || cad_seg;
-        end if;
-        posicion := instr(valor_retorno, 'VAR_FCH_CARGA');
-        if (posicion >0) then
-          cad_pri := substr(valor_retorno, 1, posicion-1);
-          cad_seg := substr(valor_retorno, posicion + length('VAR_FCH_CARGA'));
-          valor_retorno :=  cad_pri || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''' || cad_seg;
-        end if;
-      when 'HARDC' then
-        valor_retorno :=  '    ' || reg_detalle_in.VALUE;
-      when 'SEQ' then
-        valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
-        --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
-        --  valor_retorno := '    ' || reg_detalle_in.VALUE;
-        --else
-        --  valor_retorno := '    ' || reg_detalle_in.VALUE || '.NEXTVAL';
-        --end if;
-      when 'BASE' then
-        /* Se toma el valor del campo de la tabla de staging */
-        valor_retorno :=  '    ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.VALUE;      
-      when 'VAR_FCH_INICIO' then
-        --valor_retorno :=  '    ' || ''' || var_fch_inicio || ''';
-        valor_retorno :=  '    SYSDATE';
-      when 'VAR' then
-        /* Se toma el valor de una variable de entorno */
-        if reg_detalle_in.VALUE =  'VAR_FCH_CARGA' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
---          valor_retorno :=  '     ' ||  'TO_DATE (fch_carga_in, ''YYYYMMDD'')';
-          valor_retorno := '     ' || ''' || fch_datos_in || ''';        
-        end if;
-        if reg_detalle_in.VALUE =  'VAR_PAIS_TM' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
-          valor_retorno := '    ' ||  '1';
-        end if;
-      end case;
-    return valor_retorno;
-  end;
-
-/*************/
-  function genera_encabezado_funcion_pkg (reg_lookup_in in MTDT_TC_LOOKUP%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (500);
-    lkup_columns                list_strings := list_strings();
-  begin
-    /* Se trata de hacer el LOOK UP con la tabla dimension */
-    /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-    dbms_output.put_line('Estoy en genera_encabezado_funcion_pkg. Antes de llamar a string coma');
-    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
-    dbms_output.put_line('Estoy en genera_encabezado_funcion_pkg. Despues de llamar a string coma');
-    if (lkup_columns.COUNT > 1)
-    then
-      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (';
-      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
-      LOOP
-        if indx = 1 then
-          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
-        else
-          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
-        end if;
-      END LOOP;
-      valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE RESULT_CACHE;';
-    else        
-      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE;';
-    end if;
-    dbms_output.put_line('Justo antes de retornar');
-    dbms_output.put_line('Retorno es: ' || valor_retorno);
-    return valor_retorno;
-  end;
-
-/************/
-
-  function gen_encabe_regla_function (reg_function_in in MTDT_TC_FUNCTION%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (250);
-    lkup_columns                list_strings := list_strings();
-  begin
-    valor_retorno := '  FUNCTION ' || 'LK_' || reg_function_in.VALUE || ';';
-    return valor_retorno;
-  end gen_encabe_regla_function;
-
-  procedure genera_cuerpo_regla_function (reg_function_in in MTDT_TC_FUNCTION%rowtype) is
-  begin
-    UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || 'LK_' || reg_function_in.VALUE);
-    --UTL_FILE.put_line (fich_salida_pkg, '  RESULT_CACHE');
-    UTL_FILE.put_line (fich_salida_pkg, '  IS');
-    UTL_FILE.put_line (fich_salida_pkg, '  BEGIN');
-    UTL_FILE.put_line (fich_salida_pkg, '');
-    UTL_FILE.put_line (fich_salida_pkg, '    dbms_output.put_line (''Aqui iria el cuerpo de la funcion'');');
-    UTL_FILE.put_line (fich_salida_pkg, '    /* AQUI IRIA EL CUERPO DE LA FUNCION */');
-    UTL_FILE.put_line (fich_salida_pkg, '');
-    UTL_FILE.put_line (fich_salida_pkg, '  END ' || 'LK_' || reg_function_in.TABLE_LKUP || ';');
-  end genera_cuerpo_regla_function;
-
-/************/
-  procedure genera_cuerpo_funcion_pkg (reg_lookup_in in MTDT_TC_LOOKUP%rowtype) is
-    valor_retorno VARCHAR (500);
-    lkup_columns                list_strings := list_strings();
-
-  begin
-    /* Se trata de hacer el LOOK UP con la tabla dimension */
-    
-    /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
-    if (lkup_columns.COUNT > 1)
-    then
-      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (';
-      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
-      LOOP
-        if indx = 1 then
-          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
-        else
-          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
-        end if;
-      END LOOP;
-      valor_retorno := valor_retorno || ') ';
-      UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
-    else        
-      UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE)'); 
-    end if;
-    UTL_FILE.put_line (fich_salida_pkg, '    return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE');
-    UTL_FILE.put_line (fich_salida_pkg, '    RESULT_CACHE RELIES_ON (' || reg_lookup_in.TABLE_LKUP || ')');
-    UTL_FILE.put_line (fich_salida_pkg, '  IS');
-    UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE;');
-    UTL_FILE.put_line (fich_salida_pkg, '  BEGIN');
-    UTL_FILE.put_line (fich_salida_pkg, '    SELECT nvl(' || reg_lookup_in.VALUE || ', -2) INTO l_row'); 
-    UTL_FILE.put_line (fich_salida_pkg, '    FROM ' || reg_lookup_in.TABLE_LKUP);
-    if (lkup_columns.COUNT > 1) then
-      valor_retorno := '    WHERE ' ;
-      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
-      LOOP
-        if indx = 1 then
-          valor_retorno := valor_retorno || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
-        else
-          valor_retorno := valor_retorno || ' and ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
-        end if;
-      END LOOP;
-      if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
-        valor_retorno := valor_retorno || ';';
-      else
-        valor_retorno := valor_retorno || reg_lookup_in.TABLE_LKUP_COND || ';';
-      end if;
-      UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
-    else
-      /* 20141204 Angel Ruiz - Añadido para las tablas de LOOK UP que son un rango */
-      if (instr (reg_lookup_in.TABLE_LKUP,'RANGO') > 0) then
-        /* Se trata de una tabla de Rango y la trato diferente */
-        if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
-          UTL_FILE.put_line (fich_salida_pkg, '    WHERE cod_in >= ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' and  cod_in <= ' || reg_lookup_in.TABLE_LKUP || '.' || 'MAX' || substr(reg_lookup_in.TABLE_COLUMN_LKUP,4) || ';' );
-        else
-          UTL_FILE.put_line (fich_salida_pkg, '    WHERE cod_in >= ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' and  cod_in <= ' || reg_lookup_in.TABLE_LKUP || '.' || 'MAX' || substr(reg_lookup_in.TABLE_COLUMN_LKUP,4) || ' and ' || reg_lookup_in.TABLE_LKUP_COND || ';');
-        end if;
-      else 
-        if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
-        UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in;' );
-        else
-        UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in and ' || reg_lookup_in.TABLE_LKUP_COND || ';' );
-        end if;
-      end if;
-    end if;
-    UTL_FILE.put_line (fich_salida_pkg, '');
-    UTL_FILE.put_line (fich_salida_pkg, '    RETURN l_row;');
-    UTL_FILE.put_line (fich_salida_pkg, '');
-    UTL_FILE.put_line (fich_salida_pkg, '  exception');
-    UTL_FILE.put_line (fich_salida_pkg, '  when NO_DATA_FOUND then');
-    UTL_FILE.put_line (fich_salida_pkg, '    RETURN -2;');
-    UTL_FILE.put_line (fich_salida_pkg, '  when others then');
-    UTL_FILE.put_line (fich_salida_pkg, '    RETURN -2;');
-    UTL_FILE.put_line (fich_salida_pkg, '');
-    UTL_FILE.put_line (fich_salida_pkg, '  END ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ';');
-    UTL_FILE.put_line (fich_salida_pkg, '');
-    UTL_FILE.put_line (fich_salida_pkg, '');
- 
-  end genera_cuerpo_funcion_pkg;
-
   function procesa_campo_filter (cadena_in in varchar2) return varchar2
   is
     lon_cadena integer;
@@ -675,6 +402,285 @@ cursor MTDT_TABLA
       end if;
       return cadena_resul;
     end;
+
+
+  function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
+    valor_retorno VARCHAR (500);
+    posicion          PLS_INTEGER;
+    cad_pri           VARCHAR(500);
+    cad_seg         VARCHAR(500);
+    cadena            VARCHAR(100);
+    pos_del_si      NUMBER(3);
+    pos_del_then  NUMBER(3);
+    pos_del_else  NUMBER(3);
+    pos_del_end   NUMBER(3);
+    condicion         VARCHAR2(100);
+    constante         VARCHAR2(100);
+    posicion_ant    PLS_integer;
+    pos                    PLS_integer;
+    cadena_resul  VARCHAR(500);
+    sustituto           VARCHAR(30);
+    lon_cadena     PLS_integer;
+    cabeza             VARCHAR2(500);
+    cola                   VARCHAR2(500);
+    pos_ant            PLS_integer;
+    v_nombre_func_lookup             VARCHAR2(40);
+    v_nombre_paquete                    VARCHAR2(40);
+    v_nombre_tabla_reducido         VARCHAR2(40);
+    v_IE_COLUMN_LKUP              VARCHAR(400);
+    
+  begin
+    /* Seleccionamos el escenario primero */
+      case reg_detalle_in.RUL
+      when 'KEEP' then
+        /* Se mantienen el valor del campo de la tabla que estamos cargando */
+        valor_retorno :=  '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;      
+      when 'LKUP' then
+        /* Se trata de hacer el LOOK UP con la tabla dimension */
+        --if (reg_detalle_in.LKUP_COM_RULE <> "") then
+
+        /* (20150309) Angel Ruiz. Anyado esta nueva funcionalidad */
+        /*Puede ocurrir que en el campo VALUE de la llamada a LOOKUP se use la variable VAR_FCH_CARGA */
+        v_IE_COLUMN_LKUP := procesa_campo_filter (reg_detalle_in.IE_COLUMN_LKUP);
+        /****************************/        
+        /* (20150306) ANGEL RUIZ. Hay un error que corrijo */
+        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
+        if (length(reg_detalle_in.TABLE_NAME) < 25) then
+        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
+        else
+        v_nombre_paquete := v_nombre_tabla_reducido;
+        end if;
+       /* (20150130) Angel Ruiz. Nueva Incidencia. */
+        /* La tabla de LookUp puede ser una SELECT y no solo una tabla */
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+          /* Aparecen queries en lugar de tablas para LookUp */
+          v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
+        else
+            v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_LKUP;  /* Llamo a mi funcion de LookUp esta concatenacion */
+        end if;        
+        if (reg_detalle_in.LKUP_COM_RULE is not null) then
+          /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
+          cadena := trim(reg_detalle_in.LKUP_COM_RULE);
+          pos_del_si := instr(cadena, 'SI');
+          pos_del_then := instr(cadena, 'THEN');
+          pos_del_else := instr(cadena, 'ELSE');
+          pos_del_end := instr(cadena, 'END');  
+          condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
+          constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+        else
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+        end if;
+      when 'FUNCTION' then
+        /* se trata de la regla FUNCTION */
+        valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+      when 'DLOAD' then
+        valor_retorno :=  '    ' || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''';
+      when 'DSYS' then
+        valor_retorno :=  '    ' || 'SYSDATE';
+      when 'CODE' then
+        /* 20141204 Angel Ruiz. Como es codigo dinamico he de detectar si hay una comilla para poner dos */
+        /* Esto lo añado nuevo y solo en este generador pq genera procesos que soportan retrasados */
+        pos := 0;
+        posicion_ant := 0;
+        cadena_resul:= trim(reg_detalle_in.VALUE);
+        lon_cadena := length (cadena_resul);
+        if lon_cadena > 0 then
+          /* Busco LA COMILLA */
+          sustituto := '''''';
+          loop
+            dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
+            pos := instr(cadena_resul, '''', pos+1);
+            exit when pos = 0;
+            dbms_output.put_line ('Pos es mayor que 0');
+            dbms_output.put_line ('Primer valor de Pos: ' || pos);
+            cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+            dbms_output.put_line ('La cabeza es: ' || cabeza);
+            dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+            cola := substr(cadena_resul, pos + length (''''));
+            dbms_output.put_line ('La cola es: ' || cola);
+            cadena_resul := cabeza || sustituto || cola;
+            pos_ant := pos + length ('''''');
+            pos := pos_ant;
+          end loop;
+        end if;
+          /************/
+        --valor_retorno := '    ' || trim(reg_detalle_in.VALUE);
+        valor_retorno := cadena_resul;
+        posicion := instr(valor_retorno, 'VAR_IVA');
+        if (posicion >0) then
+          cad_pri := substr(valor_retorno, 1, posicion-1);
+          cad_seg := substr(valor_retorno, posicion + length('VAR_IVA'));
+          valor_retorno :=  cad_pri || '21' || cad_seg;
+        end if;
+        posicion := instr(valor_retorno, 'VAR_FCH_CARGA');
+        if (posicion >0) then
+          cad_pri := substr(valor_retorno, 1, posicion-1);
+          cad_seg := substr(valor_retorno, posicion + length('VAR_FCH_CARGA'));
+          valor_retorno :=  cad_pri || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''' || cad_seg;
+        end if;
+      when 'HARDC' then
+        valor_retorno :=  '    ' || reg_detalle_in.VALUE;
+      when 'SEQ' then
+        valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
+        --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
+        --  valor_retorno := '    ' || reg_detalle_in.VALUE;
+        --else
+        --  valor_retorno := '    ' || reg_detalle_in.VALUE || '.NEXTVAL';
+        --end if;
+      when 'BASE' then
+        /* Se toma el valor del campo de la tabla de staging */
+        valor_retorno :=  '    ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.VALUE;      
+      when 'VAR_FCH_INICIO' then
+        --valor_retorno :=  '    ' || ''' || var_fch_inicio || ''';
+        valor_retorno :=  '    SYSDATE';
+      when 'VAR' then
+        /* Se toma el valor de una variable de entorno */
+        if reg_detalle_in.VALUE =  'VAR_FCH_CARGA' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
+--          valor_retorno :=  '     ' ||  'TO_DATE (fch_carga_in, ''YYYYMMDD'')';
+          valor_retorno := '     ' || ''' || fch_datos_in || ''';        
+        end if;
+        if reg_detalle_in.VALUE =  'VAR_PAIS_TM' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
+          valor_retorno := '    ' ||  '1';
+        end if;
+      end case;
+    return valor_retorno;
+  end;
+
+/*************/
+  function genera_encabezado_funcion_pkg (reg_lookup_in in MTDT_TC_LOOKUP%rowtype) return VARCHAR2 is
+    valor_retorno VARCHAR (500);
+    lkup_columns                list_strings := list_strings();
+  begin
+    /* Se trata de hacer el LOOK UP con la tabla dimension */
+    /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
+    dbms_output.put_line('Estoy en genera_encabezado_funcion_pkg. Antes de llamar a string coma');
+    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+    dbms_output.put_line('Estoy en genera_encabezado_funcion_pkg. Despues de llamar a string coma');
+    if (lkup_columns.COUNT > 1)
+    then
+      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (';
+      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
+      LOOP
+        if indx = 1 then
+          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+        else
+          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+        end if;
+      END LOOP;
+      valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE RESULT_CACHE;';
+    else        
+      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE;';
+    end if;
+    dbms_output.put_line('Justo antes de retornar');
+    dbms_output.put_line('Retorno es: ' || valor_retorno);
+    return valor_retorno;
+  end;
+
+/************/
+
+  function gen_encabe_regla_function (reg_function_in in MTDT_TC_FUNCTION%rowtype) return VARCHAR2 is
+    valor_retorno VARCHAR (250);
+    lkup_columns                list_strings := list_strings();
+  begin
+    valor_retorno := '  FUNCTION ' || 'LK_' || reg_function_in.VALUE || ';';
+    return valor_retorno;
+  end gen_encabe_regla_function;
+
+  procedure genera_cuerpo_regla_function (reg_function_in in MTDT_TC_FUNCTION%rowtype) is
+  begin
+    UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || 'LK_' || reg_function_in.VALUE);
+    --UTL_FILE.put_line (fich_salida_pkg, '  RESULT_CACHE');
+    UTL_FILE.put_line (fich_salida_pkg, '  IS');
+    UTL_FILE.put_line (fich_salida_pkg, '  BEGIN');
+    UTL_FILE.put_line (fich_salida_pkg, '');
+    UTL_FILE.put_line (fich_salida_pkg, '    dbms_output.put_line (''Aqui iria el cuerpo de la funcion'');');
+    UTL_FILE.put_line (fich_salida_pkg, '    /* AQUI IRIA EL CUERPO DE LA FUNCION */');
+    UTL_FILE.put_line (fich_salida_pkg, '');
+    UTL_FILE.put_line (fich_salida_pkg, '  END ' || 'LK_' || reg_function_in.TABLE_LKUP || ';');
+  end genera_cuerpo_regla_function;
+
+/************/
+  procedure genera_cuerpo_funcion_pkg (reg_lookup_in in MTDT_TC_LOOKUP%rowtype) is
+    valor_retorno VARCHAR (500);
+    lkup_columns                list_strings := list_strings();
+
+  begin
+    /* Se trata de hacer el LOOK UP con la tabla dimension */
+    
+    /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
+    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+    if (lkup_columns.COUNT > 1)
+    then
+      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (';
+      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
+      LOOP
+        if indx = 1 then
+          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+        else
+          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+        end if;
+      END LOOP;
+      valor_retorno := valor_retorno || ') ';
+      UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
+    else        
+      UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE)'); 
+    end if;
+    UTL_FILE.put_line (fich_salida_pkg, '    return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE');
+    UTL_FILE.put_line (fich_salida_pkg, '    RESULT_CACHE RELIES_ON (' || reg_lookup_in.TABLE_LKUP || ')');
+    UTL_FILE.put_line (fich_salida_pkg, '  IS');
+    UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE;');
+    UTL_FILE.put_line (fich_salida_pkg, '  BEGIN');
+    UTL_FILE.put_line (fich_salida_pkg, '    SELECT nvl(' || reg_lookup_in.VALUE || ', -2) INTO l_row'); 
+    UTL_FILE.put_line (fich_salida_pkg, '    FROM ' || reg_lookup_in.TABLE_LKUP);
+    if (lkup_columns.COUNT > 1) then
+      valor_retorno := '    WHERE ' ;
+      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
+      LOOP
+        if indx = 1 then
+          valor_retorno := valor_retorno || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
+        else
+          valor_retorno := valor_retorno || ' and ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
+        end if;
+      END LOOP;
+      if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
+        valor_retorno := valor_retorno || ';';
+      else
+        valor_retorno := valor_retorno || reg_lookup_in.TABLE_LKUP_COND || ';';
+      end if;
+      UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
+    else
+      /* 20141204 Angel Ruiz - Añadido para las tablas de LOOK UP que son un rango */
+      if (instr (reg_lookup_in.TABLE_LKUP,'RANGO') > 0) then
+        /* Se trata de una tabla de Rango y la trato diferente */
+        if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
+          UTL_FILE.put_line (fich_salida_pkg, '    WHERE cod_in >= ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' and  cod_in <= ' || reg_lookup_in.TABLE_LKUP || '.' || 'MAX' || substr(reg_lookup_in.TABLE_COLUMN_LKUP,4) || ';' );
+        else
+          UTL_FILE.put_line (fich_salida_pkg, '    WHERE cod_in >= ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' and  cod_in <= ' || reg_lookup_in.TABLE_LKUP || '.' || 'MAX' || substr(reg_lookup_in.TABLE_COLUMN_LKUP,4) || ' and ' || reg_lookup_in.TABLE_LKUP_COND || ';');
+        end if;
+      else 
+        if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
+        UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in;' );
+        else
+        UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in and ' || reg_lookup_in.TABLE_LKUP_COND || ';' );
+        end if;
+      end if;
+    end if;
+    UTL_FILE.put_line (fich_salida_pkg, '');
+    UTL_FILE.put_line (fich_salida_pkg, '    RETURN l_row;');
+    UTL_FILE.put_line (fich_salida_pkg, '');
+    UTL_FILE.put_line (fich_salida_pkg, '  exception');
+    UTL_FILE.put_line (fich_salida_pkg, '  when NO_DATA_FOUND then');
+    UTL_FILE.put_line (fich_salida_pkg, '    RETURN -2;');
+    UTL_FILE.put_line (fich_salida_pkg, '  when others then');
+    UTL_FILE.put_line (fich_salida_pkg, '    RETURN -2;');
+    UTL_FILE.put_line (fich_salida_pkg, '');
+    UTL_FILE.put_line (fich_salida_pkg, '  END ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ';');
+    UTL_FILE.put_line (fich_salida_pkg, '');
+    UTL_FILE.put_line (fich_salida_pkg, '');
+ 
+  end genera_cuerpo_funcion_pkg;
+
 
 /************/
 
