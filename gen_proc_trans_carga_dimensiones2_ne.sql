@@ -186,6 +186,33 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     return lista_elementos;
   end split_string_coma;
   
+  function posee_propietario_tabla (cadena_in in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    pos                   PLS_integer;
+    cadena_resul varchar2(2);
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    cadena_resul:= 'NO';    
+    if lon_cadena > 0 then
+      /* Busco OWNER_DM */
+      pos := 0;
+      if (instr(cadena_in, '#OWNER_DM#', pos+1) > 0) then
+        cadena_resul := 'SI';
+      elsif (instr(cadena_in, '#OWNER_SA#', pos+1) > 0) then
+        cadena_resul := 'SI';
+      elsif (instr(cadena_in, '#OWNER_T#', pos+1) > 0) then
+        cadena_resul := 'SI';
+      elsif (instr(cadena_in, '#OWNER_MTDT#', pos+1) > 0) then
+        cadena_resul := 'SI';
+      else
+        cadena_resul := 'NO';
+      end if;
+    end if;
+    return cadena_resul;
+  end;
+  
   function procesa_campo_filter (cadena_in in varchar2) return varchar2
   is
     lon_cadena integer;
@@ -1071,7 +1098,17 @@ begin
                 /****/
                 dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                 UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                /* (20150313) Angel Ruiz. Nueva funcionalidad para que los nombre de las tablas puedan llevar el propietario*/
+                if ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'NO') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                elsif ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'NO') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'SI')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' ||  procesa_campo_filter(reg_scenario.TABLE_NAME));
+                elsif ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'SI') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                else
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || ', ' || procesa_campo_filter(reg_scenario.TABLE_NAME));
+                end if;
+                /****************************/
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
                 where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
@@ -1194,7 +1231,17 @@ begin
                 /****/
                 dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                 UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                /* (20150313) Angel Ruiz. Nueva funcionalidad para que los nombre de las tablas puedan llevar el propietario*/
+                if ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'NO') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                elsif ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'NO') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'SI')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' ||  procesa_campo_filter(reg_scenario.TABLE_NAME));
+                elsif ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'SI') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                else
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || ', ' || procesa_campo_filter(reg_scenario.TABLE_NAME));
+                end if;
+                /******************************/
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
                 where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
@@ -1320,7 +1367,17 @@ begin
                 /****/
                 dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                 UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                /* (20150313) Angel Ruiz. Nueva funcionalidad para que los nombre de las tablas puedan llevar el propietario*/
+                if ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'NO') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                elsif ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'NO') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'SI')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' ||  procesa_campo_filter(reg_scenario.TABLE_NAME));
+                elsif ((posee_propietario_tabla(reg_scenario.TABLE_BASE_NAME) = 'SI') and (posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                else
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || ', ' || procesa_campo_filter(reg_scenario.TABLE_NAME));
+                end if;
+                /****************************/
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
                 where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
@@ -1422,7 +1479,12 @@ begin
                   /****/
                   dbms_output.put_line ('Antes de pasar a la parte del FROM: ');
                   UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-                  UTL_FILE.put_line(fich_salida_pkg,'    ' ||  OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                  /* (20150313) Angel Ruiz. Nueva funcionalidad. Puede llevar el nombre de la tabla el propietario al estilo de #OWNER_SA# */
+                  if ((posee_propietario_tabla(reg_scenario.TABLE_NAME) = 'NO')) then
+                    UTL_FILE.put_line(fich_salida_pkg,'    ' ||  OWNER_DM || '.' || reg_scenario.TABLE_NAME);
+                  else
+                    UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter(reg_scenario.TABLE_NAME));
+                  end if;
                   UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
                   UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.FILTER_CARGA_INI || ';');
                   UTL_FILE.put_line(fich_salida_pkg,'');
