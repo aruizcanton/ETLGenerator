@@ -44,6 +44,7 @@ DECLARE
       OWNER_MTDT                       VARCHAR2(60);
       TABLESPACE_SA                  VARCHAR2(60);
       OWNER_TC                            VARCHAR2(60);
+      OWNER_DWH                         VARCHAR2(60);
       
 
 BEGIN
@@ -54,6 +55,7 @@ BEGIN
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
   SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  SELECT VALOR INTO OWNER_DWH FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DWH';
   /* (20150119) FIN*/
 
   DBMS_OUTPUT.put_line('set echo on;');
@@ -65,6 +67,7 @@ BEGIN
       EXIT WHEN dtd_interfaz_summary%NOTFOUND;
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_TC || ';');
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DM || ';');
+      DBMS_OUTPUT.put_line('GRANT select on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DWH || ';');
   END LOOP;
   CLOSE dtd_interfaz_summary;
   DBMS_OUTPUT.put_line('set echo off;');
