@@ -171,19 +171,29 @@ BEGIN
               /* Hay formateo de la columna */
               tipo_col := 'CHAR (' || reg_datail.LENGTH || ') "' || procesa_campo_formateo (reg_datail.format, reg_datail.COLUMNA) || '"';
             else
-              if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+              /* (20150326) Angel Ruiz. Incidencia */
+              if (reg_datail.NULABLE is null and (reg_datail.LENGTH>2 and reg_datail.LENGTH<=11)) then
                 tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
-              elsif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
+              elsif (reg_datail.NULABLE is null and reg_datail.LENGTH>11) then 
                 tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
               else
                 tipo_col := 'CHAR (' || reg_datail.LENGTH || ')';
               end if;
+              --if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+              --  tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              --elsif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
+              --  tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
+              --elseif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.NULABLE is null and (reg_datail.LENGTH>2 and reg_datail.LENGTH<=11)) then
+              --  tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              --else
+                --tipo_col := 'CHAR (' || reg_datail.LENGTH || ')';
+              --end if;
             end if;
           WHEN reg_datail.TYPE = 'NU' THEN
             --tipo_col := 'TO_NUMBER (' || reg_datail.LENGTH || ')';
             /* (20160209) Angel Ruiz */
             /* si el campo es COD_* entonces voy a ponerle un control para que si viene un NULL introduzca un valor -3 (NI#) */
-            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null) then
+            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0  and reg_datail.NULABLE is null) then
               tipo_col := '"NVL(TRIM(:' || reg_datail.COLUMNA || '), -3)"';
             else            
               tipo_col := '';
@@ -191,7 +201,7 @@ BEGIN
           WHEN reg_datail.TYPE = 'DE' THEN
             /* (20160209) Angel Ruiz */
             /* si el campo es COD_* entonces voy a ponerle un control para que si viene un NULL introduzca un valor -3 (NI#) */
-            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null) then
+            if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.NULABLE is null) then
               tipo_col := '"NVL(TRIM(:' || reg_datail.COLUMNA || '), -3)"';
             else            
               tipo_col := '';
@@ -200,16 +210,16 @@ BEGIN
             if (reg_datail.LENGTH = 14) then
               /* (20141217) Angel Ruiz */
               /* Pueden venir blancos en los campos fecha. Hay que controlarlo */
-              if (reg_datail.KEY is null and reg_datail.NULABLE is null ) then
-                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',NULL, TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDDHH24MISS''))"';
+              if (reg_datail.NULABLE is null ) then
+                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101000000'', ''YYYYMMDDHH24MISS''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDDHH24MISS''))"';
               else
                 tipo_col := 'DATE "YYYYMMDDHH24MISS"';
               end if;              
             else
               /* (20141217) Angel Ruiz */
               /* Pueden venir blancos en los campos fecha. Hay que controlarlo */
-              if (reg_datail.KEY is null and reg_datail.NULABLE is null ) then
-                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',NULL, TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
+              if (reg_datail.NULABLE is null ) then
+                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
               else
                 tipo_col := 'DATE "YYYYMMDD"';
               end if;
@@ -241,11 +251,18 @@ BEGIN
             end loop;
             --dbms_output.put_line('Despues del bucle');
             --dbms_output.put_line('Mascara: ' || mascara);
-            tipo_col := '"TO_NUMBER(:' || reg_datail.COLUMNA || ', ''' || mascara || ''', ''NLS_NUMERIC_CHARACTERS='''',.'''''')"';
+            --tipo_col := '"TO_NUMBER(:' || reg_datail.COLUMNA || ', ''' || mascara || ''', ''NLS_NUMERIC_CHARACTERS='''',.'''''')"';
+            tipo_col := '"TO_NUMBER(NVL(TRIM(:' || reg_datail.COLUMNA || '), ''0''), ''' || mascara || ''', ''NLS_NUMERIC_CHARACTERS='''',.'''''')"';
             dbms_output.put_line('Tipo de columna: ' || tipo_col);
             --tipo_col :='';
           WHEN reg_datail.TYPE = 'TI' THEN
-            tipo_col := 'CHAR (8)';
+            if (reg_datail.NULABLE is null) then
+              tipo_col := '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''000000'')"';
+            else            
+              tipo_col := 'CHAR (8)';
+            end if;
+          
+            
           END CASE;
           IF primera_col = 1
           THEN
@@ -288,13 +305,21 @@ BEGIN
               /* Hay formateo de la columna */
               tipo_col := 'CHAR "' || procesa_campo_formateo (reg_datail.format, reg_datail.COLUMNA) || '"';
             else
-              if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+              /* (20150326) Angel Ruiz. Incidencia */
+              if (reg_datail.NULABLE is null and reg_datail.LENGTH>2 and reg_datail.LENGTH<=11) then
                 tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
-              elsif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
-                tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
+              elsif (reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
+                tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
               else
                 tipo_col := 'CHAR';
               end if;
+              --if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+                --tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              --elsif (regexp_count(reg_datail.COLUMNA,'^DES_',1,'i') >0 and reg_datail.KEY is null and reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
+                --tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
+              --else
+                --tipo_col := 'CHAR';
+              --end if;
             end if;
           WHEN reg_datail.TYPE = 'NU' THEN
             /* (20160209) Angel Ruiz */
@@ -319,7 +344,7 @@ BEGIN
               /* (20141217) Angel Ruiz */
               /* Pueden venir blancos en los campos fecha. Hay que controlarlo */
               if (reg_datail.KEY is null and reg_datail.NULABLE is null ) then
-                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',NULL, TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDDHH24MISS''))"';
+                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDDHH24MISS''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDDHH24MISS''))"';
               else
                 tipo_col := 'DATE "YYYYMMDDHH24MISS"';
               end if;
@@ -327,7 +352,7 @@ BEGIN
               /* (20141217) Angel Ruiz */
               /* Pueden venir blancos en los campos fecha. Hay que controlarlo */
               if (reg_datail.KEY is null and reg_datail.NULABLE is null ) then
-                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',NULL, TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
+                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
               else
                 tipo_col := 'DATE "YYYYMMDD"';
               end if;
@@ -335,8 +360,11 @@ BEGIN
           WHEN reg_datail.TYPE = 'IM' THEN
             tipo_col := 'DECIMAL EXTERNAL';
           WHEN reg_datail.TYPE = 'TI' THEN
-            tipo_col := 'CHAR';
-            
+            if (reg_datail.NULABLE is null) then
+              tipo_col := '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''000000'')"';
+            else            
+              tipo_col := 'CHAR';
+            end if;
           END CASE;
           IF primera_col = 1
           THEN
