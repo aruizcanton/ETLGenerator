@@ -124,6 +124,7 @@ cursor MTDT_TABLA
   campo_filter                                VARCHAR2(2000);
   nombre_proceso                        VARCHAR2(30);
   nombre_tabla_reducido           VARCHAR2(30);
+  v_nombre_particion                  VARCHAR2(30);    
   --nombre_tabla_base_reducido           VARCHAR2(30);
   OWNER_SA                             VARCHAR2(60);
   OWNER_T                                VARCHAR2(60);
@@ -718,6 +719,12 @@ begin
     else
       nombre_proceso := nombre_tabla_reducido;
     end if;
+    /* (20150414) Angel Ruiz. Incidencia. El nombre de la partición es demasiado largo */
+    if (length(nombre_tabla_reducido) <= 18) then
+      v_nombre_particion := 'PA_' || nombre_tabla_reducido;
+    else
+      v_nombre_particion := nombre_tabla_reducido;
+    end if;
     
     --nombre_tabla_base_reducido := substr(reg_tabla.TABLE_BASE_NAME, 4); /* Le quito al nombre de la tabla los caracteres SA_ */
     UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AS');
@@ -879,11 +886,13 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
     UTL_FILE.put_line(fich_salida_pkg,'    end if;'); 
     UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_NUMBER(TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1,''YYYYMMDD''));'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
+    --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
+    UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (''' || v_nombre_particion || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
     UTL_FILE.put_line(fich_salida_pkg,'    if (exis_partition = 0) then' );      
     UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la particion */'); 
     --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') UPDATE INDEXES'';');
-    UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+    --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+    UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
     UTL_FILE.put_line(fich_salida_pkg,'   end if;'); 
     UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
     UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
@@ -1566,7 +1575,8 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '        /* Comienza en el primer paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
     UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);    
-    UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
+    --UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
+    UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
     UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
     UTL_FILE.put_line(fich_salida_pkg, '        WITHOUT VALIDATION'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
