@@ -88,7 +88,8 @@ BEGIN
       /****************************************************************************************************/
       if (r_mtdt_modelo_logico_TABLA.CI = 'N' or r_mtdt_modelo_logico_TABLA.CI = 'I') then
         /* Generamos los inserts para aquellas tablas que no son de carga inicial */
-        if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMD_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0) then
+        if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMD_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0
+        or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DWD_',1,'i') >0) then
           /* Solo si se trata de una dimension generamos los inserts por defecto y la secuencia */
           if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
             DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
