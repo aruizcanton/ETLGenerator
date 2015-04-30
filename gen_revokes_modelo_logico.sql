@@ -4,9 +4,11 @@ DECLARE
   IS
     SELECT 
       DISTINCT
-      TRIM(TABLE_NAME) "TABLE_NAME"
-    FROM METADATO.MTDT_MODELO_LOGICO
-    WHERE CI is null;
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(TABLESPACE) "TABLESPACE",
+      TRIM(CI) "CI"
+    FROM MTDT_MODELO_LOGICO
+    WHERE CI <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
 
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
   IS
