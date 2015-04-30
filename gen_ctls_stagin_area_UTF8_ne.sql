@@ -172,7 +172,9 @@ BEGIN
               tipo_col := 'CHAR (' || reg_datail.LENGTH || ') "' || procesa_campo_formateo (reg_datail.format, reg_datail.COLUMNA) || '"';
             else
               /* (20150326) Angel Ruiz. Incidencia */
-              if (reg_datail.NULABLE is null and (reg_datail.LENGTH>2 and reg_datail.LENGTH<=11)) then
+              if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0  and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+                tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              elsif (reg_datail.NULABLE is null and (reg_datail.LENGTH>2 and reg_datail.LENGTH<=11)) then
                 tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
               elsif (reg_datail.NULABLE is null and reg_datail.LENGTH>11) then 
                 tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
@@ -306,7 +308,9 @@ BEGIN
               tipo_col := 'CHAR "' || procesa_campo_formateo (reg_datail.format, reg_datail.COLUMNA) || '"';
             else
               /* (20150326) Angel Ruiz. Incidencia */
-              if (reg_datail.NULABLE is null and reg_datail.LENGTH>2 and reg_datail.LENGTH<=11) then
+              if (regexp_count(reg_datail.COLUMNA,'^COD_',1,'i') >0  and reg_datail.NULABLE is null and reg_datail.LENGTH>2) then
+                tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
+              elsif (reg_datail.NULABLE is null and reg_datail.LENGTH>2 and reg_datail.LENGTH<=11) then
                 tipo_col := 'CHAR ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NI#'')"';
               elsif (reg_datail.NULABLE is null and reg_datail.LENGTH>11) then
                 tipo_col := 'CHAR (' || reg_datail.LENGTH || ') ' || '"NVL(TRIM(:' || reg_datail.COLUMNA || '), ''NO INFORMADO'')"';
