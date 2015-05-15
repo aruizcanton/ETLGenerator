@@ -8,7 +8,7 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D','I')
-    and TABLE_NAME in ('DWD_CLIENTE_DISTRIBUIDOR','SA_CLIENTE_DIST1')
+    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
