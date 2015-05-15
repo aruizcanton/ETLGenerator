@@ -1,5 +1,11 @@
 declare
 
+
+nombre_proceso                        VARCHAR2(30);
+nombre_tabla_base_redu        VARCHAR2(30);
+nombre_tabla_base_sp_redu  VARCHAR2(30);
+nombre_tabla_reducido           VARCHAR2(30);
+  
 cursor MTDT_TABLA
   is
     SELECT
@@ -45,12 +51,20 @@ begin
   dbms_output.put_line('set echo on;');
   dbms_output.put_line('whenever sqlerror exit 1;');
   dbms_output.put_line(''); 
+  
   open MTDT_TABLA;
   loop
     fetch MTDT_TABLA
     into reg_tabla;
     exit when MTDT_TABLA%NOTFOUND;
-    dbms_output.put_line ('DROP PACKAGE ' || OWNER_DM || '.pkg_' || reg_tabla.TABLE_NAME || ';');
+    nombre_tabla_reducido := substr(reg_tabla.TABLE_NAME, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
+    /* Angel Ruiz (20141201) Hecho porque hay paquetes que no compilan */
+     if (length(reg_tabla.TABLE_NAME) < 25) then
+      nombre_proceso := reg_tabla.TABLE_NAME;
+    else
+      nombre_proceso := nombre_tabla_reducido;
+    end if;
+    dbms_output.put_line ('DROP PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ';');
   end loop;
   close MTDT_TABLA;
   dbms_output.put_line(''); 
