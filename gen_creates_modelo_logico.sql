@@ -178,11 +178,8 @@ BEGIN
         
         DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
         DBMS_OUTPUT.put_line('(');
-        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate-2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-1,'YYYYMMDD') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate-1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate,'YYYYMMDD') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+1,'YYYYMM') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate+1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+2,'YYYYMMDD') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate+2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+3,'YYYYMMDD') || ')');  
+        /* (20150518) Angel Ruiz */
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || nombre_tabla_reducido ||'_' || TO_CHAR(sysdate,'YYYYMM') || ' VALUES LESS THAN (' || (TO_NUMBER(TO_CHAR(sysdate,'YYYYMM'))+1) || '),');   
         /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
         if (length(nombre_tabla_reducido) <= 18) then
           v_nombre_particion := 'PA_' || nombre_tabla_reducido;
@@ -190,11 +187,7 @@ BEGIN
           v_nombre_particion := nombre_tabla_reducido;
         end if;
         /********/
-        --DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('201502','YYYYMM'),'YYYYMM') || ' VALUES LESS THAN (' || TO_CHAR(to_date('201503','YYYYMM')+1,'YYYYMM') || ')');   
-        --DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || '),');   
-        --DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(to_date('20150113','YYYYMMDD')+3,'YYYYMMDD') || ')');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(to_date('201502','YYYYMM'),'YYYYMM') || ' VALUES LESS THAN (' || TO_CHAR(to_date('201503','YYYYMM'),'YYYYMM') || ')');   
         DBMS_OUTPUT.put_line(');');
       else
         --DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_COLUMNA.TABLESPACE || ';');
