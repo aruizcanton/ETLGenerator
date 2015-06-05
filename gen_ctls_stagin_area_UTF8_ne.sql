@@ -10,6 +10,7 @@ DECLARE
       TRIM(TYPE) "TYPE",
       TRIM(SEPARATOR) "SEPARATOR",
       TRIM(LENGTH) "LENGTH",
+      TRIM(FREQUENCY) "FREQUENCY",
       TRIM(DELAYED) "DELAYED"
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
@@ -278,6 +279,9 @@ BEGIN
           --UTL_FILE.put_line(fich_salida, ', FCH_REGISTRO DATE ''YYYYMMDD'' "NVL(:FCH_REGISTRO, ''_YYYYMMDD'')"');
           --UTL_FILE.put_line(fich_salida, ', CVE_DIA  "NVL(:CVE_DIA, _YYYYMMDD)"');
         --end if;
+        /* (20150605) Angel Ruiz */
+        UTL_FILE.put_line(fich_salida, ', FILE_NAME CONSTANT ":FILE"' ); 
+        /* (20150605) Fin */
         UTL_FILE.put_line(fich_salida, ')');
         CLOSE dtd_interfaz_detail;
       ELSE  /* SE TRATA DE QUE EL FICHERO VIENE POR POSICION */
@@ -697,12 +701,26 @@ BEGIN
     /****************************/
     UTL_FILE.put_line(fich_salida_sh, '# Comprobamos que los ficheros a cargar existen');
     UTL_FILE.put_line(fich_salida_sh, 'if [ "${NOMBRE_FICH_CARGA:-SIN_VALOR}" = "SIN_VALOR" ] ; then');
-    UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen ficheros para cargar. ' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
-    UTL_FILE.put_line(fich_salida_sh, '    ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-    UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
-    UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
-    UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
-    UTL_FILE.put_line(fich_salida_sh, '    exit 1');    
+    if (reg_summary.FREQUENCY = 'E') then
+      /* Se trata de una carga eventual, por lo que a veces el fichero puede no venir y entonces no debe acabar con error */
+      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen fichero para cargar. El fichero es de carga eventual. No hay error.' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
+      UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
+      UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, '    REG_LEIDOS=0');
+      UTL_FILE.put_line(fich_salida_sh, '    REG_INSERTADOS=0');
+      UTL_FILE.put_line(fich_salida_sh, '    REG_RECHAZADOS=0');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, '    InsertaFinOK');
+      UTL_FILE.put_line(fich_salida_sh, '    exit 0');
+    else
+      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen ficheros para cargar. ' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
+      UTL_FILE.put_line(fich_salida_sh, '    ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
+      UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
+      UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
+      UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_sh, '    exit 1');
+    end if;
     UTL_FILE.put_line(fich_salida_sh, 'else');
     UTL_FILE.put_line(fich_salida_sh, '  for FILE in ${NOMBRE_FICH_CARGA}');
     UTL_FILE.put_line(fich_salida_sh, '  do');
