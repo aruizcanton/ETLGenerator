@@ -6,7 +6,8 @@ DECLARE
       ITEM_NAME,
       ID_LIST,
       AGREGATION,
-      MAX(LENGTH(VALUE)) LONGITUD
+      MAX(LENGTH(VALUE)) LONGITUD,
+      MAX(LENGTH(DESCRIPTION)) LONGITUD_DES
     FROM MTDT_PERMITED_VALUES
     --WHERE ITEM_NAME not in ('ALMACEN')
     GROUP BY 
@@ -17,6 +18,7 @@ DECLARE
   reg_per_val dtd_permited_values%rowtype;
   num_filas INTEGER; /* ALMACENAREMOS EL NUMERO DE FILAS DE LA TABLA MTDT_PERMITED_VALUES  */
   longitud_campo INTEGER;
+  longitud_campo_des INTEGER;
   clave_foranea INTEGER;  /* 0 Si la tabla no tiene clave foranea. 1 si la tiene  */
   
   OWNER_SA                             VARCHAR2(60);
@@ -55,17 +57,25 @@ BEGIN
       DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME);
       DBMS_OUTPUT.put_line('(');
       DBMS_OUTPUT.put_line('  CVE_' || reg_per_val.ITEM_NAME || '          NUMBER(10),');
-      IF (reg_per_val.LONGITUD<3) THEN
-        longitud_campo:=3;
-      ELSE
+      if (reg_per_val.ITEM_NAME = 'PAIS_TM' or reg_per_val.ITEM_NAME = 'MONEDA') then
+        longitud_campo:=5;
+      elsif (reg_per_val.LONGITUD<10) THEN
+        longitud_campo:=10;
+      else
         longitud_campo:=reg_per_val.LONGITUD;
-      END IF;
+      end if;
+      if (reg_per_val.LONGITUD_DES < 48) then
+        longitud_campo_des:=50;
+      else
+        longitud_campo_des:= reg_per_val.LONGITUD_DES+2;
+      end if;
+        
       DBMS_OUTPUT.put_line('  ID_' || reg_per_val.ITEM_NAME || '          VARCHAR2(' || longitud_campo || '),');
-      DBMS_OUTPUT.put_line('  DES_' || reg_per_val.ITEM_NAME || '          VARCHAR2(130),');
+      DBMS_OUTPUT.put_line('  DES_' || reg_per_val.ITEM_NAME || '          VARCHAR2(' || longitud_campo_des || '),');
       DBMS_OUTPUT.put_line('  ID_LIST' || '          VARCHAR2(5),');
       if (reg_per_val.ITEM_NAME <> 'FUENTE') then  /* Esto lo pongo a posteriori porque ha aparecido un ITEM que se llama precisamente fuente. Para no repetir campos*/
         /* En el caso de que el ITEM sea FUENTE este campo no se incluye ya que ya estaria arriba */
-        DBMS_OUTPUT.put_line('  ID_FUENTE' || '          VARCHAR2(3),');
+        DBMS_OUTPUT.put_line('  ID_FUENTE' || '          VARCHAR2(10),');
       end if;
       --if (reg_per_val.ITEM_NAME = 'TIPO_ENVIO') then  /* Esto lo pongo a posteriori porque ha aparecido un ITEM que se llama precisamente fuente. Para no repetir campos*/
       -- /* En el caso de que el ITEM sea FUENTE este campo no se incluye ya que ya estaria arriba */
