@@ -17,6 +17,7 @@ DECLARE
       TRIM(COLUMN_NAME) "COLUMN_NAME",
       DATA_TYPE,
       PK,
+      TRIM(NULABLE) "NULABLE",
       CI,
       TRIM(VDEFAULT) "VDEFAULT",
       TRIM(TABLESPACE) "TABLESPACE"
@@ -86,28 +87,62 @@ BEGIN
         /* COMENZAMOS EL BUCLE QUE GENERARA LAS COLUMNAS */
         IF primera_col = 1 THEN /* Si es primera columna */
           IF (r_mtdt_modelo_logico_COLUMNA.VDEFAULT IS NOT NULL) THEN
-            IF (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) THEN
-              DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
-            ELSIF (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'VARCHAR') > 0) THEN
-              DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''');
-            ELSE  /* se trata de Fecha  */
-              DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
-            END IF;
+            CASE
+              WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) THEN
+                if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                  DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                else
+                  DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                end if;
+              WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'VARCHAR') > 0) THEN
+                if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                  DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''' || ' NOT NULL');
+                else
+                  DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''');
+                end if;
+              ELSE  /* se trata de Fecha  */
+                if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                  DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                else
+                  DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                end if;
+            END CASE;
           ELSE
-            DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+            if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+              DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' NOT NULL');
+            else
+              DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+            end if;
           END IF;
-            primera_col := 0;
+          primera_col := 0;
         ELSE  /* si no es primera columna */
           IF (r_mtdt_modelo_logico_COLUMNA.VDEFAULT IS NOT NULL) THEN
-            IF (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) THEN
-              DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
-            ELSIF (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'VARCHAR') > 0) THEN
-              DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''');
-            ELSE  /* se trata de Fecha  */
-              DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
-            END IF;
+            CASE 
+              WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) THEN
+                if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                  DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                else
+                  DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                end if;
+              WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'VARCHAR') > 0) THEN
+                if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                  DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''' || ' NOT NULL');
+                else
+                  DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''');
+                end if;
+              ELSE  /* se trata de Fecha  */
+                if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                  DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                else
+                  DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                end if;
+              END CASE;
           ELSE
-            DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+            if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+              DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' NOT NULL');
+            else
+              DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+            end if;
           END IF;
         END IF;
         IF upper(trim(r_mtdt_modelo_logico_COLUMNA.PK)) = 'S' then
@@ -202,7 +237,7 @@ BEGIN
       lista_pk.DELETE;      /* Borramos los elementos de la lista */
       DBMS_OUTPUT.put_line('');
       /***************************/
-      /* Ahora creamos la tabla TEMPORAL pero solo para aquellas que no se van a cargar como carga inicial */
+      /* AHORA CREAMOS LA TABLA TEMPORAL PERO SOLO PARA AQUELLAS QUE NO SE VAN A CARGAR COMO CARGA INICIAL */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
         /* Aquellas que no tienen ningún tipo de carga inicial */
         --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ' CASCADE CONSTRAINTS;');
@@ -217,10 +252,64 @@ BEGIN
           EXIT WHEN c_mtdt_modelo_logico_COLUMNA%NOTFOUND;
           /* COMENZAMOS EL BUCLE QUE GENERARA LAS COLUMNAS */
           IF primera_col = 1 THEN /* Si es primera columna */
-              DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
-              primera_col := 0;
+            IF (r_mtdt_modelo_logico_COLUMNA.VDEFAULT IS NOT NULL) THEN
+              CASE
+                WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) THEN
+                  if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                    DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                  else
+                    DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                  end if;
+                WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'VARCHAR') > 0) THEN
+                  if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                    DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''' || ' NOT NULL');
+                  else
+                    DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''');
+                  end if;
+                ELSE  /* se trata de Fecha  */
+                  if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                    DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                  else
+                    DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                  end if;
+              END CASE;
+            ELSE
+              if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' NOT NULL');
+              else
+                DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+              end if;
+            END IF;
+            primera_col := 0;
           ELSE  /* si no es primera columna */
-              DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+            IF (r_mtdt_modelo_logico_COLUMNA.VDEFAULT IS NOT NULL) THEN
+              CASE 
+                WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) THEN
+                  if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                    DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                  else
+                    DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                  end if;
+                WHEN (INSTR(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'VARCHAR') > 0) THEN
+                  if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                    DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''' || ' NOT NULL');
+                  else
+                    DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ''' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || '''');
+                  end if;
+                ELSE  /* se trata de Fecha  */
+                  if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                    DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT || ' NOT NULL');
+                  else
+                    DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' DEFAULT ' || r_mtdt_modelo_logico_COLUMNA.VDEFAULT);
+                  end if;
+                END CASE;
+            ELSE
+              if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE || ' NOT NULL');
+              else
+                DBMS_OUTPUT.put_line(', ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME || '          ' || r_mtdt_modelo_logico_COLUMNA.DATA_TYPE);
+              end if;
+            END IF;
           END IF;
           IF upper(trim(r_mtdt_modelo_logico_COLUMNA.PK)) = 'S' then
             lista_pk.EXTEND;
@@ -298,7 +387,13 @@ BEGIN
                       cadena_values := '-1';
                     else
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0 or instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
-                        cadena_values := 'NULL';
+                        if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
+                          cadena_values := 'N';
+                        elsif (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
+                          cadena_values := 'NA';
+                        else
+                          cadena_values := 'NULL';
+                        end if;
                       else
                         cadena_values := '''NA#''';
                       end if;
@@ -313,14 +408,42 @@ BEGIN
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := '''NA#''';
                     else
-                      cadena_values := 'NULL';
+                      if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                        case 
+                          when longitud_des_numerico = 2 then
+                            cadena_values := '''NA''';
+                          when longitud_des_numerico = 1 then
+                            cadena_values := '''N''';
+                        end case;
+                      else
+                        cadena_values := 'NULL';
+                      end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_REGISTRO',1,'i') >0 THEN
-                      cadena_values := 'sysdate';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_MODIFICACION',1,'i') >0 THEN
+                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
                       cadena_values := 'sysdate';
                   ELSE
-                    cadena_values := 'NULL';
+                    if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                      if (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) then
+                        cadena_values := '-1';
+                      elsif (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'DATE') > 0) then
+                        cadena_values := 'sysdate';
+                      else
+                        /* VARCHAR */
+                        pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
+                        pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
+                        longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
+                        longitud_des_numerico := to_number(longitud_des);
+                        if (longitud_des_numerico > 8) then
+                          cadena_values := '''NO APLICA''';
+                        elsif (longitud_des_numerico > 2) then
+                          cadena_values := '''NA#''';
+                        else
+                          cadena_values := '''N''';
+                        end if;
+                      end if;
+                    else
+                      cadena_values := 'NULL';
+                    end if;
                 END CASE;  
                 primera_col := 0;
             ELSE  /* si no es primera columna */
@@ -333,7 +456,13 @@ BEGIN
                       cadena_values := cadena_values || ', -1';
                     else
                         if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0 or instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
-                          cadena_values := cadena_values || ', NULL';
+                          if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
+                            cadena_values := cadena_values || ', ''N''';
+                          elsif (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
+                            cadena_values := cadena_values || ', ''NA''';
+                          else
+                            cadena_values := cadena_values || ', NULL';
+                          end if;
                         else
                           cadena_values := cadena_values || ', ''NA#''';
                         end if;
@@ -348,14 +477,42 @@ BEGIN
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := cadena_values || ', ''NA#''';
                     else
-                      cadena_values := cadena_values || ', NULL';
+                      if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                        case 
+                          when longitud_des_numerico = 2 then
+                            cadena_values := cadena_values || ', ''NA''';
+                          when longitud_des_numerico = 1 then
+                            cadena_values := cadena_values || ', ''N''';
+                        end case;
+                      else
+                        cadena_values := cadena_values || ', NULL';
+                      end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_REGISTRO',1,'i') >0 THEN
-                      cadena_values := cadena_values || ', sysdate';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_MODIFICACION',1,'i') >0 THEN
+                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
                       cadena_values := cadena_values || ', sysdate';
                   ELSE
-                    cadena_values := cadena_values || ', NULL';
+                    if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                      if (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) then
+                        cadena_values := cadena_values || ', -1';
+                      elsif (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'DATE') > 0) then
+                        cadena_values := cadena_values || ', sysdate';
+                      else
+                        /* VARCHAR */
+                        pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
+                        pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
+                        longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
+                        longitud_des_numerico := to_number(longitud_des);
+                        if (longitud_des_numerico > 8) then
+                          cadena_values := cadena_values || ', ''NO APLICA''';
+                        elsif (longitud_des_numerico > 2) then
+                          cadena_values := cadena_values || ', ''NA#''';
+                        else
+                          cadena_values := cadena_values || ', ''N''';
+                        end if;
+                      end if;
+                    else
+                      cadena_values := cadena_values || ', NULL';
+                    end if;
                 END CASE;  
             END IF;
           END LOOP; 
@@ -384,7 +541,13 @@ BEGIN
                       cadena_values := '-2';
                     else
                         if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0 or instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
-                          cadena_values := 'NULL';
+                          if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
+                            cadena_values := '''G''';
+                          elsif (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
+                            cadena_values := '''GE''';
+                          else
+                            cadena_values := 'NULL';
+                          end if;
                         else
                           cadena_values := '''GE#''';
                         end if;
@@ -399,14 +562,42 @@ BEGIN
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := '''GE#''';
                     else
-                      cadena_values := 'NULL';
+                      if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                        case 
+                          when longitud_des_numerico = 2 then
+                            cadena_values := '''GE''';
+                          when longitud_des_numerico = 1 then
+                            cadena_values := '''G''';
+                        end case;
+                      else
+                        cadena_values := 'NULL';
+                      end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_REGISTRO',1,'i') >0 THEN
-                      cadena_values := 'sysdate';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_MODIFICACION',1,'i') >0 THEN
+                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
                       cadena_values := 'sysdate';
                   ELSE
-                    cadena_values := 'NULL';
+                    if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                      if (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) then
+                        cadena_values := '-2';
+                      elsif (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'DATE') > 0) then
+                        cadena_values := 'sysdate';
+                      else
+                        /* VARCHAR */
+                        pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
+                        pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
+                        longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
+                        longitud_des_numerico := to_number(longitud_des);
+                        if (longitud_des_numerico > 8) then
+                          cadena_values := '''GENERICO''';
+                        elsif (longitud_des_numerico > 2) then
+                          cadena_values := '''GE#''';
+                        else
+                          cadena_values := '''G''';
+                        end if;
+                      end if;
+                    else
+                      cadena_values := 'NULL';
+                    end if;
                 END CASE;  
                 primera_col := 0;
             ELSE  /* si no es primera columna */
@@ -419,7 +610,13 @@ BEGIN
                       cadena_values := cadena_values || ', -2';
                     else
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0 or instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
-                        cadena_values := cadena_values || ', NULL';
+                        if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
+                          cadena_values := cadena_values || ', ''G''';
+                        elsif (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
+                          cadena_values := cadena_values || ', ''GE''';
+                        else
+                          cadena_values := cadena_values || ', NULL';
+                        end if;
                       else
                         cadena_values := cadena_values || ', ''GE#''';
                       end if;
@@ -434,14 +631,42 @@ BEGIN
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := cadena_values || ', ''GE#''';
                     else
-                      cadena_values := cadena_values || ', NULL';
+                      if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                        case 
+                          when longitud_des_numerico = 2 then
+                            cadena_values := cadena_values || ', ''GE''';
+                          when longitud_des_numerico = 1 then
+                            cadena_values := cadena_values || ', ''G''';
+                        end case;
+                      else
+                        cadena_values := cadena_values || ', NULL';
+                      end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_REGISTRO',1,'i') >0 THEN
-                      cadena_values := cadena_values || ', sysdate';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_MODIFICACION',1,'i') >0 THEN
+                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
                       cadena_values := cadena_values || ', sysdate';
                   ELSE
-                    cadena_values := cadena_values || ', NULL';
+                    if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                      if (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) then
+                        cadena_values := cadena_values || ', -2';
+                      elsif (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'DATE') > 0) then
+                        cadena_values := cadena_values || ', sysdate';
+                      else
+                        /* VARCHAR */
+                        pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
+                        pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
+                        longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
+                        longitud_des_numerico := to_number(longitud_des);
+                        if (longitud_des_numerico > 8) then
+                          cadena_values := cadena_values || ', ''GENERICO''';
+                        elsif (longitud_des_numerico > 2) then
+                          cadena_values := cadena_values || ', ''GE#''';
+                        else
+                          cadena_values := cadena_values || ', ''G''';
+                        end if;
+                      end if;
+                    else
+                      cadena_values := cadena_values || ', NULL';
+                    end if;
                 END CASE;  
             END IF;
           END LOOP; 
@@ -470,7 +695,13 @@ BEGIN
                       cadena_values :=  '-3';
                     else
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0 or instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
-                        cadena_values := 'NULL';
+                        if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
+                          cadena_values := '''N''';
+                        elsif (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
+                          cadena_values := '''NI''';
+                        else
+                          cadena_values := 'NULL';
+                        end if;
                       else
                         cadena_values := '''NI#''';
                       end if;
@@ -485,14 +716,42 @@ BEGIN
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := '''NI#''';
                     else
-                      cadena_values := 'NULL';
+                      if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                        case 
+                          when longitud_des_numerico = 2 then
+                            cadena_values := '''NI''';
+                          when longitud_des_numerico = 1 then
+                            cadena_values := '''N''';
+                        end case;
+                      else
+                        cadena_values := 'NULL';
+                      end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_REGISTRO',1,'i') >0 THEN
-                      cadena_values := 'sysdate';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_MODIFICACION',1,'i') >0 THEN
+                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
                       cadena_values := 'sysdate';
                   ELSE
-                    cadena_values := 'NULL';
+                    if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                      if (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) then
+                        cadena_values := '-3';
+                      elsif (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'DATE') > 0) then
+                        cadena_values := 'sysdate';
+                      else
+                        /* VARCHAR */
+                        pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
+                        pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
+                        longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
+                        longitud_des_numerico := to_number(longitud_des);
+                        if (longitud_des_numerico > 8) then
+                          cadena_values := '''NO INFORMADO''';
+                        elsif (longitud_des_numerico > 2) then
+                          cadena_values := '''NI#''';
+                        else
+                          cadena_values := '''N''';
+                        end if;
+                      end if;
+                    else
+                      cadena_values := 'NULL';
+                    end if;
                 END CASE;  
                 primera_col := 0;
             ELSE  /* si no es primera columna */
@@ -505,7 +764,13 @@ BEGIN
                       cadena_values := cadena_values || ', -3';
                     else
                       if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0 or instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
-                        cadena_values := cadena_values || ', NULL';
+                        if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(1)') > 0) then
+                          cadena_values := cadena_values || ', ''N''';
+                        elsif (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N' and instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(2)') > 0) then
+                          cadena_values := cadena_values || ', ''NI''';
+                        else
+                          cadena_values := cadena_values || ', NULL';
+                        end if;
                       else                  
                         cadena_values := cadena_values || ', ''NI#''';
                       end if;
@@ -520,14 +785,42 @@ BEGIN
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := cadena_values || ', ''NI#''';
                     else
-                      cadena_values := cadena_values || ', NULL';
+                      if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                        case 
+                          when longitud_des_numerico = 2 then
+                            cadena_values := cadena_values || ', ''NA''';
+                          when longitud_des_numerico = 1 then
+                            cadena_values := cadena_values || ', ''N''';
+                        end case;
+                      else
+                        cadena_values := cadena_values || ', NULL';
+                      end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_REGISTRO',1,'i') >0 THEN
-                      cadena_values := cadena_values || ', sysdate';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_MODIFICACION',1,'i') >0 THEN
+                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
                       cadena_values := cadena_values || ', sysdate';
                   ELSE
-                    cadena_values := cadena_values || ', NULL';
+                    if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
+                      if (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'NUMBER') > 0) then
+                        cadena_values := cadena_values || ', -1';
+                      elsif (regexp_count(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, 'DATE') > 0) then
+                        cadena_values := cadena_values || ', sysdate';
+                      else
+                        /* VARCHAR */
+                        pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
+                        pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
+                        longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
+                        longitud_des_numerico := to_number(longitud_des);
+                        if (longitud_des_numerico > 8) then
+                          cadena_values := cadena_values || ', ''NO INFORMADO''';
+                        elsif (longitud_des_numerico > 2) then
+                          cadena_values := cadena_values || ', ''NI#''';
+                        else
+                          cadena_values := cadena_values || ', ''N''';
+                        end if;
+                      end if;
+                    else
+                      cadena_values := cadena_values || ', NULL';
+                    end if;
                 END CASE;  
             END IF;
           END LOOP; 
