@@ -496,6 +496,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_nombre_paquete                    VARCHAR2(40);
     v_nombre_tabla_reducido         VARCHAR2(40);
     v_IE_COLUMN_LKUP              VARCHAR(400);
+    v_prototipo_func                        VARCHAR2(500);
     
   begin
       case trim(reg_detalle_in.RUL)
