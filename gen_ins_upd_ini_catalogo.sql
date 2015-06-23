@@ -91,7 +91,7 @@ BEGIN
         /* Fin cambio */
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' ||  'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (' || reg_per_val.CVE || ', ''' || trim(reg_per_val.VALUE) || ''',');  
-        DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
+        DBMS_OUTPUT.put_line('''' || replace(reg_per_val.DESCRIPTION, '''', '''''') || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
           if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
@@ -158,7 +158,7 @@ BEGIN
         /* Fin cambio */
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' ||  'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (' || reg_per_val.CVE || ', ''' || trim(reg_per_val.VALUE) || ''',');  
-        DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
+        DBMS_OUTPUT.put_line('''' || replace(reg_per_val.DESCRIPTION, '''', '''''') || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
           if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
@@ -248,7 +248,7 @@ BEGIN
         /* Fin cambio */
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' ||  'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (' || reg_per_val.CVE || ', ''' || trim(reg_per_val.VALUE) || ''',');  
-        DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
+        DBMS_OUTPUT.put_line('''' || replace(reg_per_val.DESCRIPTION, '''', '''''') || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
           if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
@@ -314,7 +314,7 @@ BEGIN
         /* Fin cambio */
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' ||  'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (' || reg_per_val.CVE || ', ''' || trim(reg_per_val.VALUE) || ''',');  
-        DBMS_OUTPUT.put_line('''' || reg_per_val.DESCRIPTION || ''',');
+        DBMS_OUTPUT.put_line('''' || replace(reg_per_val.DESCRIPTION, '''', '''''') || ''',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
           if (reg_per_val.ITEM_NAME <> 'ALMACEN') then /* Metido a posteriori   20150227*/
