@@ -110,7 +110,8 @@ BEGIN
           WHEN reg_datail.TYPE = 'FE' THEN
             tipo_col := 'DATE';
           WHEN reg_datail.TYPE = 'IM' THEN
-            tipo_col := 'NUMBER (15, 3)';
+            tipo_col := 'NUMBER (' || reg_datail.LENGTH || ')';
+            --tipo_col := 'NUMBER (15, 3)';
           WHEN reg_datail.TYPE = 'TI' THEN
             tipo_col := 'VARCHAR2 (8)';
           END CASE;
@@ -131,6 +132,9 @@ BEGIN
         END IF;
       END LOOP;
       CLOSE dtd_interfaz_detail;
+      /*(20150605) Angel Ruiz. AÑADIDO PARA CHEQUEAR LA CALIDAD DEL DATO */
+      DBMS_OUTPUT.put_line(', FILE_NAME VARCHAR2(100)');
+      
       --if (reg_summary.DELAYED = 'S') then
       --  /* Si la tabla admite retrasados, la particiono por la fecha de datos*/
       --  IF primera_col = 1 THEN /* Si es primera columna */
