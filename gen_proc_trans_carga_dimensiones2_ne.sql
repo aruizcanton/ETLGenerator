@@ -76,7 +76,7 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_DETAIL
   WHERE
-      trim(RUL) = 'LKUP' and
+      (trim(RUL) = 'LKUP' or trim(RUL) = 'LKUPC') and
       trim(TABLE_NAME) = table_name_in;
 
   CURSOR MTDT_TC_LKUPD (table_name_in IN VARCHAR2)
@@ -205,6 +205,43 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     end if;
     return lista_elementos;
   end split_string_coma;
+  
+  function proc_campo_value_condicion (cadena_in in varchar2, nombre_funcion_lookup in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (1000);
+    sustituto              varchar2(100);
+    cola                      varchar2(1000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(1000);
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if (lon_cadena > 0) then
+      /* Busco VAR_FUN_NAME_LOOKUP */
+      sustituto := nombre_funcion_lookup;
+      loop
+        dbms_output.put_line ('Entro en el LOOP de proc_campo_value_condicion. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, 'VAR_FUN_NAME_LOOKUP', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length ('VAR_FUN_NAME_LOOKUP'));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
+        --pos := pos_ant;
+      end loop;
+    end if;  
+    return cadena_resul;
+  end;
   
   function procesa_campo_filter (cadena_in in varchar2) return varchar2
   is
@@ -464,7 +501,34 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       case trim(reg_detalle_in.RUL)
       when 'KEEP' then
         /* Se mantienen el valor del campo de la tabla que estamos cargando */
-        valor_retorno := '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;      
+        valor_retorno := '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;
+      when 'LKUPC' then
+        /* (20150619) Angel Ruiz. Anyado esta nueva funcionalidad */
+        /* Se trata de que pueda aplicar una funcion de LookUp pero dentro de un CASE WHEN */
+        /* para hacer esta aplicacion condicional */
+
+        /*Puede ocurrir que en el campo VALUE de la llamada a LOOKUP se use la variable VAR_FCH_CARGA */
+        v_IE_COLUMN_LKUP := procesa_campo_filter (reg_detalle_in.IE_COLUMN_LKUP);
+        
+        /****************************/
+        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
+        if (length(reg_detalle_in.TABLE_NAME) < 25) then
+        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
+        else
+        v_nombre_paquete := v_nombre_tabla_reducido;
+        end if;        
+        /* La tabla de LookUp puede ser una SELECT y no solo una tabla */
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+          /* Aparecen queries en lugar de tablas para LookUp */
+          v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion con el nombre del campo resultado del LookUp */
+        else
+          v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_LKUP;  /* Llamo a mi funcion de LookUp esta concatenacion */
+        end if;
+        
+        /* Procesamos el campo LKUP_COM_RUL que es donde esta la condicion CASE WHEN*/
+        v_prototipo_func := 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+        valor_retorno := proc_campo_value_condicion (reg_detalle_in.LKUP_COM_RULE, v_prototipo_func);
+        
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         --if (trim(reg_detalle_in.LKUP_COM_RULE) <> "") then
@@ -612,21 +676,44 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     end if;
     /* Se trata de hacer el LOOK UP con la tabla dimension */
     /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
-    if (lkup_columns.COUNT > 1)
-    then
-      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (';
-      FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
-      LOOP
-        if indx = 1 then
-          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
-        else
-          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
-        end if;
-      END LOOP;
-      valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE RESULT_CACHE;';
-    else        
-      valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE;';
+    if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then    /* (20150102) Angel Ruiz . Nueva incidencia. Hay una SELECT en lugar de una tabla para hacer LookUp */
+      /* Para hacer el prototipo de la funcion he de usar la tabla base y los campos ie_olumn_lookup ya que no tenemos los campos de LookUp al ser una select */
+      lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+      ie_lkup_columns := split_string_coma (reg_lookup_in.IE_COLUMN_LKUP);
+      if (lkup_columns.COUNT > 1)
+      then
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
+        FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
+        LOOP
+          if indx = 1 then
+              valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || ie_lkup_columns(indx) || '%TYPE';
+          else
+            valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || ie_lkup_columns(indx) || '%TYPE';
+          end if;
+        END LOOP;
+        valor_retorno := valor_retorno || ') return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
+      else        
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || reg_lookup_in.IE_COLUMN_LKUP || '%TYPE) return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
+      end if;
+        
+    else  /* (20150102) Angel Ruiz . Nueva incidencia. Hay una tabla de LookUp normal. No SELECT */
+    
+      lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+      if (lkup_columns.COUNT > 1)
+      then
+        valor_retorno := '  FUNCTION ' || 'LK_' || v_nombre_func_lookup || ' (';
+        FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
+        LOOP
+          if indx = 1 then
+            valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          else
+            valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          end if;
+        END LOOP;
+        valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
+      else        
+        valor_retorno := '  FUNCTION ' || 'LK_' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
+      end if;
     end if;
     return valor_retorno;
   end;
@@ -746,17 +833,18 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       else        
         UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE)'); 
       end if;
-      UTL_FILE.put_line (fich_salida_pkg, '    return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE');
+      UTL_FILE.put_line (fich_salida_pkg, '    return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE');
       UTL_FILE.put_line (fich_salida_pkg, '    RESULT_CACHE RELIES_ON (' || reg_lookup_in.TABLE_LKUP || ')');
     end if;
     UTL_FILE.put_line (fich_salida_pkg, '  IS');
     /* (20150130) Angel Ruiz . Nueva incidencia. */
-    if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then
-      UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE;');
-    else
-      UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE;');
-    end if;
-    
+    --if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then
+    --  UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE;');
+    --else
+    --  UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE;');
+    --end if;
+    /* (20150619) Angel Ruiz. Nueva funcionalidad. Cambio la obtencion del tipo de dato de retorno para que sea mas coherente*/
+    UTL_FILE.put_line (fich_salida_pkg, '    l_row     ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE;');
     UTL_FILE.put_line (fich_salida_pkg, '  BEGIN');
     /**********************************************************/
     /* (20150217) Angel Ruiz. Incidencia debido a que no esta retornando bien el valor de LookUp cuando se hace LookUp por varios campos */
