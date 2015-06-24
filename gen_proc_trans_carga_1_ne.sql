@@ -564,6 +564,36 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
         end if;
         --valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LKUP_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+      when 'LKUPD' then
+        /* (20150430) Angel Ruiz */
+        /* Se trata de hacer el LOOK UP con la tabla dimension */
+
+        /*Puede ocurrir que en el campo VALUE de la llamada a LOOKUP se use la variable VAR_FCH_CARGA */
+        v_IE_COLUMN_LKUP := procesa_campo_filter (reg_detalle_in.IE_COLUMN_LKUP);
+
+        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
+        if (length(reg_detalle_in.TABLE_NAME) < 25) then
+        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
+        else
+        v_nombre_paquete := v_nombre_tabla_reducido;
+        end if;        
+
+        v_nombre_func_lookup := 'LK_' || reg_detalle_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion */
+
+        if (reg_detalle_in.LKUP_COM_RULE is not null) then
+         /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
+          cadena := trim(reg_detalle_in.LKUP_COM_RULE);
+          pos_del_si := instr(cadena, 'SI');
+          pos_del_then := instr(cadena, 'THEN');
+          pos_del_else := instr(cadena, 'ELSE');
+          pos_del_end := instr(cadena, 'END');  
+          condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
+          constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+        else
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+        end if;
+        
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
         valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
