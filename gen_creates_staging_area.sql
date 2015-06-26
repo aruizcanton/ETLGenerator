@@ -88,7 +88,8 @@ BEGIN
           WHEN reg_datail.TYPE = 'FE' THEN
             tipo_col := 'DATE';
           WHEN reg_datail.TYPE = 'IM' THEN
-            tipo_col := 'NUMBER (15, 3)';
+            tipo_col := 'NUMBER (' || reg_datail.LENGTH || ')';
+            --tipo_col := 'NUMBER (15, 3)';
           WHEN reg_datail.TYPE = 'TI' THEN
             tipo_col := 'VARCHAR2 (8)';
           END CASE;
