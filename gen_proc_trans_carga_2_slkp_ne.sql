@@ -70,7 +70,7 @@ SELECT
     FROM
       MTDT_TC_DETAIL
   WHERE
-      RUL = 'LKUP' and
+      (trim(RUL) = 'LKUP' or trim(RUL) = 'LKUPC') and
       TRIM(TABLE_NAME) = table_name_in;
 
   CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
@@ -167,6 +167,43 @@ SELECT
     end if;
     return lista_elementos;
   end split_string_coma;
+
+  function proc_campo_value_condicion (cadena_in in varchar2, nombre_funcion_lookup in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (1000);
+    sustituto              varchar2(100);
+    cola                      varchar2(1000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(1000);
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if (lon_cadena > 0) then
+      /* Busco VAR_FUN_NAME_LOOKUP */
+      sustituto := nombre_funcion_lookup;
+      loop
+        dbms_output.put_line ('Entro en el LOOP de proc_campo_value_condicion. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, 'VAR_FUN_NAME_LOOKUP', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length ('VAR_FUN_NAME_LOOKUP'));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
+        --pos := pos_ant;
+      end loop;
+    end if;  
+    return cadena_resul;
+  end;
 
   function procesa_COM_RULE_lookup (cadena_in in varchar2, v_alias_in varchar2 := NULL) return varchar2
   is
@@ -348,7 +385,171 @@ SELECT
       case reg_detalle_in.RUL
       when 'KEEP' then
         /* Se mantienen el valor del campo de la tabla que estamos cargando */
-        valor_retorno :=  '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;      
+        valor_retorno :=  '    ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN;
+      when 'LKUPC' then
+        /* (20150626) Angel Ruiz.  Se trata de hacer el LOOK UP con la tabla dimension de manera condicional */
+        l_FROM.extend;
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+          /* Aparecen queries en lugar de tablas en la columna de nombre de tabla para LookUp */
+          v_alias := 'LKUP_' || l_FROM.count;
+          mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
+          l_FROM (l_FROM.last) := ', ' || mitabla_look_up;
+        else
+          /* (20150112) Angel Ruiz */
+          /* Puede ocurrir que se se tenga varias veces la misma LookUp pero para campo diferentes */
+          /* lo que se traduce en que hay que crear ALIAS */
+          /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM*/
+          v_encontrado:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            --if (instr(l_FROM(indx),  reg_detalle_in.TABLE_LKUP, 0)) then
+            --regexp_count(reg_per_val.AGREGATION,'^BAN_',1,'i') >0
+            if (regexp_count(l_FROM(indx), reg_detalle_in.TABLE_LKUP) >0) then
+            --if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
+              /* La misma tabla ya estaba en otro lookup */
+              v_encontrado:='Y';
+            end if;
+          END LOOP;
+          if (v_encontrado='Y') then
+            v_alias := reg_detalle_in.TABLE_LKUP || '_' || l_FROM.count;
+            l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP || ' "' || v_alias || '"' ;
+          else
+            v_alias := reg_detalle_in.TABLE_LKUP;
+            l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+          end if;
+        end if;
+        /* Miramos la parte de las condiciones */
+        /* Puede haber varios campos por los que hacer LookUp y por lo tanto JOIN */
+        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+
+        /****************************************************************************/
+        /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL SELECT */
+        /****************************************************************************/
+        
+        /* Construyo el campo de SELECT */
+        if (table_columns_lkup.COUNT > 1) then      /* Hay varios campos de condicion */
+          valor_retorno := 'CASE WHEN (';
+          FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
+          LOOP
+            SELECT * INTO l_registro
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = TRIM(ie_column_lkup(indx));
+          
+            if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+              if (indx = 1) then
+                valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+              else
+                valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+              end if;
+            else 
+              if (indx = 1) then
+                valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+              else
+                valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+              end if;
+            end if;
+          END LOOP;
+          valor_retorno := valor_retorno || ') THEN -3 ELSE ' || proc_campo_value_condicion(reg_detalle_in.LKUP_COM_RULE, 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)') || ' END';
+        else
+          valor_retorno :=  proc_campo_value_condicion (reg_detalle_in.LKUP_COM_RULE, 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)');
+        end if;
+        /****************************************************************************/
+        /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL WHERE */
+        /****************************************************************************/
+        
+        if (table_columns_lkup.COUNT > 1) then      /* Hay varios campos de condicion */
+          FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
+          LOOP
+            l_WHERE.extend;
+            /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
+            /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
+            
+            /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
+            SELECT * INTO l_registro
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            if (l_WHERE.count = 1) then
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                end if;
+              else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||', -3)' ||' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              end if;
+            else
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                end if;
+              else /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', -3)' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              end if;
+            end if;
+          END LOOP;
+        else    /* Solo hay un campo condicion */
+          
+          /* Miramos si la tabla con la que hay que hacer LookUp es una tabla de rangos */
+          l_WHERE.extend;
+          if (instr (reg_detalle_in.TABLE_LKUP,'RANGO') > 0) then
+            if (l_WHERE.count = 1) then
+              l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' >= ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              l_WHERE.extend;
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+            else
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' >= ' || v_alias || '.'  || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              l_WHERE.extend;
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+            end if;
+          else
+            /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
+            /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
+            SELECT * INTO l_registro
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+            if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                end if;
+              else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              end if;
+            else  /* sino es el primer campo del Where  */
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                end if;
+              else     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              end if;
+            end if;
+          end if;
+        end if;
+        if (reg_detalle_in.TABLE_LKUP_COND is not null) then
+          /* Existen condiciones en la tabla de Look Up que hay que introducir*/
+          l_WHERE.extend;
+          l_WHERE(l_WHERE.last) :=  ' AND ' || procesa_condicion_lookup(reg_detalle_in.TABLE_LKUP_COND, v_alias);
+        end if;
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         /* (20150126) Angel Ruiz. Primero recojo la tabla del modelo con la que se hace LookUp. NO puede ser tablas T_* sino su equivalesnte del modelo */
