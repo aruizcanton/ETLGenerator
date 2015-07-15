@@ -8,7 +8,7 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D','I')
-    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_PARQUE_SERIADOS1', 'DMD_SERIADO')
+    and TABLE_NAME in ('SA_PARQUE_SERIADOS1', 'DMD_SERIADO')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -702,7 +702,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
       if (lkup_columns.COUNT > 1)
       then
-        valor_retorno := '  FUNCTION ' || 'LK_' || v_nombre_func_lookup || ' (';
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
         FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
         LOOP
           if indx = 1 then
@@ -713,7 +713,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         END LOOP;
         valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
       else        
-        valor_retorno := '  FUNCTION ' || 'LK_' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
       end if;
     end if;
     return valor_retorno;
