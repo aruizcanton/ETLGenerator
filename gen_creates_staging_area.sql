@@ -134,7 +134,7 @@ BEGIN
       END LOOP;
       CLOSE dtd_interfaz_detail;
       /*(20150605) Angel Ruiz. AÑADIDO PARA CHEQUEAR LA CALIDAD DEL DATO */
-      DBMS_OUTPUT.put_line(', FILE_NAME VARCHAR2(100)');
+      --DBMS_OUTPUT.put_line(', FILE_NAME VARCHAR2(100)');
       
       --if (reg_summary.DELAYED = 'S') then
       --  /* Si la tabla admite retrasados, la particiono por la fecha de datos*/
