@@ -72,6 +72,7 @@ BEGIN
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_TC || ';');
       DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_DWH || ';');
       DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_RD || ';');
+      DBMS_OUTPUT.put_line('GRANT select  on ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || ' to ' || OWNER_SA || ';');
       /* Ahora creamos para la tabla TEMPORAL pero solo para aquellas que no se van a cargar como carga inicial */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
         DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ' to ' || OWNER_TC || ';');
