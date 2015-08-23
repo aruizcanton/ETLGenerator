@@ -8,7 +8,7 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D','I')
-    and TABLE_NAME in ('SA_PARQUE_SERIADOS1', 'DMD_SERIADO')
+    --and TABLE_NAME in ('SA_PARQUE_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -38,7 +38,7 @@ cursor MTDT_TABLA
       MTDT_TC_SCENARIO
     WHERE
       TABLE_NAME = table_name_in;
-  
+      
   CURSOR MTDT_TC_DETAIL (table_name_in IN VARCHAR2, scenario_in IN VARCHAR2)
   IS
     SELECT 
@@ -61,6 +61,24 @@ cursor MTDT_TABLA
   WHERE
       trim(TABLE_NAME) = table_name_in and
       trim(SCENARIO) = scenario_in;
+  
+  CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
+  IS
+    SELECT 
+      CONCEPT_NAME,
+      SOURCE,
+      COLUMNA,
+      KEY,
+      TYPE,
+      LENGTH,
+      NULABLE,
+      POSITION
+    FROM
+      MTDT_INTERFACE_DETAIL
+    WHERE
+      CONCEPT_NAME = concep_name_in and
+      SOURCE = source_in
+    ORDER BY POSITION;
       
   CURSOR MTDT_TC_LOOKUP (table_name_in IN VARCHAR2)
   IS
@@ -119,11 +137,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   
   reg_detail MTDT_TC_DETAIL%rowtype;
   
+  reg_interface_detail dtd_interfaz_detail%rowtype;
+  
   reg_lookup MTDT_TC_LOOKUP%rowtype;
   reg_lookupd MTDT_TC_LKUPD%rowtype;
   
   reg_function MTDT_TC_FUNCTION%rowtype;
 
+  v_nombre_particion VARCHAR2(30);
+  v_history MTDT_INTERFACE_SUMMARY.HISTORY%TYPE;
   
   TYPE list_columns_primary  IS TABLE OF VARCHAR(30);
   TYPE list_strings  IS TABLE OF VARCHAR(30);
@@ -161,7 +183,11 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   OWNER_TC                              VARCHAR(60);
   nombre_funcion                   VARCHAR2(100);
   v_encontrado											VARCHAR2(1):= 'N';
-  v_contador                        PLS_INTEGER:=0;  
+  v_contador                        PLS_INTEGER:=0;
+  v_concept_name                MTDT_INTERFACE_SUMMARY.CONCEPT_NAME%TYPE;
+  TABLESPACE_SA                  VARCHAR2(60);
+  v_num_meses                          VARCHAR2(2);
+  v_REQ_NUMER         MTDT_VAR_ENTORNO.VALOR%TYPE;
   
   
 
@@ -246,13 +272,13 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   function procesa_campo_filter (cadena_in in varchar2) return varchar2
   is
     lon_cadena integer;
-    cabeza                varchar2 (3000);
+    cabeza                varchar2 (4000);
     sustituto              varchar2(100);
-    cola                      varchar2(3000);    
+    cola                      varchar2(4000);    
     pos                   PLS_integer;
     pos_ant           PLS_integer;
     posicion_ant           PLS_integer;
-    cadena_resul varchar(3000);
+    cadena_resul varchar(4000);
     begin
       lon_cadena := length (cadena_in);
       pos := 0;
@@ -1102,7 +1128,9 @@ begin
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
-  
+  SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
+  SELECT VALOR INTO v_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
   /* (20141222) FIN*/
 
   open MTDT_TABLA;
@@ -2210,8 +2238,10 @@ begin
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
-            UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req89208"');
-            UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req89208_load_ne_' || reg_tabla.TABLE_NAME);
+            UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="' || v_REQ_NUMER || '"');
+            --UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req96817"');
+            UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=' || v_REQ_NUMER || '_load_ne_' || reg_tabla.TABLE_NAME);
+            --UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req96817_load_ne_' || reg_tabla.TABLE_NAME);
             UTL_FILE.put_line(fich_salida_load, '');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
@@ -2376,8 +2406,10 @@ begin
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
-            UTL_FILE.put_line(fich_salida_hist, 'REQ_NUM="Req89208"');
-            UTL_FILE.put_line(fich_salida_hist, 'INTERFAZ=Req89208_load_dh_' || reg_tabla.TABLE_NAME);
+            UTL_FILE.put_line(fich_salida_hist, 'REQ_NUM="' || v_REQ_NUMER || '"');
+            --UTL_FILE.put_line(fich_salida_hist, 'REQ_NUM="Req96817"');
+            UTL_FILE.put_line(fich_salida_hist, 'INTERFAZ=' || v_REQ_NUMER || '_load_dh_' || reg_tabla.TABLE_NAME);
+            --UTL_FILE.put_line(fich_salida_hist, 'INTERFAZ=Req96817_load_dh_' || reg_tabla.TABLE_NAME);
             UTL_FILE.put_line(fich_salida_hist, '');
             UTL_FILE.put_line(fich_salida_hist, '################################################################################');
             UTL_FILE.put_line(fich_salida_hist, '# LIBRERIAS                                                                    #');
@@ -2542,8 +2574,10 @@ begin
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-            UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req89208"');
-            UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req89208_load_ex_' || reg_tabla.TABLE_NAME);
+            UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="' || v_REQ_NUMER || '"');
+            --UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req96817"');
+            UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=' || v_REQ_NUMER || '_load_ex_' || reg_tabla.TABLE_NAME);
+            --UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req96817_load_ex_' || reg_tabla.TABLE_NAME);
             UTL_FILE.put_line(fich_salida_exchange, '');
             UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
             UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
@@ -2626,12 +2660,33 @@ begin
             nombre_tabla_reducido := substr(reg_tabla.TABLE_NAME, 4); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
         
             UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' AS');
+            UTL_FILE.put_line(fich_salida_pkg,'');
+
             --lista_scenarios_presentes.delete;
             /******/
             /* COMIEZO LA GENERACION DEL PACKAGE DEFINITION */
             /******/
             
+            /* (20150720) Angel Ruiz. NF: Historico para tablas de Integracion */
+            select nvl(HISTORY, 'NULO') into v_history FROM MTDT_INTERFACE_SUMMARY
+            where
+            TRIM(CONCEPT_NAME) = substr(reg_tabla.TABLE_NAME, 4) and
+            SOURCE = 'SA';
+            
+            if (v_history <> 'NULO') then
+              v_concept_name := substr(reg_tabla.TABLE_NAME, 4);
+              if (length(v_concept_name) < 24) then
+                nombre_proceso := 'SA_' || v_concept_name;
+              else
+                nombre_proceso := v_concept_name;
+              end if;              
+              /* Ocurre que hemos de llevar un historico de esta tabla de INTEGRACION */
+              UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
+              UTL_FILE.put_line(fich_salida_pkg,'');
+            end if;
+            /* (20150720) Angel Ruiz.FIN */
             /* Tercero genero los metodos para los escenarios */
+            
             open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
             loop
               fetch MTDT_SCENARIO
@@ -2642,19 +2697,18 @@ begin
               nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);
         
               /* Elaboramos los prototipos de la funciones que cargaran los distintos escenarios */
+              UTL_FILE.put_line(fich_salida_pkg,'');
               if (reg_scenario.SCENARIO = 'P')
               then
-                /* Tenemos el escenario Integracion */
-                UTL_FILE.put_line(fich_salida_pkg,'');
                 UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION i_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu  || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
               end if;
             end loop;   /* Fin del loop MTDT_SCENARIO */
             close MTDT_SCENARIO;
             
             UTL_FILE.put_line(fich_salida_pkg,'');
-            UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE load_' || reg_scenario.TABLE_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in in VARCHAR2);');
+            UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE load_' || reg_tabla.TABLE_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in in VARCHAR2);');
             UTL_FILE.put_line(fich_salida_pkg, '' ); 
-            UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || reg_scenario.TABLE_NAME || ';' );
+            UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || reg_tabla.TABLE_NAME || ';' );
             UTL_FILE.put_line(fich_salida_pkg, '/' );
             
             /******/
@@ -2663,7 +2717,7 @@ begin
             /******/
             /* INICIO DEL PACKGE BODY */
             /******/
-            UTL_FILE.put_line(fich_salida_pkg,'CREATE OR REPLACE PACKAGE BODY ' || OWNER_SA || '.pkg_' || reg_scenario.TABLE_NAME || ' AS');
+            UTL_FILE.put_line(fich_salida_pkg,'CREATE OR REPLACE PACKAGE BODY ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' AS');
             UTL_FILE.put_line(fich_salida_pkg,'');
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_tabla (table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
@@ -2675,9 +2729,111 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    return 0;');
             UTL_FILE.put_line(fich_salida_pkg,'  END existe_tabla;');
             UTL_FILE.put_line(fich_salida_pkg,'');
+            UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_particion (partition_name_in IN VARCHAR2, table_name_in IN VARCHAR2) return number');
+            UTL_FILE.put_line(fich_salida_pkg,'  IS');
+            UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
+            UTL_FILE.put_line(fich_salida_pkg,'  exception');
+            UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
+            UTL_FILE.put_line(fich_salida_pkg,'    return 0;');
+            UTL_FILE.put_line(fich_salida_pkg,'  END existe_particion;');
+            UTL_FILE.put_line(fich_salida_pkg,'');
+            /* (20150720) Angel Ruiz. NF: Historico para tablas de Integracion */
+            if (v_history <> 'NULO') then
+              /* La tabla de integracion debe tener una tabla de histórico */
+              if (length(v_concept_name) <= 18) then
+                v_nombre_particion := 'SA_' || v_concept_name;
+              else
+                v_nombre_particion := v_concept_name;
+              end if;
+              if (regexp_count(v_history, '^[0-9][Mm]',1,'i') > 0) then
+                /* Obtenemos el numero de meses que se deben de guardar en el historico */
+                v_num_meses:= substr(v_history,1,1);
+              else
+                /* No sigue la especificacion requerida el campo donde se guarda el tiempo de historico */
+                /* Por defecto ponemos 2 meses */
+                v_num_meses := 2;
+              end if;
+              /* Ocurre que hemos de llevar un historico de esta tabla de INTEGRACION */
+              UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'')');
+              UTL_FILE.put_line(fich_salida_pkg, '  IS' ); 
+              UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
+              UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
+              UTL_FILE.put_line(fich_salida_pkg,'   fch_particion varchar2(8);');
+              UTL_FILE.put_line(fich_salida_pkg, '  BEGIN' );
+              UTL_FILE.put_line(fich_salida_pkg,'' );
+              UTL_FILE.put_line(fich_salida_pkg,'  /* Primero borramos la particion que se ha quedado obsoleta */');
+              UTL_FILE.put_line(fich_salida_pkg,'  fch_particion := TO_CHAR(ADD_MONTHS(TO_DATE(fch_carga_in,''YYYYMMDD''), -' || v_num_meses || ') -1, ''YYYYMMDD'');');
+              UTL_FILE.put_line(fich_salida_pkg,'  exis_partition :=  existe_particion (' || '''' || v_nombre_particion || ''' || ''_''' || ' || fch_particion, ''SAH_'' || ''' || v_concept_name || ''');');
+              UTL_FILE.put_line(fich_salida_pkg,'  if (exis_partition = 1) then' );
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_particion' || ';');
+              UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
+              UTL_FILE.put_line(fich_salida_pkg,'' );
+              UTL_FILE.put_line(fich_salida_pkg,'  /* Segundo comrpobamos si hay que crear o truncar la particion sobre la que vamos a salvaguardar la informacion */');
+              UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_CHAR(TO_DATE(fch_carga_in,''YYYYMMDD'')+1, ''YYYYMMDD'');'); 
+              UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''' || v_nombre_particion || ''' || ''_''' || ' || fch_carga_in, ''SAH_'' || ''' || v_concept_name || ''');');
+              UTL_FILE.put_line(fich_salida_pkg,'  if (exis_partition = 1) then' );
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_carga_in;');
+              UTL_FILE.put_line(fich_salida_pkg,'  else' );
+              --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE ' || TABLESPACE_SA || ''';');
+              UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
+              UTL_FILE.put_line(fich_salida_pkg,'  /* TERCERO LLEVO A CABO LA SALVAGUARDA DE LA INFORMACION */' );
+              UTL_FILE.put_line(fich_salida_pkg,'  INSERT /*+ APPEND */ INTO ' || OWNER_SA || '.SAH_' || v_concept_name);
+              UTL_FILE.put_line(fich_salida_pkg,'  (');
+              OPEN dtd_interfaz_detail (v_concept_name, 'SA');
+              primera_col := 1;
+              LOOP
+                FETCH dtd_interfaz_detail
+                INTO reg_interface_detail;
+                EXIT WHEN dtd_interfaz_detail%NOTFOUND;
+                IF primera_col = 1 THEN /* Si es primera columna */
+                  UTL_FILE.put_line(fich_salida_pkg,'  ' || reg_interface_detail.COLUMNA);
+                  primera_col := 0;
+                ELSE
+                  UTL_FILE.put_line(fich_salida_pkg,'  ,' || reg_interface_detail.COLUMNA);
+                END IF;
+              END LOOP;
+              CLOSE dtd_interfaz_detail;
+              UTL_FILE.put_line(fich_salida_pkg,'  ,CVE_DIA');
+              UTL_FILE.put_line(fich_salida_pkg,'  )');
+              UTL_FILE.put_line(fich_salida_pkg,'  SELECT');
+              OPEN dtd_interfaz_detail (v_concept_name, 'SA');
+              primera_col := 1;
+              LOOP
+                FETCH dtd_interfaz_detail
+                INTO reg_interface_detail;
+                EXIT WHEN dtd_interfaz_detail%NOTFOUND;
+                IF primera_col = 1 THEN /* Si es primera columna */
+                  UTL_FILE.put_line(fich_salida_pkg,'  ' || reg_interface_detail.COLUMNA);
+                  primera_col := 0;
+                ELSE
+                  UTL_FILE.put_line(fich_salida_pkg,'  ,' || reg_interface_detail.COLUMNA);
+                END IF;
+              END LOOP;
+              CLOSE dtd_interfaz_detail;
+              UTL_FILE.put_line(fich_salida_pkg, '  ,TO_NUMBER(fch_carga_in)');
+              UTL_FILE.put_line(fich_salida_pkg, '  FROM ' || OWNER_SA || '.' || reg_tabla.TABLE_NAME);
+              UTL_FILE.put_line(fich_salida_pkg, '  ;');
+              UTL_FILE.put_line(fich_salida_pkg, '  commit;');
+              UTL_FILE.put_line(fich_salida_pkg, '');
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.'' || ''' || reg_tabla.TABLE_NAME || ''';');
+              UTL_FILE.put_line(fich_salida_pkg, '');
+              UTL_FILE.put_line(fich_salida_pkg,'  exception');
+              UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+              UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || v_concept_name || ''');');
+              UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+              UTL_FILE.put_line(fich_salida_pkg,'    raise;');
+              UTL_FILE.put_line(fich_salida_pkg, '  END pre_' || nombre_proceso || ';'); 
+              UTL_FILE.put_line(fich_salida_pkg, '');
+              
+            end if;
+            /* (20150720) Angel Ruiz. NF: FIN */
+            /*******************/
             num_sce_integra:=0;
             /* Genero los cuerpos de los metodos que implementan los escenarios */
-            open MTDT_SCENARIO (reg_scenario.TABLE_NAME);
+            open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
             loop
               fetch MTDT_SCENARIO
               into reg_scenario;
@@ -2690,7 +2846,6 @@ begin
         
               if (reg_scenario.SCENARIO = 'P')
               then
-                /* ESCENARIO INTEGRACION */
                 num_sce_integra := num_sce_integra+1; /* Puede ocurrir que la misma tabla se cree o cargue a partir de varias tablas. Aqui contamos el numero. */
                 dbms_output.put_line ('Estoy en el escenario: P');
                 UTL_FILE.put_line(fich_salida_pkg,'');
@@ -2781,6 +2936,12 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '  inicio_paso_tmr TIMESTAMP;');
            UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
            UTL_FILE.put_line(fich_salida_pkg, '');
+            /* (20150720) Angel Ruiz. NF: Historico para tablas de Integracion */
+            if (v_history <> 'NULO') then
+              /* He de incluir la salvaguarda de los datos */
+             UTL_FILE.put_line(fich_salida_pkg, '    /* SALVAGUARDAMOS LOS DATOS */');
+             UTL_FILE.put_line(fich_salida_pkg, '    pre_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, forzado_in);');
+            end if;
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
            UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
@@ -2951,8 +3112,10 @@ begin
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
-            UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req89208"');
-            UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req89208_load_' || reg_tabla.TABLE_NAME);
+            UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="' || v_REQ_NUMER || '"');
+            --UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req96817"');
+            UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=' || v_REQ_NUMER || '_load_' || reg_tabla.TABLE_NAME);
+            --UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req96817_load_' || reg_tabla.TABLE_NAME);
             UTL_FILE.put_line(fich_salida_load, '');
             UTL_FILE.put_line(fich_salida_load, '################################################################################');
             UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
