@@ -43,6 +43,7 @@ DECLARE
       
       primera_col PLS_INTEGER;
       num_column PLS_INTEGER;
+      v_REQ_NUMER         MTDT_VAR_ENTORNO.VALOR%TYPE;
       TYPE list_columns_primary  IS TABLE OF VARCHAR(30);
       TYPE list_posiciones  IS TABLE OF reg_datail.POSITION%type;
       
@@ -125,6 +126,7 @@ BEGIN
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
+  SELECT VALOR INTO v_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
   /* (20141219) FIN*/
 
   OPEN dtd_interfaz_summary;
@@ -558,8 +560,10 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
-    UTL_FILE.put_line(fich_salida_sh, 'REQ_NUM="Req89208"');
-    UTL_FILE.put_line(fich_salida_sh, 'INTERFAZ=Req89208_load_SA_' || reg_summary.CONCEPT_NAME);
+    UTL_FILE.put_line(fich_salida_sh, 'REQ_NUM="' || v_REQ_NUMER || '"');
+    --UTL_FILE.put_line(fich_salida_sh, 'REQ_NUM="Req89208"');
+    UTL_FILE.put_line(fich_salida_sh, 'INTERFAZ=' || v_REQ_NUMER || '_load_SA_' || reg_summary.CONCEPT_NAME);
+    --UTL_FILE.put_line(fich_salida_sh, 'INTERFAZ=Req89208_load_SA_' || reg_summary.CONCEPT_NAME);
     
     --UTL_FILE.put_line(fich_salida_sh, 'if [ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.102" ]||[ "`/sbin/ifconfig -a | grep ''10.225.173.'' | awk ''{print $2}''`" = "10.225.173.184" ]; then');
     --UTL_FILE.put_line(fich_salida_sh, '  PATH_REQ=/reportes/requerimientos/');
