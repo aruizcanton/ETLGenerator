@@ -13,8 +13,8 @@ cursor MTDT_TABLA
     and
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO', 'DMF_RECARGAS_MVNO', 'DMF_PARQUE_MVNO');  
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_FACT_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS');  
-    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP', 'DMF_PARQUE_SERIADOS', 'DMF_FACT_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS');  
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_FACT_SERIADOS');  
 
     --SELECT
       --DISTINCT TRIM(TABLE_NAME) "TABLE_NAME",
@@ -131,7 +131,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(30);
 
-  
+  v_REQ_NUMER         MTDT_VAR_ENTORNO.VALOR%TYPE;
   lista_pk                                      list_columns_primary := list_columns_primary (); 
   tipo_col                                     varchar2(50);
   primera_col                               PLS_INTEGER;
@@ -1107,6 +1107,7 @@ begin
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  SELECT VALOR INTO V_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
   
   /* (20141223) FIN*/
 
@@ -2149,8 +2150,10 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
-    UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req89208"');
-    UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req89208_load_he_' || reg_tabla.TABLE_NAME);
+    UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="' || v_REQ_NUMER || '"');
+    --UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req96817"');
+    UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=' || v_REQ_NUMER || '_load_he_' || reg_tabla.TABLE_NAME);
+    --UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req96817_load_he_' || reg_tabla.TABLE_NAME);
     UTL_FILE.put_line(fich_salida_load, '');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
@@ -2315,8 +2318,10 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-    UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req89208"');
-    UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req89208_load_ex_' || reg_tabla.TABLE_NAME);
+    UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="' || v_REQ_NUMER ||'"');
+    --UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req96817"');
+    UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=' || v_REQ_NUMER || '_load_ex_' || reg_tabla.TABLE_NAME);
+    --UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req96817_load_ex_' || reg_tabla.TABLE_NAME);
     UTL_FILE.put_line(fich_salida_exchange, '');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
