@@ -140,6 +140,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   v_encontrado											VARCHAR2(1):= 'N';
   v_contador                        PLS_INTEGER:=0;
 	
+  v_REQ_NUMER         MTDT_VAR_ENTORNO.VALOR%TYPE;
 
   function split_string_coma ( cadena_in in varchar2) return list_strings
   is
@@ -815,6 +816,7 @@ begin
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
+  SELECT VALOR INTO v_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
   
   /* (20141223) FIN*/
 
@@ -1783,8 +1785,10 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
-    UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req89208"');
-    UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req89208_load_he_' || reg_tabla.TABLE_NAME);
+    UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="' || v_REQ_NUMER || '"');
+    --UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req89208"');
+    UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=' || v_REQ_NUMER || '_load_he_' || reg_tabla.TABLE_NAME);
+    --UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req89208_load_he_' || reg_tabla.TABLE_NAME);
     UTL_FILE.put_line(fich_salida_load, '');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
@@ -1949,8 +1953,10 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-    UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req89208"');
-    UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req89208_load_ex_' || reg_tabla.TABLE_NAME);
+    UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="' || v_REQ_NUMER || '"');
+    --UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req89208"');
+    UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=' || v_REQ_NUMER || '_load_ex_' || reg_tabla.TABLE_NAME);
+    --UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req89208_load_ex_' || reg_tabla.TABLE_NAME);
     UTL_FILE.put_line(fich_salida_exchange, '');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
