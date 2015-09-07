@@ -528,16 +528,23 @@ BEGIN
       /****************************************************************************************************/
       /* Viene la parte donde se generan los INSERTS por defecto y la SECUENCIA */
       /****************************************************************************************************/
+      /* (20150826) ANGEL RUIZ. Cambio la creacion de la secuencia para que se cree secuencia para todas las tablas DIMENSIONES o HECHOS */
+      if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
+        --DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
+        DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
+        DBMS_OUTPUT.put_line('MINVALUE 1 START WITH 1 INCREMENT BY 1;');
+        DBMS_OUTPUT.put_line('');        
+      end if;
+      
       if (r_mtdt_modelo_logico_TABLA.CI = 'N' or r_mtdt_modelo_logico_TABLA.CI = 'I') then
         /* Generamos los inserts para aquellas tablas que no son de carga inicial */
         if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??D_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0 
         or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DWD_',1,'i') >0) then
           /* Solo si se trata de una dimension generamos los inserts por defecto y la secuencia */
-          if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
-            --DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
-            DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
-            DBMS_OUTPUT.put_line('MINVALUE 1 START WITH 1 INCREMENT BY 1;');
-          end if;
+          --if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
+            --DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
+            --DBMS_OUTPUT.put_line('MINVALUE 1 START WITH 1 INCREMENT BY 1;');
+          --end if;
           DBMS_OUTPUT.put_line('');        
           /* Primero el INSERT "NO APLICA" */
           DBMS_OUTPUT.put_line('INSERT INTO ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
