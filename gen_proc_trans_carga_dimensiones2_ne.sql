@@ -8,7 +8,8 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D','I')
-    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_FACT_SERIADOS1')
+    --and TABLE_NAME in ('SA_ITX_TRAFICO1', 'SA_DESGASTE_PARQUE_PRE', 'SA_DIST_PARQUE_PREPAGO', 'SA_ITX_PARQUE1', 'SA_ITX_IMPORTES')
+    and TABLE_NAME in ('SA_USUARIO_SAP1')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -181,6 +182,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   OWNER_MTDT                       VARCHAR2(60);
   NAME_DM                                VARCHAR(60);
   OWNER_TC                              VARCHAR(60);
+  PREFIJO_DM                            VARCHAR2(60);
   nombre_funcion                   VARCHAR2(100);
   v_encontrado											VARCHAR2(1):= 'N';
   v_contador                        PLS_INTEGER:=0;
@@ -1131,6 +1133,7 @@ begin
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
   SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
   SELECT VALOR INTO v_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
+  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';
   /* (20141222) FIN*/
 
   open MTDT_TABLA;
@@ -1876,7 +1879,7 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
            UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_ne_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
-           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar :=' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_ne_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar :=' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.siguiente_paso (''load_ne_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
            UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
            UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -1912,7 +1915,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, numero_reg_updt);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, numero_reg_updt);');
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
             
@@ -1927,7 +1930,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;        /* commit de la insercion del fin fallido*/');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -1946,7 +1949,7 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '');
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
-           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_dh_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.siguiente_paso (''load_dh_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
            UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
            UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -1970,7 +1973,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
             
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -1985,7 +1988,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -2003,7 +2006,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_ex_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
             UTL_FILE.put_line(fich_salida_pkg, '    /* Lo primero que se hace es mirar que paso es el primero a ejecutar */');
-            UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.siguiente_paso (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
@@ -2018,7 +2021,7 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME ' || reg_tabla.TABLE_NAME || ' TO ' || nombre_tabla_reducido || '_OLD''' || ';');    
             UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''';');    
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, 0, num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, 0, num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el segundo paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
@@ -2026,7 +2029,7 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');    
             UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             --UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el tercer paso */');
@@ -2054,7 +2057,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');            
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             
@@ -2108,7 +2111,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
             
@@ -2918,7 +2921,7 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg,'  END i_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ';');
                 UTL_FILE.put_line(fich_salida_pkg, '');
                 
-              end if;      
+              end if;
               /********************/
               /********************/
         
@@ -2933,9 +2936,18 @@ begin
               fetch MTDT_SCENARIO
               into reg_scenario;
               exit when MTDT_SCENARIO%NOTFOUND;
-              nombre_tabla_base_redu := SUBSTR(reg_scenario.TABLE_BASE_NAME, 4);
-              nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);
-              UTL_FILE.put_line(fich_salida_pkg, '  v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu  || ' integer := 0;');
+              if (reg_scenario.SCENARIO = 'P') then
+                nombre_tabla_base_redu := SUBSTR(reg_scenario.TABLE_BASE_NAME, 4);
+                nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);
+                UTL_FILE.put_line(fich_salida_pkg, '  v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu  || ' integer := 0;');
+              end if;
+              /* (20150904) Angel Ruiz. NF: Llamada a FUNCIONES EXTERNAS */
+              if (reg_scenario.SCENARIO = 'F') then
+                /*nombre_tabla_base_redu := SUBSTR(reg_scenario.TABLE_BASE_NAME, 4);*/
+                /*nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);*/
+                UTL_FILE.put_line(fich_salida_pkg, '  v_' || reg_scenario."SELECT"  || ' integer := 0;');
+              end if;
+              /* (20150904) Angel Ruiz. FIN NF: Llamada a FUNCIONES EXTERNAS */
             end loop;
             close MTDT_SCENARIO;
            UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_new integer := 0;');
@@ -2954,7 +2966,7 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
            UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
-           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+           UTL_FILE.put_line(fich_salida_pkg, '    siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.siguiente_paso (''load_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
            UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
            UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := 1;');
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
@@ -2968,17 +2980,29 @@ begin
              fetch MTDT_SCENARIO
              into reg_scenario;
              exit when MTDT_SCENARIO%NOTFOUND;
-             nombre_tabla_base_redu := SUBSTR(reg_scenario.TABLE_BASE_NAME, 4);
-             nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);
-             UTL_FILE.put_line(fich_salida_pkg,'      v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' :=  i_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' (fch_carga_in, fch_datos_in);');
-             UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := numero_reg_new + v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ';');
+             if (reg_scenario.SCENARIO = 'P') then
+               nombre_tabla_base_redu := SUBSTR(reg_scenario.TABLE_BASE_NAME, 4);
+               nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);
+               UTL_FILE.put_line(fich_salida_pkg,'      v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' :=  i_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' (fch_carga_in, fch_datos_in);');
+               UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := numero_reg_new + v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ';');
+             end if;
+             /* (20150904) Angel Ruiz. NF: LLamada a FUNCIONES EXTERNAS */
+             if (reg_scenario.SCENARIO = 'F') then
+               /*nombre_tabla_base_redu := SUBSTR(reg_scenario.TABLE_BASE_NAME, 4);*/
+               /*nombre_tabla_base_sp_redu:=substr(nombre_tabla_base_redu, 1, 3);*/
+               UTL_FILE.put_line(fich_salida_pkg, '      /* SE TRATA DE LA LLAMADA A UNA FUNCION EXTERNA */');
+               UTL_FILE.put_line(fich_salida_pkg,'      v_' || reg_scenario."SELECT" || ' := ' || reg_scenario."SELECT" || ' (fch_carga_in, fch_datos_in);');
+               UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := numero_reg_new + v_' || reg_scenario."SELECT" || ';');
+             end if;
+             /* (20150904) Angel Ruiz. FIN NF: LLamada a FUNCIONES EXTERNAS */
+
            end loop;
            close MTDT_SCENARIO;
         
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in,''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, 0, 0, numero_reg_new, 0);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in,''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, 0, 0, numero_reg_new, 0);');
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
             
@@ -2993,7 +3017,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;    /* Hacemos el commit del inserta_monitoreo*/');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
