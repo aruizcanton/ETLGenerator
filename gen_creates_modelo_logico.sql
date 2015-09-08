@@ -1,5 +1,6 @@
 DECLARE
   /* CURSOR QUE NOS DARA TODAS LAS TABLAS QUE HAY QUE CREAR */
+/*  
   CURSOR c_mtdt_modelo_logico_TABLA
   IS
     SELECT 
@@ -9,7 +10,7 @@ DECLARE
       TRIM(CI) "CI"
     FROM MTDT_MODELO_LOGICO
     WHERE CI <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
-
+/*
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
   IS
     SELECT 
@@ -24,6 +25,32 @@ DECLARE
     FROM MTDT_MODELO_LOGICO
     WHERE
       TRIM(TABLE_NAME) = table_name_in;
+*/
+  /* (20150907) Angel Ruiz . NF: Se crea una tabla de metadato MTDT_MODELO_SUMMARY y otra MTDT_MODELO_DETAIL */
+
+    /* CURSOR QUE NOS DARA TODAS LAS TABLAS QUE HAY QUE CREAR */
+  CURSOR c_mtdt_modelo_logico_TABLA
+  IS
+    SELECT 
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(TABLESPACE) "TABLESPACE",
+      TRIM(CI) "CI"
+    FROM MTDT_MODELO_SUMMARY
+    WHERE TRIM(CI) <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
+    
+  CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
+  IS
+    SELECT 
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(COLUMN_NAME) "COLUMN_NAME",
+      DATA_TYPE,
+      PK,
+      TRIM(NULABLE) "NULABLE",
+      TRIM(VDEFAULT) "VDEFAULT"
+    FROM MTDT_MODELO_DETAIL
+    WHERE
+      TRIM(TABLE_NAME) = table_name_in;
+  /* (20150907) Angel Ruiz . FIN NF: Se crea una tabla de metadato MTDT_MODELO_SUMMARY y otra MTDT_MODELO_DETAIL */
 
   r_mtdt_modelo_logico_TABLA                                          c_mtdt_modelo_logico_TABLA%rowtype;
   r_mtdt_modelo_logico_COLUMNA                                    c_mtdt_modelo_logico_COLUMNA%rowtype;
