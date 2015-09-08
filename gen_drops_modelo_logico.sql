@@ -1,6 +1,6 @@
 DECLARE
   /* CURSOR QUE NOS DARA TODAS LAS TABLAS QUE HAY QUE CREAR */
-  CURSOR c_mtdt_modelo_logico_TABLA
+  /*CURSOR c_mtdt_modelo_logico_TABLA
   IS
     SELECT 
       DISTINCT
@@ -8,8 +8,8 @@ DECLARE
       TRIM(TABLESPACE) "TABLESPACE",
       TRIM(CI) "CI"
     FROM MTDT_MODELO_LOGICO
-    WHERE CI <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
-
+    WHERE CI <> 'P';    *//* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
+/*
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
   IS
     SELECT 
@@ -23,7 +23,30 @@ DECLARE
     FROM MTDT_MODELO_LOGICO
     WHERE
       TRIM(TABLE_NAME) = table_name_in;
+      */
+/* (20150907) Angel Ruiz . NF: Se crea una tabla de metadato MTDT_MODELO_SUMMARY y otra MTDT_MODELO_DETAIL */
+  CURSOR c_mtdt_modelo_logico_TABLA
+  IS
+    SELECT 
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(TABLESPACE) "TABLESPACE",
+      TRIM(CI) "CI"
+    FROM MTDT_MODELO_SUMMARY
+    WHERE TRIM(CI) <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
+    
+ CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
+  IS
+    SELECT 
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(COLUMN_NAME) "COLUMN_NAME",
+      DATA_TYPE,
+      PK,
+      TRIM(VDEFAULT) "VDEFAULT"
+    FROM MTDT_MODELO_DETAIL
+    WHERE
+      TRIM(TABLE_NAME) = table_name_in;
 
+/* (20150907) Angel Ruiz . FIN NF: Se crea una tabla de metadato MTDT_MODELO_SUMMARY y otra MTDT_MODELO_DETAIL */
   r_mtdt_modelo_logico_TABLA                                          c_mtdt_modelo_logico_TABLA%rowtype;
   r_mtdt_modelo_logico_COLUMNA                                    c_mtdt_modelo_logico_COLUMNA%rowtype;
   
@@ -88,13 +111,13 @@ BEGIN
       /****************************************************************************************************/
       if (r_mtdt_modelo_logico_TABLA.CI = 'N' or r_mtdt_modelo_logico_TABLA.CI = 'I') then
         /* Generamos los inserts para aquellas tablas que no son de carga inicial */
-        if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??D_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0
-        or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DWD_',1,'i') >0) then
+        --if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??D_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0
+        --or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DWD_',1,'i') >0) then
           /* Solo si se trata de una dimension generamos los inserts por defecto y la secuencia */
           if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
             DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
           end if;
-        end if;
+        --end if;
       end if;
       /**********************/
       /**********************/
