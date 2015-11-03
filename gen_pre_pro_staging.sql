@@ -3,7 +3,7 @@ DECLARE
   CURSOR dtd_interfaz_summary
   IS
     SELECT 
-      CONCEPT_NAME,
+      trim(CONCEPT_NAME) "CONCEPT_NAME",
       SOURCE,
       INTERFACE_NAME,
       COUNTRY,
@@ -20,7 +20,7 @@ DECLARE
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
     SELECT 
-      CONCEPT_NAME,
+      trim(CONCEPT_NAME) "CONCEPT_NAME",
       SOURCE,
       COLUMNA,
       KEY,
@@ -31,7 +31,7 @@ DECLARE
     FROM
       MTDT_INTERFACE_DETAIL
     WHERE
-      CONCEPT_NAME = concep_name_in and
+      trim(CONCEPT_NAME) = concep_name_in and
       SOURCE = source_in
     ORDER BY POSITION;
 
