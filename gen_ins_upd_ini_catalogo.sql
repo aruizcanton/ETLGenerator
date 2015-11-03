@@ -26,6 +26,7 @@ DECLARE
   OWNER_T                                VARCHAR2(60);
   OWNER_DM                            VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
+  PREFIJO_DM                            VARCHAR2(60);
   
 BEGIN
   /* (20141220) ANGEL RUIZ*/
@@ -34,7 +35,7 @@ BEGIN
   SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
-  
+  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';
   /* (20141220) FIN*/
 
   DBMS_OUTPUT.put_line('set echo on;');
@@ -71,7 +72,7 @@ BEGIN
         
         /*+++++++++++++++*/
 
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
@@ -133,7 +134,7 @@ BEGIN
         /*+++++++++++++++*/
         
       ELSE
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
@@ -207,7 +208,7 @@ BEGIN
       /* ESTAMOS EN LA ACTUALIZACION POSTERIORES DE LOS CATALOGOS */
       /* GENERAREMOS LOS UPDATES  */
       /* Los updates los vamos a implementar con un DELETE seguido de un INSERT */
-      DBMS_OUTPUT.put_line('delete ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' WHERE ' || 'CVE_' || reg_per_val.ITEM_NAME || ' = ' || reg_per_val.CVE || ';');
+      DBMS_OUTPUT.put_line('delete ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || ' WHERE ' || 'CVE_' || reg_per_val.ITEM_NAME || ' = ' || reg_per_val.CVE || ';');
       /* Generamos el insert que casi una copia identica de la insercion que hacemos la primera vez */
       /* Solo cambia el campo FCH_MODIFICACION */
       IF (regexp_count(reg_per_val.AGREGATION,'^CVE_',1,'i') >0)
@@ -228,7 +229,7 @@ BEGIN
         DBMS_OUTPUT.put_line( ' WHERE ID_' || substr(reg_per_val. AGREGATION,5) || ' = ''' || TRIM(reg_per_val.VALUE_AGREGATION) || ''';');
         */
         
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
@@ -289,7 +290,7 @@ BEGIN
         
         /*****************************/
       ELSE
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         if (reg_per_val.ITEM_NAME <> 'FUENTE') then
           /* Introducido por si el ITEM se llama FUENTE, para que no haya campo duplicados */
