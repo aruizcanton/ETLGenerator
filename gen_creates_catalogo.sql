@@ -26,6 +26,7 @@ DECLARE
   OWNER_DM                            VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
   TABLESPACE_DIM                VARCHAR2(60);
+  PREFIJO_DM                            VARCHAR2(60);
   
 BEGIN
   /* (20141219) ANGEL RUIZ*/
@@ -35,7 +36,7 @@ BEGIN
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO TABLESPACE_DIM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_DIM';
-  
+  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';
   /* (20141219) FIN*/
 
   SELECT COUNT(*) INTO num_filas FROM MTDT_PERMITED_VALUES;
@@ -52,9 +53,9 @@ BEGIN
       EXIT WHEN dtd_permited_values%NOTFOUND;
       clave_foranea :=0;
       --DBMS_OUTPUT.put_line('');
-      --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || ' CASCADE CONSTRAINTS;');
+      --DBMS_OUTPUT.put_line('DROP TABLE ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || ' CASCADE CONSTRAINTS;');
       DBMS_OUTPUT.put_line('');
-      DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME);
+      DBMS_OUTPUT.put_line('CREATE TABLE ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME);
       DBMS_OUTPUT.put_line('(');
       DBMS_OUTPUT.put_line('  CVE_' || reg_per_val.ITEM_NAME || '          NUMBER(10),');
       if (reg_per_val.ITEM_NAME = 'PAIS_TM' or reg_per_val.ITEM_NAME = 'MONEDA') then
@@ -108,7 +109,7 @@ BEGIN
       IF (clave_foranea=1)
       THEN
         DBMS_OUTPUT.put_line(', CONSTRAINT "' || reg_per_val. AGREGATION || '_FK"' || ' FOREIGN KEY ("CVE_' || substr(reg_per_val. AGREGATION,5) || '")');
-        DBMS_OUTPUT.put_line('REFERENCES ' || OWNER_DM || '.DMD_' || substr(reg_per_val. AGREGATION,5) || ' (' || 'CVE_' || substr(reg_per_val. AGREGATION,5) || ')');
+        DBMS_OUTPUT.put_line('REFERENCES ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || substr(reg_per_val. AGREGATION,5) || ' (' || 'CVE_' || substr(reg_per_val. AGREGATION,5) || ')');
       END IF;
       DBMS_OUTPUT.put_line(')');
       DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_DIM || ';'); /* Parentesis final del create*/      
@@ -116,42 +117,42 @@ BEGIN
       /* GENERO LOS TRES INSERTS POR DEFECTO QUE TIENE CADA UNA DE LAS TABLAS CREADAS*/
       if (reg_per_val.ITEM_NAME <> 'FUENTE') then /* esto lo meto a posteriori */
         /* Es porque se ha añadido un ITEM FUENTE y si no pongo este if se generan dos campos iguales */
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
         DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
         DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
         DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
       else  /* Se trata del item ID_FUENTE */
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
         DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
         DBMS_OUTPUT.put_line('VALUES (');
         DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
         DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.DMD_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
         DBMS_OUTPUT.put_line('ID_LIST,');
         DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
