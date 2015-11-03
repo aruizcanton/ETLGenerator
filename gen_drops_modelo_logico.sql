@@ -82,7 +82,7 @@ BEGIN
   
   /* (20141219) FIN*/
 
-  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_LOGICO;
+  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_SUMMARY;
   /* COMPROBAMOS QUE TENEMOS FILAS EN NUESTRA TABLA MTDT_MODELO_LOGICO  */
   IF num_filas > 0 THEN
     /* hay filas en la tabla y por lo tanto el proceso tiene cosas que hacer  */
