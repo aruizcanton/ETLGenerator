@@ -3,7 +3,7 @@ DECLARE
   CURSOR dtd_interfaz_summary
   IS
     SELECT 
-      CONCEPT_NAME,
+      trim(CONCEPT_NAME) "CONCEPT_NAME",
       SOURCE,
       INTERFACE_NAME,
       TYPE,
@@ -14,7 +14,7 @@ DECLARE
   CURSOR dtd_interfaz_summary_history
   IS
     SELECT 
-      CONCEPT_NAME,
+      trim(CONCEPT_NAME) "CONCEPT_NAME",
       SOURCE,
       INTERFACE_NAME,
       TYPE,
