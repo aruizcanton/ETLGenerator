@@ -39,7 +39,7 @@ DECLARE
       TRIM(COLUMN_NAME) "COLUMN_NAME",
       DATA_TYPE,
       PK
-    FROM MTDT_MODELO_LOGICO
+    FROM MTDT_MODELO_DETAIL
     WHERE
       TRIM(TABLE_NAME) = table_name_in;
       
@@ -78,7 +78,7 @@ BEGIN
   SELECT VALOR INTO OWNER_RD FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_RD';
   /* (20150119) FIN*/
 
-  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_LOGICO;
+  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_SUMMARY;
   /* COMPROBAMOS QUE TENEMOS FILAS EN NUESTRA TABLA MTDT_MODELO_LOGICO  */
   IF num_filas > 0 THEN
     /* hay filas en la tabla y por lo tanto el proceso tiene cosas que hacer  */
