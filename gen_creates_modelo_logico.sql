@@ -34,7 +34,8 @@ DECLARE
     SELECT 
       TRIM(TABLE_NAME) "TABLE_NAME",
       TRIM(TABLESPACE) "TABLESPACE",
-      TRIM(CI) "CI"
+      TRIM(CI) "CI",
+      TRIM(PARTICIONADO) "PARTICIONADO"
     FROM MTDT_MODELO_SUMMARY
     WHERE TRIM(CI) <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
     
@@ -69,7 +70,7 @@ DECLARE
   pos_cierra_paren PLS_integer;
   longitud_des varchar2(5);
   longitud_des_numerico PLS_integer;
-  v_tipo_particionado VARCHAR2(1);
+  v_tipo_particionado VARCHAR2(10);
   
   OWNER_SA                             VARCHAR2(60);
   OWNER_T                                VARCHAR2(60);
@@ -89,7 +90,7 @@ BEGIN
   
   /* (20141219) FIN*/
 
-  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_LOGICO;
+  SELECT COUNT(*) INTO num_filas FROM MTDT_MODELO_SUMMARY;
   /* COMPROBAMOS QUE TENEMOS FILAS EN NUESTRA TABLA MTDT_MODELO_LOGICO  */
   IF num_filas > 0 THEN
     /* hay filas en la tabla y por lo tanto el proceso tiene cosas que hacer  */
@@ -188,7 +189,13 @@ BEGIN
         if (regexp_count(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME,'^??F_',1,'i') >0 AND
         upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_MES') then 
           /* SE TRATA DE UNA TABLA DE HECHOS CON COLUMNA CVE_DIA ==> PARTICIONADO MENSUAL */
-          v_tipo_particionado := 'M';   /* Particionado Mensual */
+          if (r_mtdt_modelo_logico_TABLA.PARTICIONADO = 'M24') then
+            /* (20150918) Angel Ruiz. NF: Se trata del particionado para BSC. Mensual pero 24 Particiones fijas.*/
+            /* La filosofia cambia */
+              v_tipo_particionado := 'M24';   /* Particionado Mensual */
+          else
+            v_tipo_particionado := 'M';   /* Particionado Mensual, aunque para una tabla de Agregados*/
+          end if;
         end if;
         if (regexp_count(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME,'^??A_',1,'i') >0 AND
         upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_MES') then
@@ -398,6 +405,23 @@ BEGIN
           DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(add_months(sysdate, 2),'YYYYMM') || ' VALUES LESS THAN (' || TO_NUMBER(TO_CHAR(add_months(sysdate,3),'YYYYMM')) || '),');   
           DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(add_months(sysdate, 3),'YYYYMM') || ' VALUES LESS THAN (' || TO_NUMBER(TO_CHAR(add_months(sysdate,4),'YYYYMM')) || ')');   
           DBMS_OUTPUT.put_line(');');
+        elsif (v_tipo_particionado = 'M24') then
+          /* (20150918) Angel Ruiz. N.F.: Se trata de implementar el particionado para BSC donde hay 24 particiones siempre */
+          /* Las particiones se crean una vez y asi permanecen ya que el espacio de analisis se extiende 24 meses */
+          DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          DBMS_OUTPUT.put_line('(');
+          /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
+          if (length(nombre_tabla_reducido) <= 18) then
+            v_nombre_particion := 'PA_' || nombre_tabla_reducido;
+          else
+            v_nombre_particion := nombre_tabla_reducido;
+          end if;
+          /* (20150918) Angel Ruiz. Fin N.F.: Se trata de implementar el particionado para BSC donde hay 24 particiones siempre */
+          /* Se cra la primera particion de analisis solamente. El resto se crea en los procesos de carga */
+          /* La primera particion coincide con Enero del año anterior al sysdate */
+          DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(TO_NUMBER(TO_CHAR(sysdate,'YYYY')) -1) || '01' || ' VALUES LESS THAN (' || TO_CHAR(TO_NUMBER(TO_CHAR(sysdate,'YYYY')) -1) || '02' || ')');   
+          DBMS_OUTPUT.put_line(');');
+          /* (20150918) Angel Ruiz. Fin N.F*/
         end if;
       elsif (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??A_',1,'i') >0)  then  /* Se trata de una tabla de HECHOS AGREGADOS  */
         if (v_tipo_particionado = 'M') then
