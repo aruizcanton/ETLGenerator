@@ -3,17 +3,27 @@ declare
 cursor MTDT_TABLA
   is
 SELECT
-      DISTINCT TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME",
+      --DISTINCT TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME", (20150907) Angel Ruiz NF. Nuevas tablas.
+      TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME",
       --TRIM(TABLE_BASE_NAME) "TABLE_BASE_NAME",
-      TRIM(mtdt_modelo_logico.TABLESPACE) "TABLESPACE"
+      --TRIM(mtdt_modelo_logico.TABLESPACE) "TABLESPACE" (20150907) Angel Ruiz NF. Nuevas tablas.
+      TRIM(mtdt_modelo_summary.TABLESPACE) "TABLESPACE",
+      TRIM(mtdt_modelo_summary.PARTICIONADO) "PARTICIONADO"
     FROM
-      MTDT_TC_SCENARIO, mtdt_modelo_logico
+      --MTDT_TC_SCENARIO, mtdt_modelo_logico (20150907) Angel Ruiz NF. Nuevas tablas.
+      MTDT_TC_SCENARIO, mtdt_modelo_summary
     WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and (20150907) Angel Ruiz NF. Nuevas tablas.
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_summary.TABLE_NAME) and
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP', 'DMF_PARQUE_SERIADOS', 'DMF_FACT_SERIADOS');
-    
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP', 'DMF_PARQUE_SERIADOS', 'DMF_FACT_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ROAMN_TRAF', 'BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COMIS_TMK', 'BSF_PRE_COMIS_PROPIO', 'BSF_COMIS_CDA', 'BSF_COMIS_DIGITAL', 'BSF_CDG_PARQUE');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COMIS_TMK', 'BSF_COMIS_DIGITAL', 'BSF_PRE_COMIS_CDA', 'BSF_PRE_COMIS_PROPIO', 'BSF_PRE_COMIS_ESP');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ALTAS_POSTPAGO', 'BSF_ALTAS_PREPAGO');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COM_PRE_SUBSIDIO');
     
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -122,15 +132,16 @@ SELECT
   OWNER_T                                VARCHAR2(60);
   OWNER_DM                            VARCHAR2(60);
   OWNER_MTDT                       VARCHAR2(60);
-  NAME_DM                                VARCHAR(60);
-  OWNER_TC                              VARCHAR(60);    
+  NAME_DM                                VARCHAR2(60);
+  OWNER_TC                              VARCHAR2(60);
+  PREFIJO_DM                            VARCHAR2(60);
   
   l_FROM                                      lista_tablas_from := lista_tablas_from();
   l_WHERE                                   lista_condi_where := lista_condi_where();
   v_hay_look_up                           VARCHAR2(1):='N';
+  v_nombre_seqg                          VARCHAR(120):='N';
+  v_bandera                                   VARCHAR2(1):='S';
   
-
-
   function split_string_coma ( cadena_in in varchar2) return list_strings
   is
   lon_cadena integer;
@@ -167,6 +178,46 @@ SELECT
     end if;
     return lista_elementos;
   end split_string_coma;
+  
+  function proceso_campo_value (cadena_in in varchar2, alias_in in varchar) return varchar2
+  is
+  lon_cadena integer;
+  cabeza                varchar2 (1000);
+  sustituto              varchar2(100);
+  cola                      varchar2(1000);    
+  pos                   PLS_integer;
+  pos_ant           PLS_integer;
+  posicion_ant           PLS_integer;
+  v_pos_ini_corchete_ab PLS_integer;
+  v_pos_fin_corchete_ce PLS_integer;
+  v_cadena_a_buscar varchar2(100);
+  cadena_resul varchar(1000);
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    pos_ant := 0;
+    cadena_resul:= cadena_in;
+    if (lon_cadena > 0) then
+      v_pos_ini_corchete_ab := instr(cadena_in, '[');
+      v_pos_fin_corchete_ce := instr(cadena_in, ']');
+      v_cadena_a_buscar := substr(cadena_in, v_pos_ini_corchete_ab, (v_pos_fin_corchete_ce - v_pos_ini_corchete_ab) + 1);
+      sustituto := alias_in || '.' || substr (cadena_in, v_pos_ini_corchete_ab + 1, (v_pos_fin_corchete_ce - v_pos_ini_corchete_ab) - 1);
+      loop
+        pos := instr(cadena_resul, v_cadena_a_buscar, pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (v_cadena_a_buscar));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+      end loop;
+    end if;
+    return cadena_resul;
+  end;
+
 
   function proc_campo_value_condicion (cadena_in in varchar2, nombre_funcion_lookup in varchar2) return varchar2
   is
@@ -352,6 +403,50 @@ SELECT
     return cadena_resul;
   end;
 
+/************/
+/*************/
+/* (20150918) Angel Ruiz. NUEVA FUNCION */
+  function sustituye_comillas_dinam (cadena_in in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (1000);
+    sustituto              varchar2(100);
+    cola                      varchar2(1000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(1000);
+    begin
+      lon_cadena := length (cadena_in);
+      pos := 0;
+      posicion_ant := 0;
+      cadena_resul:= cadena_in;
+      if lon_cadena > 0 then
+        /* Busco LA COMILLA */
+        pos := 0;
+        posicion_ant := 0;
+        sustituto := '''''';
+        loop
+          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '''', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length (''''));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          pos_ant := pos + length ('''''');
+          pos := pos_ant;
+        end loop;
+      end if;
+      return cadena_resul;
+    end;
+
+/************/
+
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
     valor_retorno VARCHAR (1000);
     posicion          PLS_INTEGER;
@@ -380,6 +475,7 @@ SELECT
     tipo_columna  VARCHAR2(30);
     mitabla_look_up VARCHAR2(200);
     l_registro          ALL_TAB_COLUMNS%rowtype;
+    v_value VARCHAR(200);
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -807,7 +903,7 @@ SELECT
           valor_retorno :=  cad_pri || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''' || cad_seg;
         end if;
       when 'HARDC' then
-        valor_retorno :=  '    ' || reg_detalle_in.VALUE;
+        valor_retorno :=  '    ' || sustituye_comillas_dinam(reg_detalle_in.VALUE);
       when 'SEQ' then
         valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
         --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
@@ -815,6 +911,8 @@ SELECT
         --else
         --  valor_retorno := '    ' || reg_detalle_in.VALUE || '.NEXTVAL';
         --end if;
+      when 'SEQG' then
+        valor_retorno := '    ' || ''' || var_seqg || ''';
       when 'BASE' then
         /* Se toma el valor del campo de la tabla de staging */
         valor_retorno :=  '    ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.VALUE;      
@@ -829,6 +927,185 @@ SELECT
         end if;
         if reg_detalle_in.VALUE =  'VAR_PAIS_TM' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
           valor_retorno := '    ' ||  '1';
+        end if;
+      when 'LKUPN' then
+        /* (20150824) ANGEL RUIZ. Nueva Regla. Permite rescatar un campo numerico de la tabla de look up y hacer operaciones con el */
+        l_FROM.extend;
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+          /* Aparecen queries en lugar de tablas en la columna de nombre de tabla para LookUp */
+          v_alias := 'LKUP_' || l_FROM.count;
+          mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
+          l_FROM (l_FROM.last) := ', ' || mitabla_look_up;
+        else
+          /* (20150112) Angel Ruiz */
+          /* Puede ocurrir que se se tenga varias veces la misma LookUp pero para campo diferentes */
+          /* lo que se traduce en que hay que crear ALIAS */
+          /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM*/
+          v_encontrado:='N';
+          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+          LOOP
+            --if (instr(l_FROM(indx),  reg_detalle_in.TABLE_LKUP, 0)) then
+            --regexp_count(reg_per_val.AGREGATION,'^BAN_',1,'i') >0
+            if (regexp_count(l_FROM(indx), reg_detalle_in.TABLE_LKUP) >0) then
+            --if (l_FROM(indx) = ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP) then
+              /* La misma tabla ya estaba en otro lookup */
+              v_encontrado:='Y';
+            end if;
+          END LOOP;
+          if (v_encontrado='Y') then
+            v_alias := reg_detalle_in.TABLE_LKUP || '_' || l_FROM.count;
+            l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP || ' "' || v_alias || '"' ;
+          else
+            v_alias := reg_detalle_in.TABLE_LKUP;
+            l_FROM (l_FROM.last) := ', ' || OWNER_DM || '.' || reg_detalle_in.TABLE_LKUP;
+          end if;
+        end if;
+        /* Miramos la parte de las condiciones */
+        /* Puede haber varios campos por los que hacer LookUp y por lo tanto JOIN */
+        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+        /* Le añadimos al nombre del campo de la tabla de LookUp su Alias */
+        v_value := proceso_campo_value (reg_detalle_in.VALUE, v_alias);
+        /****************************************************************************/
+        /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL SELECT */
+        /****************************************************************************/
+        if (reg_detalle_in.LKUP_COM_RULE is not null) then
+          /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
+          cadena := trim(reg_detalle_in.LKUP_COM_RULE);
+          pos_del_si := instr(cadena, 'SI');
+          pos_del_then := instr(cadena, 'THEN');
+          pos_del_else := instr(cadena, 'ELSE');
+          pos_del_end := instr(cadena, 'END');  
+          condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
+          condicion_pro := procesa_COM_RULE_lookup(condicion);
+          constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
+          valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || v_value || ', -2) ELSE ' || trim(constante) || ' END';
+        else
+          /* Construyo el campo de SELECT */
+          if (table_columns_lkup.COUNT > 1) then      /* Hay varios campos de condicion */
+            valor_retorno := 'CASE WHEN (';
+            FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
+            LOOP
+              SELECT * INTO l_registro
+              FROM ALL_TAB_COLUMNS
+              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+              COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+                if (indx = 1) then
+                  valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                else
+                  valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                end if;
+              else 
+                if (indx = 1) then
+                  valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                else
+                  valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                end if;
+              end if;
+            END LOOP;
+            valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || v_value || ', -2) END';
+          else
+            valor_retorno :=  '    NVL(' || v_value || ', -2)';
+          end if;
+
+        end if;
+
+        /****************************************************************************/
+        /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL WHERE */
+        /****************************************************************************/
+
+        if (table_columns_lkup.COUNT > 1) then      /* Hay varios campos de condicion */
+          FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
+          LOOP
+            l_WHERE.extend;
+            /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
+            /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
+            
+            /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
+            SELECT * INTO l_registro
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            if (l_WHERE.count = 1) then
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                end if;
+              else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||', -3)' ||' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              end if;
+            else
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                end if;
+              else /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', -3)' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+              end if;
+            end if;
+          END LOOP;
+        else    /* Solo hay un campo condicion */
+          
+          /* Miramos si la tabla con la que hay que hacer LookUp es una tabla de rangos */
+          l_WHERE.extend;
+          if (instr (reg_detalle_in.TABLE_LKUP,'RANGO') > 0) then
+            if (l_WHERE.count = 1) then
+              l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' >= ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              l_WHERE.extend;
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+            else
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' >= ' || v_alias || '.'  || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              l_WHERE.extend;
+              l_WHERE(l_WHERE.last) := ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+            end if;
+          else
+            /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
+            /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
+            SELECT * INTO l_registro
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+            COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+            if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                end if;
+              else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              end if;
+            else  /* sino es el primer campo del Where  */
+              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                end if;
+              else     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
+                --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+              end if;
+            end if;
+          end if;
+        end if;
+        if (reg_detalle_in.TABLE_LKUP_COND is not null) then
+          /* Existen condiciones en la tabla de Look Up que hay que introducir*/
+          l_WHERE.extend;
+          l_WHERE(l_WHERE.last) :=  ' AND ' || procesa_condicion_lookup(reg_detalle_in.TABLE_LKUP_COND, v_alias);
         end if;
       end case;
     return valor_retorno;
@@ -1199,6 +1476,29 @@ SELECT
           dbms_output.put_line ('La cola es: ' || cola);
           cadena_resul := cabeza || sustituto || cola;
         end loop;
+        /* (20150914) Angel Ruiz. BUG. Cuando se incluye un FILTER en la tabla con una condicion */
+        /* que tenia comillas, las comillas aparecian como simple y no funcionaba */
+        /* Busco LA COMILLA */
+        pos := 0;
+        posicion_ant := 0;
+        sustituto := '''''';
+        loop
+          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '''', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length (''''));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          pos_ant := pos + length ('''''');
+          pos := pos_ant;
+        end loop;
+        /* (20150914) Angel Ruiz. FIN BUG. Cuando se incluye un FILTER en la tabla con una condicion */
+        /* que tenia comillas, las comillas aparecian como simple y no funcionaba */
       end if;
       return cadena_resul;
     end;
@@ -1215,6 +1515,7 @@ begin
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';  
+  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';  
   /* (20141223) FIN*/
 
   open MTDT_TABLA;
@@ -1389,62 +1690,98 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
     UTL_FILE.put_line(fich_salida_pkg,'    return 0;');
     UTL_FILE.put_line(fich_salida_pkg,'  END existe_particion;');
-    UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2)'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  is'); 
-    UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
-    UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
-    UTL_FILE.put_line(fich_salida_pkg,'   fch_particion number(8);');
-    UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
-    UTL_FILE.put_line(fich_salida_pkg,'    if (exis_tabla = 0) then' );      
-    UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la tabla */'); 
-    UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
-    UTL_FILE.put_line(fich_salida_pkg,'    else'); 
-    UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
-    UTL_FILE.put_line(fich_salida_pkg,'    end if;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_NUMBER(TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1,''YYYYMMDD''));'); 
-    --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
-    UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (''' ||  v_nombre_particion || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
-    UTL_FILE.put_line(fich_salida_pkg,'    if (exis_partition = 0) then' );      
-    UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la particion */'); 
-    --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') UPDATE INDEXES'';');
-    --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
-    UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
-    UTL_FILE.put_line(fich_salida_pkg,'   end if;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  function pos_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2) return number'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  is'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno number;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    /* Proceso que se va ha encargar de hacer el pos-procesado despues de insertar */'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    /* consistente en comprobar si la particion de ' || reg_tabla.TABLE_NAME || ' de fecha de datos ya tenia datos, para salvaguardarlos si los tenia */');
-    UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
-    UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de filas salvaguardadas es: '' || SQL%ROWCOUNT);'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno := SQL%ROWCOUNT;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    commit;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    return valor_retorno;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
-    UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
-    UTL_FILE.put_line(fich_salida_pkg,'  end pos_proceso;'); 
+    /* (20150825) Angel Ruiz. N.F.: Particionado Contorlado con un parametro en la tabla MTDT_MODELO_LOGICO */
+    if (reg_tabla.PARTICIONADO = 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2)'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  is'); 
+      UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
+      UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
+      UTL_FILE.put_line(fich_salida_pkg,'   fch_particion number(8);');
+      UTL_FILE.put_line(fich_salida_pkg,'   l_anyo_datos PLS_INTEGER;');
+      UTL_FILE.put_line(fich_salida_pkg,'   l_num_meses PLS_INTEGER := 12;');
+      UTL_FILE.put_line(fich_salida_pkg,'   v_fch_datos VARCHAR2(6);');
+      UTL_FILE.put_line(fich_salida_pkg,'   v_fch_particion PLS_INTEGER;');
+      UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    l_anyo_datos := to_number(substr(fch_datos_in, 1, 4));'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
+      UTL_FILE.put_line(fich_salida_pkg,'    if (exis_tabla = 0) then' );      
+      UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la tabla */'); 
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'    else'); 
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
+      UTL_FILE.put_line(fich_salida_pkg,'    end if;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    /* CREO LAS PARTICIONES PARA LOS DOS ANYOS DE ANALISIS */'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    for l_anyo_actu in l_anyo_datos - 1 .. l_anyo_datos'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    LOOP');
+      UTL_FILE.put_line(fich_salida_pkg,'      for l_mes_actu in 1 .. l_num_meses');
+      UTL_FILE.put_line(fich_salida_pkg,'      LOOP');
+      UTL_FILE.put_line(fich_salida_pkg,'        v_fch_datos := TO_CHAR(l_anyo_actu) || TRIM(TO_CHAR(l_mes_actu, ''00''));');      
+      UTL_FILE.put_line(fich_salida_pkg,'        v_fch_particion := TO_NUMBER(TO_CHAR(ADD_MONTHS(TO_DATE(v_fch_datos, ''YYYYMM''), 1), ''YYYYMM''));');      
+      UTL_FILE.put_line(fich_salida_pkg,'        exis_partition :=  existe_particion (''' ||  v_nombre_particion || '_' || ''' || v_fch_datos, ''' || reg_tabla.TABLE_NAME || ''');');
+      UTL_FILE.put_line(fich_salida_pkg,'        if (exis_partition = 0) then' );      
+      UTL_FILE.put_line(fich_salida_pkg,'          /* Creo la particion */'); 
+      UTL_FILE.put_line(fich_salida_pkg, '         EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || v_fch_datos || '' VALUES LESS THAN ('' || v_fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'        end if;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'      END LOOP;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    END LOOP;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;');      
+      /* (20150825) Angel Ruiz. FIN N.F.: */
+    else
+      UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2)'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  is'); 
+      UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
+      UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
+      UTL_FILE.put_line(fich_salida_pkg,'   fch_particion number(8);');
+      UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
+      UTL_FILE.put_line(fich_salida_pkg,'    if (exis_tabla = 0) then' );      
+      UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la tabla */'); 
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'    else'); 
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
+      UTL_FILE.put_line(fich_salida_pkg,'    end if;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_NUMBER(TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1,''YYYYMMDD''));'); 
+      --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (''' ||  v_nombre_particion || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
+      UTL_FILE.put_line(fich_salida_pkg,'    if (exis_partition = 0) then' );      
+      UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la particion */'); 
+      --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') UPDATE INDEXES'';');
+      --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+      UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'   end if;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;');
+      UTL_FILE.put_line(fich_salida_pkg,'  function pos_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2) return number'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  is'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno number;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    /* Proceso que se va ha encargar de hacer el pos-procesado despues de insertar */'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    /* consistente en comprobar si la particion de ' || reg_tabla.TABLE_NAME || ' de fecha de datos ya tenia datos, para salvaguardarlos si los tenia */');
+      UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
+      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de filas salvaguardadas es: '' || SQL%ROWCOUNT);'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno := SQL%ROWCOUNT;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    commit;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    return valor_retorno;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
+      UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  end pos_proceso;'); 
+    end if;
 
-  
-    /* Primero de todo miro si tengo que generar los cuerpos de las funciones de LOOKUP */
-    --dbms_output.put_line ('Antes de generar las funciones de LOOKUP');
-    --open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
-    --loop
-      --fetch MTDT_TC_LOOKUP
-      --into reg_lookup;
-      --exit when MTDT_TC_LOOKUP%NOTFOUND;
-      /* Se trata de hacer el LOOK UP con la tabla dimension */
-      --genera_cuerpo_funcion_pkg (reg_lookup);      
-    --end loop;
-    --close MTDT_TC_LOOKUP;
+    /* (20150825) Angel Ruiz. N.F.: Se trata de una nueva regla SEQG */
+    /* Este tipo de Regla solo puede existir una para cada tabla por su propia definicion */
+    select VALUE into v_nombre_seqg from MTDT_TC_DETAIL
+    where RUL = 'SEQG' and TRIM(TABLE_NAME) = reg_tabla.TABLE_NAME;
+    /* (20150825) Angel Ruiz. FIN N.F.*/
+    
     dbms_output.put_line ('Antes de generar las funciones de FUNCTION');
     /* Segundo de todo miro si tengo que generar los cuerpos de las funciones de FUNCTION */
     open MTDT_TC_FUNCTION (reg_tabla.TABLE_NAME);
@@ -1472,8 +1809,17 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
-  
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          /* (20150825) Angel Ruiz. N.F.: SEQG */
+          if (v_nombre_seqg <> 'N') then
+            /* existe una regla para esta tabla de SEQG */
+            UTL_FILE.put_line(fich_salida_pkg, '    /* Recupero el valor de la secuencia general para esta tabla */');
+            UTL_FILE.put_line(fich_salida_pkg, '    SELECT ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL' || ' into var_seqg FROM DUAL;');
+            UTL_FILE.put_line(fich_salida_pkg, '');
+          end if;
+          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND*/');
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '') */');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
@@ -1611,7 +1957,17 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          /* (20150825) Angel Ruiz. N.F.: SEQG */
+          if (v_nombre_seqg <> 'N') then
+            /* existe una regla para esta tabla de SEQG */
+            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
+            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
+            UTL_FILE.put_line(fich_salida_pkg, '');
+          end if;
+          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
 
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
@@ -1737,7 +2093,17 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          /* (20150825) Angel Ruiz. N.F.: SEQG */
+          if (v_nombre_seqg <> 'N') then
+            /* existe una regla para esta tabla de SEQG */
+            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
+            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
+            UTL_FILE.put_line(fich_salida_pkg, '');
+          end if;
+          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
 
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
@@ -1859,7 +2225,17 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          /* (20150825) Angel Ruiz. N.F.: SEQG */
+          if (v_nombre_seqg <> 'N') then
+            /* existe una regla para esta tabla de SEQG */
+            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
+            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
+            UTL_FILE.put_line(fich_salida_pkg, '');
+          end if;
+          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
   
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
@@ -1979,7 +2355,17 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          /* (20150825) Angel Ruiz. N.F.: SEQG */
+          if (v_nombre_seqg <> 'N') then
+            /* existe una regla para esta tabla de SEQG */
+            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
+            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
+            UTL_FILE.put_line(fich_salida_pkg, '');
+          end if;
+          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
   
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
@@ -2123,8 +2509,12 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_alt NUMBER;');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_icc NUMBER;');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_num NUMBER;');    
-    UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_tot NUMBER;');    
-    UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_salvaguardados NUMBER:=0;');    
+    UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_tot NUMBER;');
+    /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
+    if (reg_tabla.PARTICIONADO <> 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_salvaguardados NUMBER:=0;');
+    end if;
+    /* (20150918) Angel Ruiz. Fin NF */
     UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');
     UTL_FILE.put_line(fich_salida_pkg, '  ult_paso_ejecutado PLS_integer;');
     UTL_FILE.put_line(fich_salida_pkg, '  siguiente_paso_a_ejecutar PLS_integer;');
@@ -2138,7 +2528,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '      numero_reg_tot := 0;');
     --UTL_FILE.put_line(fich_salida_pkg, '      /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
     UTL_FILE.put_line(fich_salida_pkg, '      /* Este proceso solo tiene un paso, por lo que o se ejecuta todo el o no sejecuta nada porque ya se ejecuto OK */');
-    UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_he_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_he_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '      if (forzado_in = ''F'') then');
     UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := 1;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if;');
@@ -2206,10 +2596,21 @@ begin
     END LOOP;
     UTL_FILE.put_line(fich_salida_pkg, '');
     --UTL_FILE.put_line(fich_salida_pkg, '         pkg_' || reg_tabla.TABLE_NAME || '.' || 'pos_proceso (fch_carga_in, to_char(reg_monitoreo.FCH_DATOS, ''yyyymmdd''));');
-    UTL_FILE.put_line(fich_salida_pkg, '         numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
+
+    /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
+    if (reg_tabla.PARTICIONADO <> 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '         numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
+    end if;
+    
     UTL_FILE.put_line(fich_salida_pkg, '         /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
     UTL_FILE.put_line(fich_salida_pkg, '         /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-    UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
+    /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
+    if (reg_tabla.PARTICIONADO = 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, 0);');
+    else
+      UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
+    end if;
+    /* (20150918) Angel Ruiz. Fin NF */
     UTL_FILE.put_line(fich_salida_pkg, '         COMMIT;');
     UTL_FILE.put_line(fich_salida_pkg, '       end if;');
     --UTL_FILE.put_line(fich_salida_pkg, '     end loop;');
@@ -2250,6 +2651,9 @@ begin
     
     UTL_FILE.put_line(fich_salida_pkg, '  siguiente_paso_a_ejecutar PLS_integer;');
     UTL_FILE.put_line(fich_salida_pkg, '  inicio_paso_tmr TIMESTAMP;');
+    if (reg_tabla.PARTICIONADO = 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_num NUMBER;');
+    end if;
     UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
     --UTL_FILE.put_line(fich_salida_pkg, '    open MTDT_MONITOREO;');
     --UTL_FILE.put_line(fich_salida_pkg, '    loop');
@@ -2258,7 +2662,7 @@ begin
     --UTL_FILE.put_line(fich_salida_pkg, '      exit when MTDT_MONITOREO%NOTFOUND;');
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '      /* Lo primero que se hace es mirar que paso es el primero a ejecutar */');
-    UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_ex_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.siguiente_paso (''load_ex_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '      if (forzado_in = ''F'') then');
     UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := 1;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if;');
@@ -2266,19 +2670,93 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos ex solo tienen dos pasos */');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Comienza en el primer paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
-    UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);    
-    --UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
-    UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
-    UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
-    UTL_FILE.put_line(fich_salida_pkg, '        WITHOUT VALIDATION'';');    
+    /* (20150904) Angel Ruiz. NF: No hay exchange_partition ya que se vienen datos de todas las particiones */
+    if (reg_tabla.PARTICIONADO = 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''MERGE INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' A');    
+      UTL_FILE.put_line(fich_salida_pkg, '        USING ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' B');
+      UTL_FILE.put_line(fich_salida_pkg, '        ON (');
+      primera_col := 1;
+      FOR nombre_campo_pk IN (
+        select column_name
+        from mtdt_modelo_detail
+        where table_name = reg_tabla.TABLE_NAME and upper(trim(PK)) = 'S')
+      LOOP
+        if primera_col = 1 then
+          UTL_FILE.put_line(fich_salida_pkg, '        A.' || nombre_campo_pk.column_name || ' = ' || 'B.' || nombre_campo_pk.column_name);
+        else
+          UTL_FILE.put_line(fich_salida_pkg, '        AND A.' || nombre_campo_pk.column_name || ' = ' || 'B.' || nombre_campo_pk.column_name);
+        end if;
+        primera_col := primera_col +1;
+      END LOOP;
+      UTL_FILE.put_line(fich_salida_pkg, '        )');
+      UTL_FILE.put_line(fich_salida_pkg, '        WHEN MATCHED THEN UPDATE SET');
+      primera_col := 1;
+      FOR nombre_campo_nopk IN (
+        select column_name
+        from mtdt_modelo_detail
+        where table_name = reg_tabla.TABLE_NAME and PK is null)
+      LOOP
+          if primera_col = 1 then
+            UTL_FILE.put_line(fich_salida_pkg, '          A.' || nombre_campo_nopk.column_name || ' = ' || 'B.' || nombre_campo_nopk.column_name);
+          else
+            UTL_FILE.put_line(fich_salida_pkg, '          , A.' || nombre_campo_nopk.column_name || ' = ' || 'B.' || nombre_campo_nopk.column_name);
+          end if;
+          primera_col := primera_col +1;
+      END LOOP;
+      UTL_FILE.put_line(fich_salida_pkg, '        WHEN NOT MATCHED THEN');
+      UTL_FILE.put_line(fich_salida_pkg, '          INSERT (');
+      primera_col := 1;
+      FOR nombre_campo_to IN (
+        select column_name
+        from mtdt_modelo_detail
+        where table_name = reg_tabla.TABLE_NAME)
+      LOOP
+          if primera_col = 1 then
+            UTL_FILE.put_line(fich_salida_pkg, '          ' || nombre_campo_to.column_name);
+          else
+            UTL_FILE.put_line(fich_salida_pkg, '          ,' || nombre_campo_to.column_name);
+          end if;
+          primera_col := primera_col +1;
+      END LOOP;
+      UTL_FILE.put_line(fich_salida_pkg, '          ) VALUES (');
+      primera_col := 1;
+      FOR nombre_campo_to IN (
+        select column_name
+        from mtdt_modelo_detail
+        where table_name = reg_tabla.TABLE_NAME)
+      LOOP
+          if primera_col = 1 then
+            UTL_FILE.put_line(fich_salida_pkg, '         B. ' || nombre_campo_to.column_name);
+          else
+            UTL_FILE.put_line(fich_salida_pkg, '          ,B.' || nombre_campo_to.column_name);
+          end if;
+          primera_col := primera_col +1;
+      END LOOP;
+      UTL_FILE.put_line(fich_salida_pkg, '          )');
+      UTL_FILE.put_line(fich_salida_pkg, ''';');
+      if (reg_tabla.PARTICIONADO = 'M24') then
+        UTL_FILE.put_line(fich_salida_pkg, '         numero_reg_num := sql%rowcount;');
+      end if;
+    /* (20150904) Angel Ruiz. FIN NF: No hay exchange_partition ya que se vienen datos de todas las particiones */
+    else
+      UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);    
+      --UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
+      UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
+      UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
+      UTL_FILE.put_line(fich_salida_pkg, '        WITHOUT VALIDATION'';');    
+    end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    if (reg_tabla.PARTICIONADO = 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_num, 0, 0, 0);');    
+    else
+      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    end if;
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
     UTL_FILE.put_line(fich_salida_pkg, '        /* comienza el segundo paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
     UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if; ');
     UTL_FILE.put_line(fich_salida_pkg, '      if (siguiente_paso_a_ejecutar = 2) then');
@@ -2287,7 +2765,7 @@ begin
     --UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE APP_MVNODM.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in;');    
     UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if; ');
     --UTL_FILE.put_line(fich_salida_pkg, '    end loop;');
