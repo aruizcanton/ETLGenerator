@@ -11,7 +11,8 @@ DECLARE
       TRIM(SEPARATOR) "SEPARATOR",
       TRIM(LENGTH) "LENGTH",
       TRIM(FREQUENCY) "FREQUENCY",
-      TRIM(DELAYED) "DELAYED"
+      TRIM(DELAYED) "DELAYED",
+      TRIM(HISTORY) "HISTORY"
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
@@ -655,7 +656,7 @@ BEGIN
     /* Significa que pueden venir retrasados */
     /* Hay que gestionar la llegada de retrasados con el particionado */
     /* (20141219) Angel Ruiz. Finalmente todos los procesos van a llamar a un pro-procesado para truncar tablsa o particiones antes de ejecutar el sqlploader*/
-    UTL_FILE.put_line(fich_salida_sh, '# Llamada al proceso previo al loader para la gestion de las Particiones de la tabla de STAGIN');
+    UTL_FILE.put_line(fich_salida_sh, '# Llamada al proceso previo al loader para el truncado de la tabla de STAGIN');
     UTL_FILE.put_line(fich_salida_sh, '');
     UTL_FILE.put_line(fich_salida_sh, '# Llamada a sql_plus');
     UTL_FILE.put_line(fich_salida_sh, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
@@ -827,6 +828,40 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, 'REG_RECHAZADOS=`grep "^Total logical records rejected:" ' || '${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log | cut -d":" -f2 | sed ''s/ *//''`');
       UTL_FILE.put_line(fich_salida_sh, '');
     end if;
+    /* (20151108) Angel Ruiz. BUG: El paso a historico de las tablas de staging se hace despues de haber llevado a cabo la carga */
+    if (reg_summary.HISTORY IS NOT NULL) then
+      UTL_FILE.put_line(fich_salida_sh, '# Llevamos a cabo el paso a historico');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, '# Llamada a sql_plus');
+      UTL_FILE.put_line(fich_salida_sh, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+      UTL_FILE.put_line(fich_salida_sh, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
+      UTL_FILE.put_line(fich_salida_sh, 'whenever sqlerror exit 1;');
+      UTL_FILE.put_line(fich_salida_sh, 'whenever oserror exit 2;');
+      UTL_FILE.put_line(fich_salida_sh, 'set feedback off;');
+      UTL_FILE.put_line(fich_salida_sh, 'set serveroutput on;');
+      UTL_FILE.put_line(fich_salida_sh, 'set echo on;');
+      UTL_FILE.put_line(fich_salida_sh, 'set pagesize 0;');
+      UTL_FILE.put_line(fich_salida_sh, 'set verify off;');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'begin');
+      UTL_FILE.put_line(fich_salida_sh, '  ' || OWNER_SA || '.pkg_' || nombre_proceso || '.' || 'pos_' || nombre_proceso || ' (''${FCH_CARGA}'', ''${FCH_DATOS}'', ''${BAN_FORZADO}'');');
+      UTL_FILE.put_line(fich_salida_sh, 'end;');
+      UTL_FILE.put_line(fich_salida_sh, '/');
+      UTL_FILE.put_line(fich_salida_sh, 'exit 0;');
+      UTL_FILE.put_line(fich_salida_sh, 'EOF');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'err_salida=$?');
+      UTL_FILE.put_line(fich_salida_sh, 'if [ ${err_salida} -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a pos_' || nombre_proceso || '. Error:  ${err_salida}."');
+      UTL_FILE.put_line(fich_salida_sh, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
+      UTL_FILE.put_line(fich_salida_sh, '  echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');        
+      UTL_FILE.put_line(fich_salida_sh, '  echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
+      UTL_FILE.put_line(fich_salida_sh, '  InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_sh, '  exit 1');
+      UTL_FILE.put_line(fich_salida_sh, 'fi');
+      UTL_FILE.put_line(fich_salida_sh, '');
+    end if;
+    /* (20151108) Angel Ruiz. Fin BUG: */
     /*(20160715) Angel Ruiz. Nueva Funcionalidad.*/
     UTL_FILE.put_line(fich_salida_sh, '# Insertamos que el proceso y el paso se han Ejecutado Correctamente');
     UTL_FILE.put_line(fich_salida_sh, 'InsertaFinOK');
