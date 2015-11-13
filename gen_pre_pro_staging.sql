@@ -115,8 +115,10 @@ BEGIN
       UTL_FILE.put_line(fich_salida_pkg, '' ); 
       dbms_output.put_line ('Estoy en PACKAGE DEFINITION DE LA TABLA: ' || 'SA' || '_' || reg_summary.CONCEPT_NAME);
       UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
-      --UTL_FILE.put_line(fich_salida_pkg, '' ); 
-      --UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pos_' || 'SA' || '_' || reg_summary.CONCEPT_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
+      if (reg_summary.HISTORY IS NOT NULL AND reg_summary.DELAYED = 'N') then
+        UTL_FILE.put_line(fich_salida_pkg, '' ); 
+        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pos_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
+      end if;
       UTL_FILE.put_line(fich_salida_pkg, '' ); 
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
       UTL_FILE.put_line(fich_salida_pkg, '/' );
@@ -168,7 +170,29 @@ BEGIN
         --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
         UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' ADD PARTITION PA_' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN (TO_DATE('''''' || fch_particion || '''''', ''''YYYYMMDD'''')) TABLESPACE DWTBSP_D_MVNO_SA'';');
         UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
-      elsif (reg_summary.HISTORY IS NOT NULL AND reg_summary.DELAYED = 'N') then
+      else
+        UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
+      end if;
+      
+      UTL_FILE.put_line(fich_salida_pkg,'  exception');
+      UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || reg_summary.CONCEPT_NAME || ''');');
+      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+      UTL_FILE.put_line(fich_salida_pkg,'    raise;');
+      UTL_FILE.put_line(fich_salida_pkg, '  END pre_' || nombre_proceso || ';'); 
+      UTL_FILE.put_line(fich_salida_pkg, '');
+/************/
+/************/
+      if (reg_summary.HISTORY IS NOT NULL AND reg_summary.DELAYED = 'N') then
+
+        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pos_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2)');
+        UTL_FILE.put_line(fich_salida_pkg, '  IS' ); 
+        UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
+        UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
+        UTL_FILE.put_line(fich_salida_pkg,'   fch_particion varchar2(8);');
+        
+        UTL_FILE.put_line(fich_salida_pkg, '  BEGIN' );
+        UTL_FILE.put_line(fich_salida_pkg,'' );
         /* (20150717) Angel Ruiz. Nueva Funcionalidad */
         /* Se hace un paso a historico de las Tablas de STAGING */
         if (regexp_count(reg_summary.HISTORY, '^[0-9][Mm]',1,'i') > 0) then
@@ -206,7 +230,7 @@ BEGIN
         --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
         UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE ' || TABLESPACE_SA || ''';');
         UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
-        UTL_FILE.put_line(fich_salida_pkg,'  /* TERCERO A CABO LA SALVAGUARDA DE LA INFORMACION */' );
+        UTL_FILE.put_line(fich_salida_pkg,'  /* TERCERO LLEVO A CABO LA SALVAGUARDA DE LA INFORMACION */' );
         UTL_FILE.put_line(fich_salida_pkg,'  INSERT /*+ APPEND */ INTO ' || OWNER_SA || '.SAH_' || reg_summary.CONCEPT_NAME);
         UTL_FILE.put_line(fich_salida_pkg,'  (');
         OPEN dtd_interfaz_detail (reg_summary.CONCEPT_NAME, reg_summary.SOURCE);
@@ -244,42 +268,16 @@ BEGIN
         UTL_FILE.put_line(fich_salida_pkg, '  FROM ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
         UTL_FILE.put_line(fich_salida_pkg, '  ;');
         UTL_FILE.put_line(fich_salida_pkg, '  commit;');
-        UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
-      else
-        UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
-      end if;
-      
-      UTL_FILE.put_line(fich_salida_pkg,'  exception');
-      UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
-      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || reg_summary.CONCEPT_NAME || ''');');
-      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
-      UTL_FILE.put_line(fich_salida_pkg,'    raise;');
-      UTL_FILE.put_line(fich_salida_pkg, '  END pre_' || nombre_proceso || ';'); 
-      UTL_FILE.put_line(fich_salida_pkg, '');
+        --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
+        UTL_FILE.put_line(fich_salida_pkg,'  exception');
+        UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+        UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || reg_summary.CONCEPT_NAME || ''');');
+        UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+        UTL_FILE.put_line(fich_salida_pkg,'    raise;');
+        UTL_FILE.put_line(fich_salida_pkg, '  END pos_' || nombre_proceso || ';'); 
+        UTL_FILE.put_line(fich_salida_pkg, '');
+      end if;      
 /************/
-      --UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pos_' || 'SA' || '_' || reg_summary.CONCEPT_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'')');
-      --UTL_FILE.put_line(fich_salida_pkg,'  IS'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
-      --UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
-      --UTL_FILE.put_line(fich_salida_pkg,'  BEGIN'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'    /* Proceso que se va ha encargar de hacer el pos-procesado para insertar los registros cargados en la tabla SA_' || reg_summary.CONCEPT_NAME || ' */'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'    /* a la tabla SA_' || reg_summary.CONCEPT_NAME || '_YYYYMMDD */'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''SA_' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in);');      
-      --UTL_FILE.put_line(fich_salida_pkg,'    if (exis_tabla = 1) then' );      
-      --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in;');
-      --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''INSERT INTO app_mvnosa.SA_' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in || '' select * from app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
-      --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  '' || ''SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' TRUNCATE PARTITION PA_' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in || ''UPDATE INDEXES'';');
-      --UTL_FILE.put_line(fich_salida_pkg,'    else' );
-      --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
-      --UTL_FILE.put_line(fich_salida_pkg,'    end if;' );
-      --UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de filas insertadas es: '' || SQL%ROWCOUNT);'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'    commit;'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
-      --UTL_FILE.put_line(fich_salida_pkg,'  end pos_' || 'SA' || '_' || reg_summary.CONCEPT_NAME || ';'); 
-
 /************/
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
       UTL_FILE.put_line(fich_salida_pkg, '/' );
