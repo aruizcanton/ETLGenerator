@@ -8,14 +8,16 @@ cursor MTDT_TABLA
     FROM
       MTDT_TC_SCENARIO
     WHERE TABLE_TYPE in ('D','I')
-    and TABLE_NAME in ('SA_ITX_TRAFICO1', 'SA_ITX_PARQUE1', 'SA_ITX_MOU', 'SA_ITX_IMPORTES')
+    --and TABLE_NAME in ('SA_ITX_TRAFICO1', 'SA_ITX_PARQUE1', 'SA_ITX_MOU', 'SA_ITX_IMPORTES')
     --and TABLE_NAME in ('SA_DESGASTE_PARQUE_PRE', 'SA_MKT_PRE_PARQUE', 'SA_MKT_PRE_INGR1', 'SA_MKT_PRE_ARPU_NUEVO1', 'SA_PRE_COMIS_PROPIO')
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_DESGASTE_PARQUE_PRE', 'SA_PRE_COMIS_PROPIO', 'SA_COMIS_CDA', 'SA_COMIS_TMK', 'SA_COMIS_DIGITAL', 'SA_ALTASXTTORIO_ESP1', 'SA_RECARGA_ESP', 'SA_COMIS_ESP')
     --and TABLE_NAME in ('SA_ALTASXTTORIO_ESP1', 'SA_RECARGA_ESP', 'SA_COMIS_ESP', 'SA_COMIS_CDA', 'SA_COMIS_TMK', 'SA_ALTAS_POSTPAGO')
     --and TABLE_NAME in ('SA_MKT_PRE_INGR1', )
     --and TABLE_NAME in ('SA_RECARGA_ESP', 'SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO')
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
-    and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
+    --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
+    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_PARQUE_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1', 'SA_FACT_SERIADOS1')
+    --and TABLE_NAME in ('SA_ABONADO_MVNO')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -282,9 +284,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   function procesa_campo_filter (cadena_in in varchar2) return varchar2
   is
     lon_cadena integer;
-    cabeza                varchar2 (5000);
+    cabeza                varchar2 (25000);
     sustituto              varchar2(100);
-    cola                      varchar2(5000);    
+    cola                      varchar2(25000);    
     pos                   PLS_integer;
     pos_ant           PLS_integer;
     posicion_ant           PLS_integer;
@@ -304,10 +306,10 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           dbms_output.put_line ('Pos es mayor que 0');
           dbms_output.put_line ('Primer valor de Pos: ' || pos);
           cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
           dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
           cola := substr(cadena_resul, pos + length ('VAR_FCH_CARGA'));
-          dbms_output.put_line ('La cola es: ' || cola);
+          --dbms_output.put_line ('La cola es: ' || cola);
           cadena_resul := cabeza || sustituto || cola;
           --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
           --pos := pos_ant;
@@ -2693,6 +2695,15 @@ begin
             /* COMIEZO LA GENERACION DEL PACKAGE DEFINITION */
             /******/
             
+            v_concept_name := substr(reg_tabla.TABLE_NAME, 4);
+            if (length(v_concept_name) < 24) then
+              nombre_proceso := 'SA_' || v_concept_name;
+            else
+              nombre_proceso := v_concept_name;
+            end if;              
+
+            UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
+            
             /* (20150720) Angel Ruiz. NF: Historico para tablas de Integracion */
             select * into v_interface_summary FROM MTDT_INTERFACE_SUMMARY
             where
@@ -2700,14 +2711,9 @@ begin
             SOURCE = 'SA';
             
             if (v_interface_summary.HISTORY IS NOT NULL) then
-              v_concept_name := substr(reg_tabla.TABLE_NAME, 4);
-              if (length(v_concept_name) < 24) then
-                nombre_proceso := 'SA_' || v_concept_name;
-              else
-                nombre_proceso := v_concept_name;
-              end if;              
               /* Ocurre que hemos de llevar un historico de esta tabla de INTEGRACION */
-              UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
+              UTL_FILE.put_line(fich_salida_pkg,'');
+              UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pos_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
               UTL_FILE.put_line(fich_salida_pkg,'');
             end if;
             /* (20150720) Angel Ruiz.FIN */
@@ -2775,6 +2781,38 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'    return 0;');
             UTL_FILE.put_line(fich_salida_pkg,'  END existe_particion;');
             UTL_FILE.put_line(fich_salida_pkg,'');
+            /* (20151108 Angel Ruiz. BUG. Siempre generamos un pre-proceso para llevar a cabo el truncate de la tabla de STAGING */
+            UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'')');
+            UTL_FILE.put_line(fich_salida_pkg, '  IS' ); 
+            UTL_FILE.put_line(fich_salida_pkg,'  exis_tabla number(1);');
+            UTL_FILE.put_line(fich_salida_pkg,'  exis_partition number(1);');
+            UTL_FILE.put_line(fich_salida_pkg,'  fch_particion varchar2(8);');
+      
+            UTL_FILE.put_line(fich_salida_pkg, '  BEGIN' );
+            UTL_FILE.put_line(fich_salida_pkg,'' );
+            if (v_interface_summary.DELAYED = 'S') then
+              UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1, ''YYYYMMDD'');'); 
+              UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_'' || ''' || v_interface_summary.CONCEPT_NAME || ''' || ''_''' || ' || fch_datos_in, ''SA_'' || ''' || v_interface_summary.CONCEPT_NAME || ''');');
+              --UTL_FILE.put_line(fich_salida_pkg,'  if (exis_tabla = 1) then' );      
+              UTL_FILE.put_line(fich_salida_pkg,'  if (exis_partition = 1) then' );
+              --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in;');
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_SA || ''' || ''.SA_'' || ''' || v_interface_summary.CONCEPT_NAME || ''' || '' TRUNCATE PARTITION PA_' || v_interface_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in;');
+              UTL_FILE.put_line(fich_salida_pkg,'  else' );
+              --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || v_interface_summary.CONCEPT_NAME || ''' || '' ADD PARTITION PA_' || v_interface_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN (TO_DATE('''''' || fch_particion || '''''', ''''YYYYMMDD'''')) TABLESPACE DWTBSP_D_MVNO_SA'';');
+              UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
+            else
+              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || v_interface_summary.CONCEPT_NAME || ''';');
+            end if;
+            UTL_FILE.put_line(fich_salida_pkg,'  exception');
+            UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+            UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || v_interface_summary.CONCEPT_NAME || ''');');
+            UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+            UTL_FILE.put_line(fich_salida_pkg,'    raise;');
+            UTL_FILE.put_line(fich_salida_pkg, '  END pre_' || nombre_proceso || ';'); 
+            UTL_FILE.put_line(fich_salida_pkg, '');
+            /* (20151108 Angel Ruiz. FIN BUG.  */
+            
             /* (20150720) Angel Ruiz. NF: Historico para tablas de Integracion */
             if (v_interface_summary.HISTORY IS NOT NULL) then
               /* La tabla de integracion debe tener una tabla de historico */
@@ -2783,15 +2821,15 @@ begin
               else
                 v_nombre_particion := v_concept_name;
               end if;
-              if (REGEXP_LIKE(reg_summary.HISTORY, '^[1-9]\d?[Mm]$') ) then
-                v_num_meses:= REGEXP_SUBSTR(reg_summary.HISTORY,'^[1-9]\d?');
+              if (REGEXP_LIKE(v_interface_summary.HISTORY, '^[1-9]\d?[Mm]$') ) then
+                v_num_meses:= REGEXP_SUBSTR(v_interface_summary.HISTORY,'^[1-9]\d?');
               else
                 /* No sigue la especificacion requerida el campo donde se guarda el tiempo de historico */
                 /* Por defecto ponemos 2 meses */
                 v_num_meses := 2;
               end if;
               /* Ocurre que hemos de llevar un historico de esta tabla de INTEGRACION */
-              UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pre_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'')');
+              UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pos_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'')');
               UTL_FILE.put_line(fich_salida_pkg, '  IS' ); 
               UTL_FILE.put_line(fich_salida_pkg,'  exis_tabla number(1);');
               UTL_FILE.put_line(fich_salida_pkg,'  exis_partition number(1);');
@@ -2924,14 +2962,14 @@ begin
               UTL_FILE.put_line(fich_salida_pkg, '  ;');
               UTL_FILE.put_line(fich_salida_pkg, '  commit;');
               UTL_FILE.put_line(fich_salida_pkg, '');
-              UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.'' || ''' || reg_tabla.TABLE_NAME || ''';');
+              --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.'' || ''' || reg_tabla.TABLE_NAME || ''';');
               UTL_FILE.put_line(fich_salida_pkg, '');
               UTL_FILE.put_line(fich_salida_pkg,'  exception');
               UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
               UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || v_concept_name || ''');');
               UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
               UTL_FILE.put_line(fich_salida_pkg,'    raise;');
-              UTL_FILE.put_line(fich_salida_pkg, '  END pre_' || nombre_proceso || ';'); 
+              UTL_FILE.put_line(fich_salida_pkg, '  END pos_' || nombre_proceso || ';'); 
               UTL_FILE.put_line(fich_salida_pkg, '');
             end if;
             /* (20150720) Angel Ruiz. NF: FIN */
@@ -3073,12 +3111,10 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '  inicio_paso_tmr TIMESTAMP;');
            UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
            UTL_FILE.put_line(fich_salida_pkg, '');
-            /* (20150720) Angel Ruiz. NF: Historico para tablas de Integracion */
-            if (v_interface_summary.HISTORY IS NOT NULL AND v_interface_summary.DELAYED = 'N' and v_interface_summary.FREQUENCY = 'D') then
-              /* He de incluir la salvaguarda de los datos */
-             UTL_FILE.put_line(fich_salida_pkg, '    /* SALVAGUARDAMOS LOS DATOS */');
-             UTL_FILE.put_line(fich_salida_pkg, '    pre_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
-            end if;
+            /* (20151108) Angel Ruiz. BUG: En el pro-proceso solo trunco la tabla de Staging sobre la que voy a cargar */
+           UTL_FILE.put_line(fich_salida_pkg, '    /* TRUNCAMOS LOS DATOS */');
+           UTL_FILE.put_line(fich_salida_pkg, '    pre_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+            /* (20151108) Angel Ruiz. FIN BUG: */           
            UTL_FILE.put_line(fich_salida_pkg, '    /* INICIAMOS EL BUCLE POR CADA UNA DE LAS INSERCIONES EN LA TABLA DE STAGING */');
            UTL_FILE.put_line(fich_salida_pkg, '    /* EN EL CASO DE LAS DIMENSIONES SOLO DEBE HABER UN REGISTRO YA QUE NO HAY RETRASADOS */');
            UTL_FILE.put_line(fich_salida_pkg, '    dbms_output.put_line (''Inicio del proceso de carga: ''' || ' || ''' || 'load_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
@@ -3126,14 +3162,14 @@ begin
 
            end loop;
            close MTDT_SCENARIO;
-            /* (20151013) Angel Ruiz. NF.: Ocurre que para el caso de las tablas de Stagin con carga Eventual, hay que hacer el paso a historico de manera diferente */
-            /* en lugar de hacerlo antes de insertar en la tabla de STAGING hay que hacerlo despues ya que como la carga es eventual no sabemos la fecha exacta de la siguiente carga */
-            if (v_interface_summary.HISTORY IS NOT NULL AND v_interface_summary.DELAYED = 'N' and v_interface_summary.FREQUENCY = 'E') then
+
+            /* (20151108) Angel Ruiz. BUG: Historico para tablas de Integracion */
+            if (v_interface_summary.HISTORY IS NOT NULL) then
               /* He de incluir la salvaguarda de los datos */
              UTL_FILE.put_line(fich_salida_pkg, '    /* SALVAGUARDAMOS LOS DATOS */');
-             UTL_FILE.put_line(fich_salida_pkg, '    pre_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+             UTL_FILE.put_line(fich_salida_pkg, '    pos_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
             end if;
-        
+            /* (20151108) Angel Ruiz. FIN BUG.*/
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
