@@ -23,7 +23,7 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COMIS_TMK', 'BSF_COMIS_DIGITAL', 'BSF_PRE_COMIS_CDA', 'BSF_PRE_COMIS_PROPIO', 'BSF_PRE_COMIS_ESP');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ALTAS_POSTPAGO', 'BSF_ALTAS_PREPAGO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COM_PRE_SUBSIDIO');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
     
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -126,6 +126,7 @@ SELECT
   campo_filter                                VARCHAR2(2000);
   nombre_proceso                        VARCHAR2(30);
   nombre_tabla_reducido           VARCHAR2(30);
+  nombre_tabla_T                        VARCHAR2(30);
   v_nombre_particion                  VARCHAR2(30);
   --nombre_tabla_base_reducido           VARCHAR2(30);
   OWNER_SA                             VARCHAR2(60);
@@ -1544,6 +1545,13 @@ begin
     else
       v_nombre_particion := nombre_tabla_reducido;
     end if;
+    /* (20151112) Angel Ruiz. BUG. Si el nombre de la tabla es superior a los 19 caracteres*/
+    /* El nombre d ela tabla que se crea T_*_YYYYMMDD supera los 30 caracteres y da error*/
+    if (length(nombre_tabla_reducido) > 19) then
+      nombre_tabla_T := substr(nombre_tabla_reducido,1, length(nombre_tabla_reducido) - (length(nombre_tabla_reducido) - 19));
+    else
+      nombre_tabla_T := nombre_tabla_reducido;
+    end if;
     
     UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AS');
     lista_scenarios_presentes.delete;
@@ -1703,12 +1711,15 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'   v_fch_particion PLS_INTEGER;');
       UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
       UTL_FILE.put_line(fich_salida_pkg,'    l_anyo_datos := to_number(substr(fch_datos_in, 1, 4));'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
+      /*(20151112) Angel Ruiz BUG*/
+      --UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_T || '_' || ''' || fch_datos_in);');
+      /* (20151112) Angel Ruiz FIN BUG*/
       UTL_FILE.put_line(fich_salida_pkg,'    if (exis_tabla = 0) then' );      
       UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la tabla */'); 
-      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
       UTL_FILE.put_line(fich_salida_pkg,'    else'); 
-      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in;');
       UTL_FILE.put_line(fich_salida_pkg,'    end if;'); 
       UTL_FILE.put_line(fich_salida_pkg,'    /* CREO LAS PARTICIONES PARA LOS DOS ANYOS DE ANALISIS */'); 
       UTL_FILE.put_line(fich_salida_pkg,'    for l_anyo_actu in l_anyo_datos - 1 .. l_anyo_datos'); 
@@ -1737,12 +1748,17 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
       UTL_FILE.put_line(fich_salida_pkg,'   fch_particion number(8);');
       UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
+      /*(20151112) Angel Ruiz BUG*/
+      --UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_T || '_' || ''' || fch_datos_in);');
+      /* (20151112) Angel Ruiz FIN BUG*/
       UTL_FILE.put_line(fich_salida_pkg,'    if (exis_tabla = 0) then' );      
       UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la tabla */'); 
-      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
+      --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''CREATE TABLE  ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in || '' TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''' || '' AS SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''';');
       UTL_FILE.put_line(fich_salida_pkg,'    else'); 
-      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
+      --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in;');
+      UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in;');
       UTL_FILE.put_line(fich_salida_pkg,'    end if;'); 
       UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_NUMBER(TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1,''YYYYMMDD''));'); 
       --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in, ''' || reg_tabla.TABLE_NAME || ''');');
@@ -1764,7 +1780,8 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
       UTL_FILE.put_line(fich_salida_pkg,'    /* Proceso que se va ha encargar de hacer el pos-procesado despues de insertar */'); 
       UTL_FILE.put_line(fich_salida_pkg,'    /* consistente en comprobar si la particion de ' || reg_tabla.TABLE_NAME || ' de fecha de datos ya tenia datos, para salvaguardarlos si los tenia */');
-      UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
+      --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
+      UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
       UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de filas salvaguardadas es: '' || SQL%ROWCOUNT);'); 
       UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno := SQL%ROWCOUNT;'); 
       UTL_FILE.put_line(fich_salida_pkg,'    commit;'); 
@@ -1778,8 +1795,8 @@ begin
 
     /* (20150825) Angel Ruiz. N.F.: Se trata de una nueva regla SEQG */
     /* Este tipo de Regla solo puede existir una para cada tabla por su propia definicion */
-    select VALUE into v_nombre_seqg from MTDT_TC_DETAIL
-    where RUL = 'SEQG' and TRIM(TABLE_NAME) = reg_tabla.TABLE_NAME;
+    --select VALUE into v_nombre_seqg from MTDT_TC_DETAIL
+    --where RUL = 'SEQG' and TRIM(TABLE_NAME) = reg_tabla.TABLE_NAME;
     /* (20150825) Angel Ruiz. FIN N.F.*/
     
     dbms_output.put_line ('Antes de generar las funciones de FUNCTION');
@@ -2598,9 +2615,13 @@ begin
     --UTL_FILE.put_line(fich_salida_pkg, '         pkg_' || reg_tabla.TABLE_NAME || '.' || 'pos_proceso (fch_carga_in, to_char(reg_monitoreo.FCH_DATOS, ''yyyymmdd''));');
 
     /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
-    if (reg_tabla.PARTICIONADO <> 'M24') then
+    DBMS_OUTPUT.PUT_LINE('--ANTES DE HOLA HOLA HOLA');
+    DBMS_OUTPUT.PUT_LINE('El valor de PARTICIONADO ES: #' || reg_tabla.PARTICIONADO || '#');
+    if (reg_tabla.PARTICIONADO is null or reg_tabla.PARTICIONADO <> 'M24') then
+      DBMS_OUTPUT.PUT_LINE('HOLA HOLA HOLA');
       UTL_FILE.put_line(fich_salida_pkg, '         numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
     end if;
+    DBMS_OUTPUT.PUT_LINE('--DESPUÉS DE HOLA HOLA HOLA');
     
     UTL_FILE.put_line(fich_salida_pkg, '         /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
     UTL_FILE.put_line(fich_salida_pkg, '         /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
