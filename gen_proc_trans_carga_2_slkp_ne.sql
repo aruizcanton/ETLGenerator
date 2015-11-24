@@ -1840,7 +1840,7 @@ begin
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND*/');
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '') */');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in ||');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
       
           /****/
           /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
@@ -1988,7 +1988,7 @@ begin
 
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in ||');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
           
   
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
@@ -2124,7 +2124,7 @@ begin
 
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in ||');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
   
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
           --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
@@ -2256,7 +2256,7 @@ begin
   
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in ||');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
           --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
       
@@ -2386,7 +2386,7 @@ begin
   
           --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_'' || fch_datos_in ||');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
   
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
           --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
@@ -2694,7 +2694,7 @@ begin
     /* (20150904) Angel Ruiz. NF: No hay exchange_partition ya que se vienen datos de todas las particiones */
     if (reg_tabla.PARTICIONADO = 'M24') then
       UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''MERGE INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' A');    
-      UTL_FILE.put_line(fich_salida_pkg, '        USING ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' B');
+      UTL_FILE.put_line(fich_salida_pkg, '        USING ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' B');
       UTL_FILE.put_line(fich_salida_pkg, '        ON (');
       primera_col := 1;
       FOR nombre_campo_pk IN (
@@ -2763,7 +2763,7 @@ begin
       UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);    
       --UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
       UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
-      UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
+      UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' ');    
       UTL_FILE.put_line(fich_salida_pkg, '        WITHOUT VALIDATION'';');    
     end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
@@ -2775,7 +2775,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
     UTL_FILE.put_line(fich_salida_pkg, '        /* comienza el segundo paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
-    UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
+    UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
@@ -2784,7 +2784,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '        /* comienza el segundo paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
     --UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE APP_MVNODM.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in;');    
-    UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
+    UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
