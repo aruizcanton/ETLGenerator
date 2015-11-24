@@ -16,8 +16,8 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_RECARGA_ESP', 'SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO')
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
-    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_FACT_SERIADOS1')
-    --and TABLE_NAME in ('SA_ABONADO_MVNO')
+    and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1')
+    --and TABLE_NAME in ('DMD_SERIADO')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -41,6 +41,7 @@ cursor MTDT_TABLA
       INTERFACE_COLUMNS,
       FILTER_CARGA_INI,
       trim(SCENARIO) "SCENARIO",
+      trim(REINYECTION) "REINYECTION",
       DATE_CREATE,
       DATE_MODIFY
     FROM 
@@ -157,6 +158,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   v_nombre_particion VARCHAR2(30);
   v_interface_summary MTDT_INTERFACE_SUMMARY%ROWTYPE;
   v_existe_escenario_HF varchar2(1):='N';   /* (20151113) Angel Ruiz. NF.: REINYECCION */ 
+  v_existe_reinyeccion varchar2(1):='N';  /* (20151120) Angel Ruiz. NF: Algun escenario posee el FLAG R activo */
   
   TYPE list_columns_primary  IS TABLE OF VARCHAR(30);
   TYPE list_strings  IS TABLE OF VARCHAR(30);
@@ -2720,13 +2722,20 @@ begin
             end if;
             /* (20150720) Angel Ruiz.FIN */
             /* Tercero genero los metodos para los escenarios */
-            
+            v_existe_escenario_HF:='N'; /* (20151120) Angel Ruiz. NF: REINYECCION */
+            v_existe_reinyeccion:='N';    /* (20151120) Angel Ruiz. NF: Si algún escenario posee el flag R de Reinyeccion activo */
             open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
             loop
               fetch MTDT_SCENARIO
               into reg_scenario;
               exit when MTDT_SCENARIO%NOTFOUND;
               dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
+              /* (20151120) Angel Ruiz. NF: Si algún escenario posee el flag R de Reinyeccion activo */
+              if (reg_scenario.REINYECTION = 'Y') then
+                /* El escenario tiene reinyección */
+                v_existe_reinyeccion := 'Y';
+              end if;
+              /* (20151120) Angel Ruiz. FIN NF:Si algún escenario posee el flag R de Reinyeccion activo */              
               /* (20150911) Angel Ruiz. NF: Pueden aparecer varias tablas en TABLE_BASE_NAME */
               lista_tablas_base := split_string_coma (reg_scenario.TABLE_BASE_NAME);
               if (lista_tablas_base.count = 0) then
@@ -3221,13 +3230,13 @@ begin
            --UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_hist integer:=0;');
            UTL_FILE.put_line(fich_salida_pkg, '  siguiente_paso_a_ejecutar PLS_integer;');
            UTL_FILE.put_line(fich_salida_pkg, '  inicio_paso_tmr TIMESTAMP;');
-           if (v_existe_escenario_HF = 'S') then
+           if (v_existe_escenario_HF = 'S' or v_existe_reinyeccion = 'Y') then
              UTL_FILE.put_line(fich_salida_pkg, '  v_existe_eje_pos number:=0;');             /* (20151213) Angel Ruiz. NF: REINYECCION */
            end if;
            UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
            UTL_FILE.put_line(fich_salida_pkg, '');
            /* (20151213) Angel Ruiz. NF: REINYECCION */
-           if (v_existe_escenario_HF = 'S') then
+           if (v_existe_escenario_HF = 'S' or v_existe_reinyeccion = 'Y') then
              UTL_FILE.put_line(fich_salida_pkg, '    v_existe_eje_pos := APP_DISTMT.pkg_DMF_MONITOREO_DIST.existe_eje_posterior_OK (''load_' || reg_tabla.TABLE_NAME || '.sh'', to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
              UTL_FILE.put_line(fich_salida_pkg, '');
            end if;
@@ -3294,16 +3303,29 @@ begin
                if (v_existe_escenario_HF = 'S') then
                   UTL_FILE.put_line(fich_salida_pkg,'        v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' :=  i_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' (fch_carga_in, fch_datos_in);');
                   UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_new := numero_reg_new + v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ';');
-                  UTL_FILE.put_line(fich_salida_pkg, '       /* HAY QUE EJECUTAR LA REINYECCION */');
-                  UTL_FILE.put_line(fich_salida_pkg, '       Aqui hiria la llamada al procedimiento que hace la reinyeccion');
-                  UTL_FILE.put_line(fich_salida_pkg,'      end if;');
-                else
+                  if (reg_scenario.REINYECTION = 'Y') then
+                    /* Se trata de que el escenario aunque es de tipo P tiene reinyeccion */
+                    UTL_FILE.put_line(fich_salida_pkg, '        if (v_existe_eje_pos <> 1) then');
+                    UTL_FILE.put_line(fich_salida_pkg, '          /* HAY QUE EJECUTAR LA REINYECCION */');
+                    UTL_FILE.put_line(fich_salida_pkg, '          /* Aqui va la llamada al procedimiento que hace la reinyeccion. Cuyo nombre genero en automatico. */');
+                    UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_SA || '.pkg_SAD_' || substr(reg_tabla.TABLE_NAME, 4) || '.SAD_' || substr(reg_tabla.TABLE_NAME, 4) || ' (TO_NUMBER(fch_datos_in), forzado_in);' );
+                    UTL_FILE.put_line(fich_salida_pkg, '        end if;');
+                    UTL_FILE.put_line(fich_salida_pkg,'      end if;');
+                  else
+                    UTL_FILE.put_line(fich_salida_pkg,'      end if;');
+                  end if;
+               else
                   UTL_FILE.put_line(fich_salida_pkg,'      v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' :=  i_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ' (fch_carga_in, fch_datos_in);');
                   UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := numero_reg_new + v_' || nombre_tabla_reducido || '_' || nombre_tabla_base_sp_redu || ';');
-                  UTL_FILE.put_line(fich_salida_pkg, '     /* HAY QUE EJECUTAR LA REINYECCION */');
-                  UTL_FILE.put_line(fich_salida_pkg, '     Aqui hiria la llamada al procedimiento que hace la reinyeccion');
-
-                end if;
+                  if (reg_scenario.REINYECTION = 'Y') then
+                    /* Se trata de que el escenario aunque es de tipo P tiene reinyeccion */
+                    UTL_FILE.put_line(fich_salida_pkg, '      if (v_existe_eje_pos <> 1) then');
+                    UTL_FILE.put_line(fich_salida_pkg, '        /* HAY QUE EJECUTAR LA REINYECCION */');
+                    UTL_FILE.put_line(fich_salida_pkg, '        /* Aqui va la llamada al procedimiento que hace la reinyeccion. Cuyo nombre genero en automatico. */');
+                    UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_SA || '.pkg_SAD_' || substr(reg_tabla.TABLE_NAME, 4) || '.SAD_' || substr(reg_tabla.TABLE_NAME, 4) || ' (TO_NUMBER(fch_datos_in), forzado_in);' );
+                    UTL_FILE.put_line(fich_salida_pkg, '      end if;');
+                  end if;
+               end if;
                /* (20151213) Angel Ruiz. FIN NF: REINYECCION */
              end if;
              /* (20150904) Angel Ruiz. NF: LLamada a FUNCIONES EXTERNAS */
