@@ -33,8 +33,11 @@ DECLARE
       
       primera_col INTEGER;
       TYPE list_columns_primary  IS TABLE OF VARCHAR(30);
+      TYPE list_tablas_RE IS TABLE OF VARCHAR(30);
+
       
       lista_pk                                      list_columns_primary := list_columns_primary (); 
+      v_lista_tablas_RE                        list_tablas_RE := list_tablas_RE();
       tipo_col                                      VARCHAR(70);
       OWNER_SA                             VARCHAR2(60);
       OWNER_T                                VARCHAR2(60);
@@ -44,6 +47,9 @@ DECLARE
       OWNER_TC                            VARCHAR2(60);
       OWNER_DWH                         VARCHAR2(60);
       OWNER_RD                            VARCHAR2(60);
+      v_existe_tablas_RE integer:=0;
+      v_encontrado VARCHAR2(1):='N';
+
       
 
 BEGIN
@@ -58,6 +64,19 @@ BEGIN
   SELECT VALOR INTO OWNER_RD FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_RD';
   /* (20150119) FIN*/
 
+  /* (20151117) Angel Ruiz. NF. Generacion de los creates de tablas SAD y SADH*/
+  FOR nombre_tabla_HF in (
+      SELECT distinct substr(table_name, 4) nombre_tabla
+      FROM MTDT_TC_SCENARIO
+      WHERE TABLE_TYPE = 'I'
+      AND REINYECTION = 'Y')
+  LOOP
+    v_existe_tablas_RE:=1;
+    v_lista_tablas_RE.EXTEND;
+    v_lista_tablas_RE (v_lista_tablas_RE.last) := nombre_tabla_HF.nombre_tabla;
+  END LOOP;
+  /* (20151117) Angel Ruiz. FIN NF. Generacion de los creates de tablas SAD y SADH*/
+
   DBMS_OUTPUT.put_line('set echo on;');
   DBMS_OUTPUT.put_line('whenever sqlerror exit 1;');
   OPEN dtd_interfaz_summary;
@@ -68,6 +87,22 @@ BEGIN
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_TC || ';');
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DM || ';');
       DBMS_OUTPUT.put_line('GRANT select on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DWH || ';');
+      if v_existe_tablas_RE = 1 then
+        /* Existen tablas de inyeccion */
+        v_encontrado:='N';
+        for indx in v_lista_tablas_RE.FIRST .. v_lista_tablas_RE.LAST
+        loop
+          if (v_lista_tablas_RE(indx) = reg_summary.CONCEPT_NAME) then
+            v_encontrado := 'Y';
+          end if;
+        end loop;
+        if v_encontrado = 'Y' then
+          DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SAD_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_TC || ';');
+          DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SAD_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DM || ';');
+          DBMS_OUTPUT.put_line('GRANT select on ' || OWNER_SA || '.SAD_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DWH || ';');
+        end if;
+      end if;
+      /* (20151118) Angel Ruiz. FIN NF: Creacion de tablas para inyeccion SAD */
       
   END LOOP;
   CLOSE dtd_interfaz_summary;
@@ -86,6 +121,24 @@ BEGIN
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME || ' TO ' || OWNER_TC || ';');
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME || ' TO ' || OWNER_DM || ';');
       DBMS_OUTPUT.put_line('GRANT select on ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME || ' TO ' || OWNER_DWH || ';');
+      /* (20151118) Angel Ruiz. NF: Creacion de tablas para inyeccion SAD */
+      if v_existe_tablas_RE = 1 then
+        /* Existen tablas de inyeccion */
+        v_encontrado:='N';
+        for indx in v_lista_tablas_RE.FIRST .. v_lista_tablas_RE.LAST
+        loop
+          if (v_lista_tablas_RE(indx) = reg_summary_history.CONCEPT_NAME) then
+            v_encontrado := 'Y';
+          end if;
+        end loop;
+        if v_encontrado = 'Y' then
+          DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME || ' TO ' || OWNER_TC || ';');
+          DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME || ' TO ' || OWNER_DM || ';');
+          DBMS_OUTPUT.put_line('GRANT select on ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME || ' TO ' || OWNER_DWH || ';');
+        end if;
+      end if;
+      /* (20151118) Angel Ruiz. FIN NF: Creacion de tablas para inyeccion SAD */
+      
   END LOOP;
   CLOSE dtd_interfaz_summary_history;
   
