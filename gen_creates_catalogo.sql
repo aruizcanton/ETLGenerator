@@ -117,47 +117,97 @@ BEGIN
       /* GENERO LOS TRES INSERTS POR DEFECTO QUE TIENE CADA UNA DE LAS TABLAS CREADAS*/
       if (reg_per_val.ITEM_NAME <> 'FUENTE') then /* esto lo meto a posteriori */
         /* Es porque se ha añadido un ITEM FUENTE y si no pongo este if se generan dos campos iguales */
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-        DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
-        DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
-        DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-        DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
-        DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
-        DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
-        DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
-        DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+        /*(20151118) Angel Ruiz. NF: Meto valores por defecto en el campo de clave formea */
+        if (clave_foranea = 0) then   /* NO hay clave foranea */
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', sysdate, sysdate);' );
+        else  /* (20151117) Angel Ruiz. Si hay clave foranea */
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE, ' || '  CVE_' ||  substr(reg_per_val. AGREGATION, 5) || ',');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', ''MAN'', -1, sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,' || '  CVE_' ||  substr(reg_per_val. AGREGATION,5) || ',');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', -2, sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST, ID_FUENTE,' || '  CVE_' ||  substr(reg_per_val. AGREGATION,5) || ',');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', ''MAN'', -3, sysdate, sysdate);' );
+        end if;     
+        /*(20151118) Angel Ruiz. FIN NF*/
       else  /* Se trata del item ID_FUENTE */
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_LIST,');
-        DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
-        DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
-        DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_LIST,');
-        DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
-        DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
-        DBMS_OUTPUT.put_line('commit;');
-        DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
-        DBMS_OUTPUT.put_line('ID_LIST,');
-        DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
-        DBMS_OUTPUT.put_line('VALUES (');
-        DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+        /*(20151118) Angel Ruiz. NF: Meto valores por defecto en el campo de clave formea */
+        if (clave_foranea = 0) then   /* NO hay clave foranea */
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST,');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST,');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST,');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', sysdate, sysdate);' );
+        else  /* (20151117) Angel Ruiz. Si hay clave foranea */
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST,' || '  CVE_' ||  substr(reg_per_val. AGREGATION,5) || ',');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-1 || ', ''NA#''' || ', ''NO APLICA'',''' || reg_per_val.ID_LIST || ''', -1, sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST,' || '  CVE_' ||  substr(reg_per_val. AGREGATION,5) || ',');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-2 || ', ''GE#''' || ', ''GENERICO'',''' || reg_per_val.ID_LIST || ''', -2, sysdate, sysdate);' );
+          DBMS_OUTPUT.put_line('commit;');
+          DBMS_OUTPUT.put_line('insert into ' || OWNER_DM || '.' || PREFIJO_DM || 'D_' || reg_per_val.ITEM_NAME || '(' || 'CVE_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_' || reg_per_val.ITEM_NAME || ', ' || 'DES_' || reg_per_val.ITEM_NAME || ',');
+          DBMS_OUTPUT.put_line('ID_LIST,' || '  CVE_' ||  substr(reg_per_val. AGREGATION,5) || ',');
+          DBMS_OUTPUT.put_line('FCH_REGISTRO, ' || 'FCH_MODIFICACION)');
+          DBMS_OUTPUT.put_line('VALUES (');
+          DBMS_OUTPUT.put_line(-3 || ', ''NI#''' || ', ''NO INFORMADO'',''' || reg_per_val.ID_LIST || ''', -3, sysdate, sysdate);' );
+        end if;
+        /*(20151118) Angel Ruiz. FIN NF*/
       end if;
       DBMS_OUTPUT.put_line('commit;');
     END LOOP;
