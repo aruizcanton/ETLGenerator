@@ -10,6 +10,8 @@ DECLARE
       MAX(LENGTH(DESCRIPTION)) LONGITUD_DES
     FROM MTDT_PERMITED_VALUES
     --WHERE ITEM_NAME not in ('ALMACEN')
+    WHERE ITEM_NAME NOT IN      /*(20151125) Angel Ruiz. Para que no se generen los creates que ya se generan en modelo logico */
+    (select trim(substr(table_name,5)) from mtdt_modelo_summary where CI = 'I')
     GROUP BY 
       ITEM_NAME,
       ID_LIST,
