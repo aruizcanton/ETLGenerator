@@ -50,7 +50,7 @@ DECLARE
       TRIM(VDEFAULT) "VDEFAULT"
     FROM MTDT_MODELO_DETAIL
     WHERE
-      TRIM(TABLE_NAME) = table_name_in;
+      TABLE_NAME = table_name_in;
   /* (20150907) Angel Ruiz . FIN NF: Se crea una tabla de metadato MTDT_MODELO_SUMMARY y otra MTDT_MODELO_DETAIL */
 
   r_mtdt_modelo_logico_TABLA                                          c_mtdt_modelo_logico_TABLA%rowtype;
@@ -180,13 +180,13 @@ BEGIN
           lista_pk(lista_pk.LAST) := r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME;
         END IF;
         /* (20150821) ANGEL RUIZ. FUNCIONALIDAD PARA PARTICIONADO */
-        if (regexp_count(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME,'^??F_',1,'i') >0 AND 
+        if (regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME, 1, 4), '??F_',1,'i') >0 AND 
         upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_DIA') then 
           /* SE TRATA DE UNA TABLA DE HECHOS CON COLUMNA CVE_DIA ==> PARTICIONADO DIARIO */
           v_tipo_particionado := 'D';   /* Particionado Diario */
         end if;
         /* Gestionamos el posible particionado de la tabla */
-        if (regexp_count(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME,'^??F_',1,'i') >0 AND
+        if (regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME, 1, 4) ,'??F_',1,'i') >0 AND
         upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_MES') then 
           /* SE TRATA DE UNA TABLA DE HECHOS CON COLUMNA CVE_DIA ==> PARTICIONADO MENSUAL */
           if (r_mtdt_modelo_logico_TABLA.PARTICIONADO = 'M24') then
@@ -197,7 +197,7 @@ BEGIN
             v_tipo_particionado := 'M';   /* Particionado Mensual, aunque para una tabla de Agregados*/
           end if;
         end if;
-        if (regexp_count(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME,'^??A_',1,'i') >0 AND
+        if (regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME, 1, 4), '??A_',1,'i') >0 AND
         upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_MES') then
           /* SE TRATA DE UNA TABLA DE AGREGADOS CON PARTICIONAMIENTO POR MES */
           v_tipo_particionado := 'M';   /* Particionado Mensual, aunque para una tabla de Agregados*/
@@ -218,7 +218,7 @@ BEGIN
       END IF;
       DBMS_OUTPUT.put_line(')');  /* Parentesis final del create*/
       --DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_COLUMNA.TABLESPACE);
-      if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??F_',1,'i') >0)  then  /* Se trata de una tabla de HECHOS  */
+      if (regexp_count(substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 1, 4) ,'??F_',1,'i') >0)  then  /* Se trata de una tabla de HECHOS  */
         --  /* Hay que particonarla */
         if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
           DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE);
@@ -423,7 +423,7 @@ BEGIN
           DBMS_OUTPUT.put_line(');');
           /* (20150918) Angel Ruiz. Fin N.F*/
         end if;
-      elsif (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??A_',1,'i') >0)  then  /* Se trata de una tabla de HECHOS AGREGADOS  */
+      elsif (regexp_count(substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 1, 4), '??A_',1,'i') >0)  then  /* Se trata de una tabla de HECHOS AGREGADOS  */
         if (v_tipo_particionado = 'M') then
           --  /* Hay que particonarla */
           if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
@@ -451,12 +451,18 @@ BEGIN
       else
         --DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_COLUMNA.TABLESPACE || ';');
         --DBMS_OUTPUT.put_line('TABLESPACE ' || 'DWTBSP_D_MVNO_DIM' || ';');
+        --DBMS_OUTPUT.put_line ('-- #' ||  r_mtdt_modelo_logico_TABLA.TABLE_NAME || '#');
+        --if (TRIM(r_mtdt_modelo_logico_TABLA.table_name) = 'DMD_CAUSA_LLAMADA') then
+          --DBMS_OUTPUT.put_line ('LA TABLA QUE QUIERO INVESTIGAR: #' ||  r_mtdt_modelo_logico_TABLA.TABLE_NAME || '#');
+          --DBMS_OUTPUT.put_line ('El valor de TABLESPACE ES: #' ||  r_mtdt_modelo_logico_TABLA.TABLESPACE || '#');
+        --end if;
         if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
-          DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE || ';');
+          DBMS_OUTPUT.put_line ('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE || ';');
         else
-          DBMS_OUTPUT.put_line(';');
+          DBMS_OUTPUT.put_line (';');
         end if;
       end if;
+      
       --DBMS_OUTPUT.put_line(';');
       lista_pk.DELETE;      /* Borramos los elementos de la lista */
       DBMS_OUTPUT.put_line('');
@@ -589,8 +595,8 @@ BEGIN
       
       if (r_mtdt_modelo_logico_TABLA.CI = 'N' or r_mtdt_modelo_logico_TABLA.CI = 'I') then
         /* Generamos los inserts para aquellas tablas que no son de carga inicial */
-        if (regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^??D_',1,'i') >0 or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DMT_',1,'i') >0 
-        or regexp_count(r_mtdt_modelo_logico_TABLA.TABLE_NAME,'^DWD_',1,'i') >0) then
+        if (regexp_count(substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 1, 4) ,'??D_',1,'i') >0 or regexp_count(substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 1, 4), 'DMT_',1,'i') >0 
+        or regexp_count(substr(r_mtdt_modelo_logico_TABLA.TABLE_NAME, 1, 4), 'DWD_',1,'i') >0) then
           /* Solo si se trata de una dimension generamos los inserts por defecto y la secuencia */
           --if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
             --DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
@@ -611,9 +617,9 @@ BEGIN
             IF primera_col = 1 THEN /* Si es primera columna */
                 DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
                 CASE
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^CVE_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'CVE_',1,'i') >0 THEN
                     cadena_values := '-1';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^ID_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 3), 'ID_',1,'i') >0 THEN
                     if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'NUMBER') > 0) then
                       cadena_values := '-1';
                     else
@@ -629,7 +635,7 @@ BEGIN
                         cadena_values := '''NA#''';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'DES_',1,'i') >0 THEN
                     pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
@@ -650,7 +656,7 @@ BEGIN
                         cadena_values := 'NULL';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'FCH_',1,'i') >0 THEN
                       cadena_values := 'sysdate';
                   ELSE
                     if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
@@ -680,9 +686,9 @@ BEGIN
             ELSE  /* si no es primera columna */
                 DBMS_OUTPUT.put_line(',' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
                 CASE
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^CVE_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'CVE_',1,'i') >0 THEN
                     cadena_values := cadena_values || ', -1';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^ID_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 3),'ID_',1,'i') >0 THEN
                     if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'NUMBER') > 0 ) then
                       cadena_values := cadena_values || ', -1';
                     else
@@ -698,7 +704,7 @@ BEGIN
                           cadena_values := cadena_values || ', ''NA#''';
                         end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'DES_',1,'i') >0 THEN
                     pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
@@ -719,7 +725,7 @@ BEGIN
                         cadena_values := cadena_values || ', NULL';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'FCH_',1,'i') >0 THEN
                       cadena_values := cadena_values || ', sysdate';
                   ELSE
                     if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
@@ -765,9 +771,9 @@ BEGIN
             IF primera_col = 1 THEN /* Si es primera columna */
                 DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
                 CASE
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^CVE_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4),'CVE_',1,'i') >0 THEN
                     cadena_values := '-2';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^ID_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 3), 'ID_',1,'i') >0 THEN
                     if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'NUMBER') > 0) then
                       cadena_values := '-2';
                     else
@@ -783,7 +789,7 @@ BEGIN
                           cadena_values := '''GE#''';
                         end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4),'DES_',1,'i') >0 THEN
                     pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
@@ -804,7 +810,7 @@ BEGIN
                         cadena_values := 'NULL';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'FCH_',1,'i') >0 THEN
                       cadena_values := 'sysdate';
                   ELSE
                     if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
@@ -834,9 +840,9 @@ BEGIN
             ELSE  /* si no es primera columna */
                 DBMS_OUTPUT.put_line(',' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
                 CASE
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^CVE_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'CVE_',1,'i') >0 THEN
                     cadena_values := cadena_values || ', -2';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^ID_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 3), 'ID_',1,'i') >0 THEN
                     if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'NUMBER') > 0) then
                       cadena_values := cadena_values || ', -2';
                     else
@@ -852,7 +858,7 @@ BEGIN
                         cadena_values := cadena_values || ', ''GE#''';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'DES_',1,'i') >0 THEN
                     pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
@@ -873,7 +879,7 @@ BEGIN
                         cadena_values := cadena_values || ', NULL';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'FCH_',1,'i') >0 THEN
                       cadena_values := cadena_values || ', sysdate';
                   ELSE
                     if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
@@ -919,9 +925,9 @@ BEGIN
             IF primera_col = 1 THEN /* Si es primera columna */
                 DBMS_OUTPUT.put_line(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
                 CASE
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^CVE_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'CVE_',1,'i') >0 THEN
                     cadena_values := '-3';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^ID_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 3), 'ID_',1,'i') >0 THEN
                     if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'NUMBER') > 0) then
                       cadena_values :=  '-3';
                     else
@@ -937,7 +943,7 @@ BEGIN
                         cadena_values := '''NI#''';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'DES_',1,'i') >0 THEN
                     pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
@@ -958,7 +964,7 @@ BEGIN
                         cadena_values := 'NULL';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'FCH_',1,'i') >0 THEN
                       cadena_values := 'sysdate';
                   ELSE
                     if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
@@ -988,9 +994,9 @@ BEGIN
             ELSE  /* si no es primera columna */
                 DBMS_OUTPUT.put_line(',' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
                 CASE
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^CVE_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'CVE_',1,'i') >0 THEN
                     cadena_values := cadena_values || ', -3';
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^ID_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 3), 'ID_',1,'i') >0 THEN
                     if (instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'NUMBER') > 0) then
                       cadena_values := cadena_values || ', -3';
                     else
@@ -1006,7 +1012,7 @@ BEGIN
                         cadena_values := cadena_values || ', ''NI#''';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^DES_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4), 'DES_',1,'i') >0 THEN
                     pos_abre_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,'(');
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
@@ -1027,7 +1033,7 @@ BEGIN
                         cadena_values := cadena_values || ', NULL';
                       end if;
                     end if;
-                  WHEN regexp_count(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME,'^FCH_',1,'i') >0 THEN
+                  WHEN regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME, 1, 4),'FCH_',1,'i') >0 THEN
                       cadena_values := cadena_values || ', sysdate';
                   ELSE
                     if (r_mtdt_modelo_logico_COLUMNA.NULABLE = 'N') then
