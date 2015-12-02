@@ -14,7 +14,7 @@ cursor MTDT_TABLA
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO', 'DMF_RECARGAS_MVNO', 'DMF_PARQUE_MVNO');  
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS');  
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_FACT_SERIADOS');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS');  
 
     --SELECT
       --DISTINCT TRIM(TABLE_NAME) "TABLE_NAME",
@@ -1308,6 +1308,30 @@ begin
         lista_scenarios_presentes.EXTEND;
         lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'NUM';
       end if;
+
+      /************************/
+      /* (20151116) Angel Ruiz. Nuevos escenarios APA, DESA */
+      if (reg_scenario.SCENARIO = 'APA')    /*  Procesamos el escenario APA  */
+      then
+        /* Tenemos el escenario NUM */
+        UTL_FILE.put_line(fich_salida_pkg, '' ); 
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION apa_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '' ); 
+        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
+        lista_scenarios_presentes.EXTEND;
+        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'APA';
+      end if;
+      if (reg_scenario.SCENARIO = 'DESA')    /*  Procesamos el escenario DESA  */
+      then
+        /* Tenemos el escenario NUM */
+        UTL_FILE.put_line(fich_salida_pkg, '' ); 
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION des_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '' ); 
+        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
+        lista_scenarios_presentes.EXTEND;
+        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'DESA';
+      end if;
+      /* (20151116) Angel Ruiz. FIN Nuevos escenarios APA, DESA */
       
     end loop; /* fin del LOOP MTDT_SCENARIO  */
     close MTDT_SCENARIO;
@@ -1881,6 +1905,177 @@ begin
       
       /**************/
       /**************/
+      /* (20151117) Angel Ruiz. NF: Nuevos scenarios APA y DESA */
+      /*************/
+      /*************/
+      if (reg_scenario.SCENARIO = 'APA')  /* Proceso el escenario APA */
+      then
+        /* SCENARIO OPE */
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION apa_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  IS');
+          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
+          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
+  
+          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
+          UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
+      
+          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
+          
+          UTL_FILE.put_line(fich_salida_pkg,'    (');
+          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+          primera_col := 1;
+          loop
+            fetch MTDT_TC_DETAIL
+            into reg_detail;
+            exit when MTDT_TC_DETAIL%NOTFOUND;
+            if primera_col = 1 then
+              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
+              primera_col := 0;
+            else
+              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
+            end if;
+          end loop;
+          close MTDT_TC_DETAIL;
+          UTL_FILE.put_line(fich_salida_pkg,')');
+          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
+
+          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+          primera_col := 1;
+          loop
+            fetch MTDT_TC_DETAIL
+            into reg_detail;
+            exit when MTDT_TC_DETAIL%NOTFOUND;
+            columna := genera_campo_select (reg_detail);
+            if primera_col = 1 then
+              UTL_FILE.put_line(fich_salida_pkg,columna);
+              primera_col := 0;
+            else
+              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
+            end if;        
+          end loop;
+          close MTDT_TC_DETAIL;
+          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+
+          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
+          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
+          UTL_FILE.put_line(fich_salida_pkg,'    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+          if (reg_scenario.FILTER is not null) then
+            /* INICIO generacion parte  WHERE  */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+            /* Procesamos el campo FILTER */
+            campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+          end if;
+          UTL_FILE.put_line(fich_salida_pkg, ';');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
+          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
+          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
+      
+          UTL_FILE.put_line(fich_salida_pkg,'    exception');
+          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
+          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
+          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
+          --UTL_FILE.put_line(fich_salida_pkg,'      return sqlcode;');
+          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros OPE.'');');
+          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
+          UTL_FILE.put_line(fich_salida_pkg, '  END apa_' || nombre_proceso || ';');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+      end if;   /* FIN de la generacion de la funcion apa */
+      /*************/
+      /*************/
+      if (reg_scenario.SCENARIO = 'DESA')  /* Proceso el escenario DESA */
+      then
+        /* SCENARIO OPE */
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION des_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  IS');
+          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
+          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
+          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
+  
+          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
+          UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
+      
+          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
+          
+          UTL_FILE.put_line(fich_salida_pkg,'    (');
+          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+          primera_col := 1;
+          loop
+            fetch MTDT_TC_DETAIL
+            into reg_detail;
+            exit when MTDT_TC_DETAIL%NOTFOUND;
+            if primera_col = 1 then
+              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
+              primera_col := 0;
+            else
+              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
+            end if;
+          end loop;
+          close MTDT_TC_DETAIL;
+          UTL_FILE.put_line(fich_salida_pkg,')');
+          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
+
+          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+          primera_col := 1;
+          loop
+            fetch MTDT_TC_DETAIL
+            into reg_detail;
+            exit when MTDT_TC_DETAIL%NOTFOUND;
+            columna := genera_campo_select (reg_detail);
+            if primera_col = 1 then
+              UTL_FILE.put_line(fich_salida_pkg,columna);
+              primera_col := 0;
+            else
+              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
+            end if;        
+          end loop;
+          close MTDT_TC_DETAIL;
+          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+
+          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
+          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
+          UTL_FILE.put_line(fich_salida_pkg,'    ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+          if (reg_scenario.FILTER is not null) then
+            /* INICIO generacion parte  WHERE  */
+            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+            /* Procesamos el campo FILTER */
+            campo_filter := procesa_campo_filter(reg_scenario.FILTER);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+          end if;
+          UTL_FILE.put_line(fich_salida_pkg, ';');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
+          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
+          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
+      
+          UTL_FILE.put_line(fich_salida_pkg,'    exception');
+          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
+          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
+          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
+          --UTL_FILE.put_line(fich_salida_pkg,'      return sqlcode;');
+          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros OPE.'');');
+          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
+          UTL_FILE.put_line(fich_salida_pkg, '  END des_' || nombre_proceso || ';');
+          UTL_FILE.put_line(fich_salida_pkg, '');
+      end if;   /* FIN de la generacion de la funcion des */
+      /**************/
+      /**************/
+      /* (20151117) Angel Ruiz. NF: Nuevos scenarios APA y DESA */
+      /*************/
+      /*************/
+      
     
     end loop;
     close MTDT_SCENARIO;
@@ -1891,6 +2086,8 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_alt NUMBER:=0;');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_icc NUMBER:=0;');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_num NUMBER:=0;');    
+    UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_apa NUMBER:=0;');    
+    UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_des NUMBER:=0;');    
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_tot NUMBER:=0;');    
     UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');
     UTL_FILE.put_line(fich_salida_pkg, '  ult_paso_ejecutado PLS_integer;');
@@ -1964,6 +2161,27 @@ begin
         UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_num := ' || 'pkg_' || nombre_proceso || '.' || 'num_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
         UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_tot := numero_reg_tot + numero_reg_num;');
         UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros num es: '' || numero_reg_num || ''.'');');
+      end if;
+    END LOOP;
+    /*(20151117) Angel Ruiz. NF: NUEVOS ESCENARIOS APA y DESA */
+    /* Generamos la llamada para cargar los registros APA */
+    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
+    LOOP
+      if lista_scenarios_presentes (indx) = 'APA'
+      then
+        UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_apa := ' || 'pkg_' || nombre_proceso || '.' || 'apa_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_tot := numero_reg_tot + numero_reg_apa;');
+        UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros apa es: '' || numero_reg_apa || ''.'');');
+      end if;
+    END LOOP;
+    /* Generamos la llamada para cargar los registros DESA */
+    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
+    LOOP
+      if lista_scenarios_presentes (indx) = 'DESA'
+      then
+        UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_des := ' || 'pkg_' || nombre_proceso || '.' || 'des_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_tot := numero_reg_tot + numero_reg_des;');
+        UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros des es: '' || numero_reg_des || ''.'');');
       end if;
     END LOOP;
     UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros totales es: '' || numero_reg_tot || ''.'');');
