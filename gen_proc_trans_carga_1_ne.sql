@@ -14,7 +14,7 @@ cursor MTDT_TABLA
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO', 'DMF_RECARGAS_MVNO', 'DMF_PARQUE_MVNO');  
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS');  
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO');  
 
     --SELECT
       --DISTINCT TRIM(TABLE_NAME) "TABLE_NAME",
@@ -633,11 +633,13 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         /* Se toma el valor de una variable de entorno */
         if reg_detalle_in.VALUE =  'VAR_FCH_DATOS' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
 --          valor_retorno :=  '     ' ||  'TO_DATE (fch_carga_in, ''YYYYMMDD'')';
-          valor_retorno := '     ' || 'fch_datos_in';        
+          --valor_retorno := '     ' || 'fch_datos_in';        
+          valor_retorno := '     ' || 'to_number (fch_datos_in)';        
         end if;
         if reg_detalle_in.VALUE =  'VAR_FCH_CARGA' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
 --          valor_retorno := '     ' || 'TO_DATE (fch_carga_in, ''YYYYMMDD'')';
-          valor_retorno := '     ' || 'fch_datos_in';        
+          --valor_retorno := '     ' || 'fch_datos_in';        
+          valor_retorno := '     ' || 'to_number (fch_datos_in)';        
         end if;
         if reg_detalle_in.VALUE =  'VAR_PAIS_TM' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
           valor_retorno := '    ' ||  '1';
@@ -2079,7 +2081,7 @@ begin
     
     end loop;
     close MTDT_SCENARIO;
-    UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE lhe_' || reg_tabla.TABLE_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2)');
+    UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE lhe_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2)');
     UTL_FILE.put_line(fich_salida_pkg, '  IS');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_new NUMBER:=0;');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_ope NUMBER:=0;');
