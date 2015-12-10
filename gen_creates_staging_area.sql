@@ -195,17 +195,89 @@ BEGIN
           END IF;
         END LOOP;
         DBMS_OUTPUT.put_line('PARTITION BY RANGE (' || lista_campos_particion || ')');   
-        DBMS_OUTPUT.put_line('(');   
+        DBMS_OUTPUT.put_line('(');
+        if (length(reg_summary.CONCEPT_NAME) <= 18) then
+          v_nombre_particion := 'SA_' || reg_summary.CONCEPT_NAME;
+        else
+          v_nombre_particion := reg_summary.CONCEPT_NAME;
+        end if;
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-15,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-14,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-14,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-13,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-13,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-12,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-12,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-11,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-11,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-10,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-10,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-9,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-9,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-8,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-8,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-7,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-7,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-6,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-6,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-5,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-5,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-4,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-4,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-3,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-3,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-2,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+2,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+3,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+3,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+4,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+4,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+5,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+5,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+6,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+6,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+7,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+7,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+8,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+8,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+9,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+9,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+10,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+10,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+11,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+11,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+12,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+12,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+13,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+13,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+14,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+14,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+15,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+15,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+16,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+16,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+17,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+17,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+18,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+18,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+19,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+19,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+20,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+20,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+21,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+21,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+22,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+22,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+23,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+23,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+24,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+24,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+25,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+25,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+26,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+26,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+27,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+27,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+28,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+28,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+29,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+29,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+30,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+30,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+31,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+31,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+32,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+32,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+33,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+33,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+34,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+34,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+35,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+35,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+36,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+36,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+37,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+37,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+38,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+38,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+39,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+39,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+40,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+40,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+41,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+41,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+42,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+42,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+43,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+43,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+44,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+44,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+45,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+45,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+46,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+46,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+47,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+47,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+48,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+48,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+49,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+49,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+50,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+50,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+51,'YYYYMMDD') || ''',''YYYYMMDD''))');   
+        
         --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(sysdate-2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(sysdate-1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(sysdate,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(sysdate+1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+2,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(sysdate+2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+3,'YYYYMMDD') || ''',''YYYYMMDD''))');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || ''',''YYYYMMDD'')),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
-        DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')+3,'YYYYMMDD') || ''',''YYYYMMDD''))');   
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')-1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD'),'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+1,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
+        --DBMS_OUTPUT.put_line('PARTITION PA_' || reg_summary.CONCEPT_NAME ||'_' || TO_CHAR(to_date('20150113','YYYYMMDD')+2,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(to_date('20150113','YYYYMMDD')+3,'YYYYMMDD') || ''',''YYYYMMDD''))');   
         DBMS_OUTPUT.put_line(')');
       end if;
       DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
@@ -281,7 +353,7 @@ BEGIN
         if (lista_pk.COUNT = 0 and lista_par .COUNT>0) then
           /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
           /* Creamos un indice local por el campo de particionado */
-          DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary.CONCEPT_NAME || '_L ON SA_' || reg_summary.CONCEPT_NAME || ' (');
+          DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary.CONCEPT_NAME || '_L ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' (');
           FOR indy IN lista_par.FIRST .. lista_par.LAST
           LOOP
               IF indy = lista_par.LAST THEN
@@ -534,7 +606,43 @@ BEGIN
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+12,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+13,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+13,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+14,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+14,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+15,'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+15,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+16,'YYYYMMDD') || ')');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+15,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+16,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+16,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+17,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+17,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+18,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+18,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+19,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+19,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+20,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+20,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+21,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+21,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+22,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+22,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+23,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+23,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+24,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+24,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+25,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+25,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+26,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+26,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+27,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+27,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+28,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+28,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+29,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+29,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+30,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+30,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+31,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+31,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+32,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+32,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+33,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+33,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+34,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+34,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+35,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+35,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+36,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+36,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+37,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+37,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+38,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+38,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+39,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+39,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+40,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+40,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+41,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+41,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+42,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+42,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+43,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+43,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+44,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+44,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+45,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+45,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+46,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+46,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+47,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+47,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+48,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+48,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+49,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+49,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+50,'YYYYMMDD') || '),');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+50,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+51,'YYYYMMDD') || ')');   
+        
         DBMS_OUTPUT.put_line(')');
       end if;
       DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
