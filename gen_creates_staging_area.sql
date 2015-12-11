@@ -350,7 +350,7 @@ BEGIN
           DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary.CONCEPT_NAME || '_P;');
         END IF;
       ELSE
-        if (lista_pk.COUNT = 0 and lista_par .COUNT>0) then
+        if (lista_pk.COUNT = 0 and lista_par.COUNT>0) then
           /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
           /* Creamos un indice local por el campo de particionado */
           DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary.CONCEPT_NAME || '_L ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' (');
@@ -715,7 +715,7 @@ BEGIN
           DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary_history.CONCEPT_NAME || '_HP;');
         END IF;
       ELSE
-        if (lista_pk.COUNT = 0 and lista_par .COUNT>0) then
+        if (lista_pk.COUNT = 0 and lista_par.COUNT>0) then
           /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
           /* Creamos un indice local por el campo de particionado */
           DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary_history.CONCEPT_NAME || '_HL ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME || ' (');
@@ -949,7 +949,7 @@ BEGIN
               DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary_history.CONCEPT_NAME || 'DHP;');
             END IF;
           ELSE
-            if (lista_pk.COUNT = 0 and lista_par .COUNT>0) then
+            if (lista_pk.COUNT = 0 and lista_par.COUNT>0) then
               /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
               /* Creamos un indice local por el campo de particionado */
               DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary_history.CONCEPT_NAME || 'DHL ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME || ' (');
