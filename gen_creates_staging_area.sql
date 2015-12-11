@@ -881,7 +881,7 @@ BEGIN
           end if;
           DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
           /* COMIENZO LA GESTION DE LA CREACION DE INDICES LOCALES O GLOBALES */
-          IF (lista_pk.COUNT > 0 and lista_par .COUNT > 0) THEN 
+          IF (lista_pk.COUNT > 0 and lista_par.COUNT > 0) THEN 
             /* Tenemos una tabla particionada y con PK */
             /* Buscamos si elcampo de particionado forma parte de la PK, ya que si asi es podemos crear un indice PK local*/
             no_encontrado := 'N'; /* por defecto supongo que todos los campos de particionado forman parte del indice, de ahi no_encontrado = N */
