@@ -161,14 +161,18 @@ BEGIN
       --UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_NUMBER(TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1,''YYYYMMDD''));');
       if (reg_summary.DELAYED = 'S') then
         UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_CHAR(TO_DATE(fch_datos_in,''YYYYMMDD'')+1, ''YYYYMMDD'');'); 
-        UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_''' || ' || fch_datos_in, ''SA_'' || ''' || reg_summary.CONCEPT_NAME || ''');');
+        /* (20151215) Angel Ruiz. BUG: El nombre de las particiones no coincide con el nombre generado en los creates */
+        --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''PA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_''' || ' || fch_datos_in, ''SA_'' || ''' || reg_summary.CONCEPT_NAME || ''');');
+        UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (''' || v_nombre_particion || ''' || ''_''' || ' || fch_datos_in, ''SA_'' || ''' || reg_summary.CONCEPT_NAME || ''');');
         --UTL_FILE.put_line(fich_salida_pkg,'  if (exis_tabla = 1) then' );      
         UTL_FILE.put_line(fich_salida_pkg,'  if (exis_partition = 1) then' );
-        --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in;');
+        /* (20151215) Angel Ruiz. BUG: El nombre de las particiones no coincide con el nombre generado en los creates */
         UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' TRUNCATE PARTITION PA_' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in;');
+        --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in;');
         UTL_FILE.put_line(fich_salida_pkg,'  else' );
-        --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
+        /* (20151215) Angel Ruiz. BUG: El nombre de las particiones no coincide con el nombre generado en los creates */
         UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' ADD PARTITION PA_' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN (TO_DATE('''''' || fch_particion || '''''', ''''YYYYMMDD'''')) TABLESPACE DWTBSP_D_MVNO_SA'';');
+        --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN (TO_DATE('''''' || fch_particion || '''''', ''''YYYYMMDD'''')) TABLESPACE DWTBSP_D_MVNO_SA'';');
         UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
       else
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
