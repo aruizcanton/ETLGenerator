@@ -197,7 +197,7 @@ BEGIN
         DBMS_OUTPUT.put_line('PARTITION BY RANGE (' || lista_campos_particion || ')');   
         DBMS_OUTPUT.put_line('(');
         if (length(reg_summary.CONCEPT_NAME) <= 18) then
-          v_nombre_particion := 'SA_' || reg_summary.CONCEPT_NAME;
+          v_nombre_particion := 'PA_' || reg_summary.CONCEPT_NAME;
         else
           v_nombre_particion := reg_summary.CONCEPT_NAME;
         end if;
