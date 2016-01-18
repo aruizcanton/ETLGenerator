@@ -17,7 +17,7 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
     --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1')
-    and TABLE_NAME in ('DMD_CADENA')
+    and TABLE_NAME in ('DMD_SERIADO')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -174,7 +174,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   
   tipo_col                                     varchar2(50);
   primera_col                               PLS_INTEGER;
-  columna                                    VARCHAR2(500);
+  columna                                    VARCHAR2(1000);
   prototipo_fun                             VARCHAR2(500);
   fich_salida_load                        UTL_FILE.file_type;
   fich_salida_pkg                         UTL_FILE.file_type;
@@ -252,7 +252,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   is
     lon_cadena integer;
     cabeza                varchar2 (1000);
-    sustituto              varchar2(100);
+    sustituto              varchar2(1000);
     cola                      varchar2(1000);    
     pos                   PLS_integer;
     pos_ant           PLS_integer;
@@ -538,7 +538,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
 
 
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (500);
+    valor_retorno VARCHAR (1000);
     posicion          PLS_INTEGER;
     cad_pri           VARCHAR(500);
     cad_seg         VARCHAR(500);
@@ -552,7 +552,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_nombre_func_lookup             VARCHAR2(40);
     v_nombre_paquete                    VARCHAR2(40);
     v_nombre_tabla_reducido         VARCHAR2(40);
-    v_IE_COLUMN_LKUP              VARCHAR(400);
+    v_IE_COLUMN_LKUP              VARCHAR(800);
+    v_LKUP_COM_RULE               VARCHAR2(1000);
     v_prototipo_func                        VARCHAR2(500);
     
   begin
@@ -567,6 +568,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
 
         /*Puede ocurrir que en el campo VALUE de la llamada a LOOKUP se use la variable VAR_FCH_CARGA */
         v_IE_COLUMN_LKUP := procesa_campo_filter (reg_detalle_in.IE_COLUMN_LKUP);
+        /* (20160115) ANGEL RUIZ. Puede ocurrir que en el campo LKUP_COM_RULE se use la variable VAR_FCH_CARGA */
+        v_LKUP_COM_RULE := procesa_campo_filter (reg_detalle_in.LKUP_COM_RULE);
         
         /****************************/
         v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
@@ -585,7 +588,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         
         /* Procesamos el campo LKUP_COM_RUL que es donde esta la condicion CASE WHEN*/
         v_prototipo_func := 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
-        valor_retorno := proc_campo_value_condicion (reg_detalle_in.LKUP_COM_RULE, v_prototipo_func);
+        /* (20160115) ANGEL RUIZ. Puede ocurrir que en el campo LKUP_COM_RULE se use la variable VAR_FCH_CARGA */
+        --valor_retorno := proc_campo_value_condicion (reg_detalle_in.LKUP_COM_RULE, v_prototipo_func);
+        valor_retorno := proc_campo_value_condicion (v_LKUP_COM_RULE, v_prototipo_func);
         
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
