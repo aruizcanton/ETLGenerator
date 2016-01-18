@@ -142,6 +142,10 @@ SELECT
   v_hay_look_up                           VARCHAR2(1):='N';
   v_nombre_seqg                          VARCHAR(120):='N';
   v_bandera                                   VARCHAR2(1):='S';
+  v_nombre_tabla_agr                VARCHAR2(30):='No Existe';
+  v_nombre_tabla_agr_redu           VARCHAR2(30):='No Existe';
+  v_nombre_proceso_agr              VARCHAR2(30);
+  nombre_tabla_T_agr                VARCHAR2(30);
   
   function split_string_coma ( cadena_in in varchar2) return list_strings
   is
@@ -920,7 +924,7 @@ SELECT
       when 'VAR_FCH_INICIO' then
         --valor_retorno :=  '    ' || ''' || var_fch_inicio || ''';
         --valor_retorno :=  '    SYSDATE';
-        valor_retorno :=  '    '' || fch_registro_in || '''; /*(20151221) Angel Ruiz BUG. Debe insertarse la fecha de inicio del proceso de insercion */
+        valor_retorno :=  '    TO_DATE('''''' || fch_registro_in || '''''', ''''YYYYMMDDHH24MISS'''')'; /*(20151221) Angel Ruiz BUG. Debe insertarse la fecha de inicio del proceso de insercion */
       when 'VAR' then
         /* Se toma el valor de una variable de entorno */
         if reg_detalle_in.VALUE =  'VAR_FCH_CARGA' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
@@ -1604,7 +1608,7 @@ begin
       then
         /* Tenemos el escenario Nuevo */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1616,7 +1620,7 @@ begin
       then
         /* Tenemos el escenario OPE */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1628,7 +1632,7 @@ begin
       then
         /* Tenemos el escenario ALT */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1641,7 +1645,7 @@ begin
       then
         /* Tenemos el escenario ICC */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1654,7 +1658,7 @@ begin
       then
         /* Tenemos el escenario NUM */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1683,7 +1687,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_tabla (table_name_in IN VARCHAR2) return number');
     UTL_FILE.put_line(fich_salida_pkg,'  IS');
     UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-    UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || ''''''; END;'';');
+    UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || '''''' and owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
     UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
     UTL_FILE.put_line(fich_salida_pkg,'  exception');
     UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
@@ -1693,7 +1697,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_particion (partition_name_in IN VARCHAR2, table_name_in IN VARCHAR2) return number');
     UTL_FILE.put_line(fich_salida_pkg,'  IS');
     UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-    UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || ''''''; END;'';');
+    UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || '''''' and table_owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
     UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
     UTL_FILE.put_line(fich_salida_pkg,'  exception');
     UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
@@ -1701,7 +1705,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'  END existe_particion;');
     /* (20150825) Angel Ruiz. N.F.: Particionado Contorlado con un parametro en la tabla MTDT_MODELO_LOGICO */
     if (reg_tabla.PARTICIONADO = 'M24') then
-      UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2)'); 
+      UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2)'); 
       UTL_FILE.put_line(fich_salida_pkg,'  is'); 
       UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
       UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
@@ -1743,11 +1747,35 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;');      
       /* (20150825) Angel Ruiz. FIN N.F.: */
     else
-      UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2)'); 
+    
+      /* Miramos si existe escenario de desagregacion para la tabla de hechos */
+      /* que estamos cargando. Para de este modo hay que llevar a cabo la desagregacion*/
+      v_nombre_tabla_agr := 'No Existe';
+      for v_EXISTE_DESAGREGACION in (
+        select TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME"
+        FROM
+          MTDT_TC_SCENARIO
+        WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'A' and
+        instr(trim(MTDT_TC_SCENARIO.TABLE_BASE_NAME), 'T_' || nombre_tabla_reducido) >0)
+      loop
+        v_nombre_tabla_agr := v_EXISTE_DESAGREGACION.TABLE_NAME;
+      end loop;
+      if (v_nombre_tabla_agr = 'No Existe') then
+        /* Si no existe escenario de desagregacion usamos un prototipo diferente de la funcion que si existe */
+        UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2)');
+      else
+        UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2) return number');      
+      end if;
       UTL_FILE.put_line(fich_salida_pkg,'  is'); 
-      UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
-      UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
-      UTL_FILE.put_line(fich_salida_pkg,'   fch_particion number(8);');
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla number(1);');
+      UTL_FILE.put_line(fich_salida_pkg,'    exis_partition number(1);');
+      UTL_FILE.put_line(fich_salida_pkg,'    fch_particion number(8);');
+      if (v_nombre_tabla_agr <> 'No Existe') then
+        /* Existe escenario de desagregacion */
+        /* Hay que definir las variables donde se almacenan los registros de desagregacion */
+        UTL_FILE.put_line(fich_salida_pkg, '    numero_reg_dsg NUMBER:=0;');
+        UTL_FILE.put_line(fich_salida_pkg, '    numero_reg_del NUMBER:=0;');
+      end if;
       UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
       /*(20151112) Angel Ruiz BUG*/
       --UTL_FILE.put_line(fich_salida_pkg,'    exis_tabla :=  existe_tabla (' || '''T_' || nombre_tabla_reducido || '_' || ''' || fch_datos_in);');
@@ -1768,9 +1796,90 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'    /* Creo la particion */'); 
       --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') UPDATE INDEXES'';');
       --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
-      UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
-      UTL_FILE.put_line(fich_salida_pkg,'   end if;'); 
-      UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
+      UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
+      UTL_FILE.put_line(fich_salida_pkg,'    else'); 
+      UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then' );
+      --UTL_FILE.put_line(fich_salida_pkg,'        EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in;');
+      /* (20160108) Angel Ruiz NF: AGREGACION */
+      /* ------------------------------------ */
+      UTL_FILE.put_line(fich_salida_pkg,'        /* Estamos ejecutando la transformacion en modo forzado */');      
+      UTL_FILE.put_line(fich_salida_pkg,'        FOR fecha_datos_cargada IN (');
+      UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO.FCH_DATOS FCH_DATOS, AGREGADO.FCH_REGISTRO FCH_REGISTRO'); 
+      UTL_FILE.put_line(fich_salida_pkg,'          FROM');
+      UTL_FILE.put_line(fich_salida_pkg,'          (');
+      UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(MTDT_MONITOREO.FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO , ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
+      UTL_FILE.put_line(fich_salida_pkg,'            FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO, ' );
+      UTL_FILE.put_line(fich_salida_pkg,'              ' || OWNER_MTDT || '.MTDT_PASO, ' || OWNER_MTDT || '.MTDT_RESULTADO' );
+      UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_he_' || reg_tabla.TABLE_NAME || '.sh'' AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PASO = 1 AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.CVE_PROCESO = MTDT_PASO.CVE_PROCESO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PASO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PROCESO = MTDT_MONITOREO.CVE_PROCESO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_RESULTADO = MTDT_MONITOREO.CVE_RESULTADO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
+      UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO');
+      UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO.RN = 1)');
+      UTL_FILE.put_line(fich_salida_pkg,'        LOOP' );
+      if (v_nombre_tabla_agr <> 'No Existe') then
+        /* La tabla de hechos de la que estamos generando la transformacion posee desagregacion */
+        /* Por lo que al ser ejecutada en modo Forzado, debemos generar el codigo para desagregar */
+        v_nombre_tabla_agr_redu := substr(v_nombre_tabla_agr, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
+        /* (20151112) Angel Ruiz. BUG. Si el nombre de la tabla es superior a los 19 caracteres*/
+        /* El nombre de la tabla que se crea T_*_YYYYMMDD supera los 30 caracteres y da error*/
+        if (length(v_nombre_tabla_agr_redu) > 19) then
+          nombre_tabla_T_agr := substr(v_nombre_tabla_agr_redu,1, length(v_nombre_tabla_agr_redu) - (length(v_nombre_tabla_agr_redu) - 19));
+        else
+          nombre_tabla_T_agr := v_nombre_tabla_agr_redu;
+        end if;
+        if (length(v_nombre_tabla_agr) < 25) then
+          v_nombre_proceso_agr := v_nombre_tabla_agr;
+        else
+          v_nombre_proceso_agr := v_nombre_tabla_agr_redu;
+        end if;
+        UTL_FILE.put_line(fich_salida_pkg,'          /* Hago la desagregacion */');
+        UTL_FILE.put_line(fich_salida_pkg,'');
+        UTL_FILE.put_line(fich_salida_pkg,'          /* Creo la tabla temporal sobre la voy a copiar los reg. a desagregar */');
+        UTL_FILE.put_line(fich_salida_pkg,'          exis_tabla :=  existe_tabla (' || '''T_DSG_' || nombre_tabla_T_agr || ''' );');
+        UTL_FILE.put_line(fich_salida_pkg,'          if (exis_tabla = 0) then' );      
+        UTL_FILE.put_line(fich_salida_pkg,'            /* Creo la tabla */'); 
+        UTL_FILE.put_line(fich_salida_pkg,'            EXECUTE IMMEDIATE '''); 
+        UTL_FILE.put_line(fich_salida_pkg,'            CREATE TABLE  ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T_agr || ' TABLESPACE ' || reg_tabla.TABLESPACE);
+        UTL_FILE.put_line(fich_salida_pkg,'            AS SELECT * FROM ' ||  OWNER_DM || '.' || reg_tabla.TABLE_NAME);
+        UTL_FILE.put_line(fich_salida_pkg,'            WHERE CVE_DIA =  '' || fecha_datos_cargada.FCH_DATOS || '' AND FCH_REGISTRO =  TO_DATE('''''' || fecha_datos_cargada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');  
+        UTL_FILE.put_line(fich_salida_pkg,'          else'); 
+        UTL_FILE.put_line(fich_salida_pkg,'            /* Borro la tabla */'); 
+        UTL_FILE.put_line(fich_salida_pkg,'            EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T_agr || ''';');
+        UTL_FILE.put_line(fich_salida_pkg,'            EXECUTE IMMEDIATE '''); 
+        UTL_FILE.put_line(fich_salida_pkg,'            CREATE TABLE  ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T_agr || ' TABLESPACE ' || reg_tabla.TABLESPACE);
+        UTL_FILE.put_line(fich_salida_pkg,'            AS SELECT * FROM ' ||  OWNER_DM || '.' || reg_tabla.TABLE_NAME);
+        UTL_FILE.put_line(fich_salida_pkg,'            WHERE CVE_DIA =  '' || fecha_datos_cargada.FCH_DATOS || '' AND FCH_REGISTRO =  TO_DATE('''''' || fecha_datos_cargada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');  
+        UTL_FILE.put_line(fich_salida_pkg,'          end if;'); 
+      
+        UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_dsg := ' || OWNER_DM || '.pkg_' || v_nombre_proceso_agr || '.' || 'dsg_' || v_nombre_proceso_agr || ' (fch_carga_in, fecha_datos_cargada.FCH_DATOS, fecha_datos_cargada.FCH_REGISTRO);');        
+
+        UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ds_' || v_nombre_tabla_agr || '.sh'',' || '1, 0, to_date(fecha_datos_cargada.FCH_REGISTRO, ''yyyymmddhh24miss''), systimestamp, to_date(fecha_datos_cargada.FCH_DATOS, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, numero_reg_dsg);');
+        UTL_FILE.put_line(fich_salida_pkg,'          /* Borro la tabla temporal para desagregacion */');
+        UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T_agr || ''';');
+      end if;
+      UTL_FILE.put_line(fich_salida_pkg,'');      
+      UTL_FILE.put_line(fich_salida_pkg,'          /* Borramos los registros una vez desagregados */');
+      UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DELETE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' WHERE CVE_DIA = '' || fecha_datos_cargada.FCH_DATOS || '' AND FCH_REGISTRO = TO_DATE('''''' || fecha_datos_cargada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');
+      UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_del := sql%rowcount;');
+      UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros borrados es: '' || numero_reg_del);'); 
+      UTL_FILE.put_line(fich_salida_pkg,'        END LOOP;' );
+      /* (20160108) Angel Ruiz FIN NF: AGREGACION */
+      /* ------------------------------------ */
+      UTL_FILE.put_line(fich_salida_pkg,'      end if;');
+      UTL_FILE.put_line(fich_salida_pkg,'    end if;');
+      if (v_nombre_tabla_agr <> 'No Existe') then
+        UTL_FILE.put_line(fich_salida_pkg,'    return numero_reg_del;');
+      end if;
+      UTL_FILE.put_line(fich_salida_pkg,'  exception');
       UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
       UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
       UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
@@ -1796,8 +1905,14 @@ begin
 
     /* (20150825) Angel Ruiz. N.F.: Se trata de una nueva regla SEQG */
     /* Este tipo de Regla solo puede existir una para cada tabla por su propia definicion */
+    for var_seq_generales in (
+      select value from MTDT_TC_DETAIL
+      where rul = 'SEQG' and TRIM(TABLE_NAME) = reg_tabla.TABLE_NAME)
     --select VALUE into v_nombre_seqg from MTDT_TC_DETAIL
     --where RUL = 'SEQG' and TRIM(TABLE_NAME) = reg_tabla.TABLE_NAME;
+    loop
+      v_nombre_seqg := var_seq_generales.value;
+    end loop;
     /* (20150825) Angel Ruiz. FIN N.F.*/
     
     dbms_output.put_line ('Antes de generar las funciones de FUNCTION');
@@ -1823,7 +1938,7 @@ begin
       then
         /* SCENARIO NUEVO */
           dbms_output.put_line ('Estoy dentro del scenario NUEVO');
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -1971,7 +2086,7 @@ begin
       then
         /* SCENARIO OPE */
           dbms_output.put_line ('Dentro de OPE');
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -2107,7 +2222,7 @@ begin
       if (reg_scenario.SCENARIO = 'ALT')  /* Proceso el escenario ALT */
       then
         /* SCENARIO ALT */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -2239,7 +2354,7 @@ begin
       if (reg_scenario.SCENARIO = 'ICC')  /* Proceso el escenario ICC */
       then
         /* SCENARIO ICC */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -2369,7 +2484,7 @@ begin
       if (reg_scenario.SCENARIO = 'NUM')  /* Proceso el escenario NUM */
       then
         /* SCENARIO NUM */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN TIMESTAMP) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -2528,6 +2643,12 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_icc NUMBER;');
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_num NUMBER;');    
     UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_tot NUMBER;');
+    if (v_nombre_tabla_agr <> 'No Existe') then
+      /* Ocurre que como existe un escenario de desagregacion en el pre-proceso hemos desagregado */
+      /* y necesitamos una variable para almacenar los registros borrados */
+      UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_del NUMBER;');
+      UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_agr NUMBER;');
+    end if;
     /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
     if (reg_tabla.PARTICIONADO <> 'M24' or reg_tabla.PARTICIONADO is null) then
       UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_salvaguardados NUMBER:=0;');
@@ -2558,8 +2679,13 @@ begin
     --UTL_FILE.put_line(fich_salida_pkg, '        dbms_output.put_line (''Inicio de la pasada del bucle del proceso de carga: ''' || ' || ''' || 'load_he_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
     --UTL_FILE.put_line(fich_salida_pkg, '        pkg_' || reg_tabla.TABLE_NAME || '.' || 'pre_proceso (fch_carga_in, to_char(reg_monitoreo.FCH_DATOS,''yyyymmdd''));');
-    UTL_FILE.put_line(fich_salida_pkg, '        pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in);');
-    --UTL_FILE.put_line(fich_salida_pkg, '        SET TRANSACTION NAME ''TRAN_' || reg_tabla.TABLE_NAME || ''';');
+    if (v_nombre_tabla_agr <> 'No Existe') then
+      /* Ocurre que como existe un escenario de desagregacion en el pre-proceso hemos desagregado */
+      /* lo que significa que usamos un prototipo diferente de la funcion pre-proceso */
+      UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_del := pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in, forzado_in);');
+    else
+      UTL_FILE.put_line(fich_salida_pkg, '        pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in, forzado_in);');
+    end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
     /* Generamos las llamadas a los procedimientos para realizar las cargas */
     /* Generamos la llamada para cargar los registros NUEVOS */
@@ -2567,9 +2693,9 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'N'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_new := ' || 'pkg_' || nombre_proceso || '.' || 'new_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, inicio_paso_tmr);');
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_new;');
-        UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_new || ''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_new := ' || 'pkg_' || nombre_proceso || '.' || 'new_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_new;');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_new || ''.'');');
       end if;
     END LOOP;
     /* Generamos la llamada para cargar los registros OPE */
@@ -2577,9 +2703,9 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'OPE'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_ope := ' || 'pkg_' || nombre_proceso || '.' || 'ope_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, inicio_paso_tmr);');
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_ope;');
-        UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_ope || ''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_ope := ' || 'pkg_' || nombre_proceso || '.' || 'ope_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_ope;');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_ope || ''.'');');
       end if;
     END LOOP;
     /* Generamos la llamada para cargar los registros ALT */
@@ -2587,9 +2713,9 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'ALT'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_alt := ' || 'pkg_' || nombre_proceso || '.' || 'alt_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, inicio_paso_tmr);');
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_alt;');
-        UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_alt || ''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_alt := ' || 'pkg_' || nombre_proceso || '.' || 'alt_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_alt;');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_alt || ''.'');');
       end if;
     END LOOP;
     /* Generamos la llamada para cargar los registros ALT */
@@ -2597,9 +2723,9 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'ICC'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_icc := ' || 'pkg_' || nombre_proceso || '.' || 'icc_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, inicio_paso_tmr);');
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_icc;');
-        UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros icc es: '' || numero_reg_icc || ''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_icc := ' || 'pkg_' || nombre_proceso || '.' || 'icc_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_icc;');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros icc es: '' || numero_reg_icc || ''.'');');
       end if;
     END LOOP;
     /* Generamos la llamada para cargar los registros NUM */
@@ -2607,9 +2733,9 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'NUM'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_num := ' || 'pkg_' || nombre_proceso || '.' || 'num_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, inicio_paso_tmr);');
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_num;');
-        UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros num es: '' || numero_reg_num || ''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_num := ' || 'pkg_' || nombre_proceso || '.' || 'num_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
+        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_num;');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros num es: '' || numero_reg_num || ''.'');');
       end if;
     END LOOP;
     UTL_FILE.put_line(fich_salida_pkg, '');
@@ -2619,24 +2745,41 @@ begin
     DBMS_OUTPUT.PUT_LINE('--ANTES DE HOLA HOLA HOLA');
     DBMS_OUTPUT.PUT_LINE('El valor de PARTICIONADO ES: #' || reg_tabla.PARTICIONADO || '#');
     if (reg_tabla.PARTICIONADO is null or reg_tabla.PARTICIONADO <> 'M24') then
-      DBMS_OUTPUT.PUT_LINE('HOLA HOLA HOLA');
-      UTL_FILE.put_line(fich_salida_pkg, '         numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
+      UTL_FILE.put_line(fich_salida_pkg, '        /* Salvaguardamos la informacion que ya estaba grabada en la particion */');
+      UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
     end if;
-    DBMS_OUTPUT.PUT_LINE('--DESPUÉS DE HOLA HOLA HOLA');
-    
-    UTL_FILE.put_line(fich_salida_pkg, '         /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
-    UTL_FILE.put_line(fich_salida_pkg, '         /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
+    UTL_FILE.put_line(fich_salida_pkg, '');
+    if (v_nombre_tabla_agr <> 'No Existe') then
+      /* Como existe un escenario de agregacion, hay que generar codigo para que se agrege */
+      /* la inforamcion que se acaba de insertar */
+      UTL_FILE.put_line(fich_salida_pkg,'        if (forzado_in = ''F'') then');
+      UTL_FILE.put_line(fich_salida_pkg,'          /* Agregamos la informacion que acabamos de insertar en caso de que la ejecucion fuera forzada */');
+      UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_agr := ' || OWNER_DM || '.pkg_' || v_nombre_proceso_agr || '.' || 'agr_' || v_nombre_proceso_agr || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
+      UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros agr es: '' || numero_reg_agr || ''.'');');
+      UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || v_nombre_tabla_agr || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_agr);');
+      UTL_FILE.put_line(fich_salida_pkg,'        end if;');
+    end if;
+    UTL_FILE.put_line(fich_salida_pkg, '');
+    UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
+    UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
     /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
     if (reg_tabla.PARTICIONADO = 'M24') then
-      UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, 0);');
+      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, 0);');
     else
-      UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
+      if (v_nombre_tabla_agr <> 'No Existe') then
+        /* Hay un escenario de desagregacion. Hemos borrado registros despues de desagregar y los reflejamos en el monitoreo */
+        UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, numero_reg_del, numero_reg_salvaguardados);');
+      else
+        UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
+      end if;
     end if;
     /* (20150918) Angel Ruiz. Fin NF */
-    UTL_FILE.put_line(fich_salida_pkg, '         COMMIT;');
-    UTL_FILE.put_line(fich_salida_pkg, '       end if;');
-    --UTL_FILE.put_line(fich_salida_pkg, '     end loop;');
-    --UTL_FILE.put_line(fich_salida_pkg,'    RETURN 0;');
+    UTL_FILE.put_line(fich_salida_pkg,'        COMMIT;');
+    UTL_FILE.put_line(fich_salida_pkg,'      end if;');
+    UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then');
+    UTL_FILE.put_line(fich_salida_pkg,'        /* Cuando se trata de una ejecucion Forzada hacemos la llamada al Exchange */');
+    UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_DM || '.pkg_' || nombre_proceso || '.' || 'lex_' || nombre_proceso || '(fch_carga_in, fch_datos_in, ''F'');');    
+    UTL_FILE.put_line(fich_salida_pkg,'      end if;');
     
     UTL_FILE.put_line(fich_salida_pkg,'    exception');
     --UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
