@@ -444,7 +444,7 @@ BEGIN
           END LOOP;
           CLOSE dtd_interfaz_detail;
           /* (20151123) Anyadimos la columna BAN_DESCARTE  en las tablas SAD_*/
-          DBMS_OUTPUT.put_line(', BAN_DESCARTE' ||  '          '  || 'VARCHAR2(1)');
+          DBMS_OUTPUT.put_line(', BAN_DESCARTE' ||  '          '  || 'VARCHAR2(10)');
           IF (lista_pk.COUNT > 0 and lista_par .COUNT = 0) THEN
             /* tenemos una tabla normal no particionada */
             DBMS_OUTPUT.put_line(',' || 'CONSTRAINT "' || reg_summary.CONCEPT_NAME || 'HF"' || ' PRIMARY KEY (');
@@ -812,7 +812,7 @@ BEGIN
           END LOOP;
           CLOSE dtd_interfaz_detail;
           /*(20151123) Angel Ruiz. creo el campo BAN_DESCARTE en las tablas SADH_*/
-          DBMS_OUTPUT.put_line(', BAN_DESCARTE' ||  '          '  || 'VARCHAR2(1)');
+          DBMS_OUTPUT.put_line(', BAN_DESCARTE' ||  '          '  || 'VARCHAR2(10)');
           /* Ahora miramos si he de crear un campo de particionado para la tabla historica */
           /* o por el contrario la tabla de STAGING ya tenia un campo de particionado */
           if (lista_par.count = 0) then
