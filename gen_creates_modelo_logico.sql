@@ -800,7 +800,7 @@ BEGIN
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
                     longitud_des_numerico := to_number(longitud_des);
-                    if (longitud_des_numerico > 8) then
+                    if (longitud_des_numerico > 7) then
                       cadena_values := '''GENERICO''';
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := '''GE#''';
@@ -870,7 +870,7 @@ BEGIN
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
                     longitud_des_numerico := to_number(longitud_des);
-                    if (longitud_des_numerico > 8) then
+                    if (longitud_des_numerico > 7) then
                       cadena_values := cadena_values || ', ''GENERICO''';
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := cadena_values || ', ''GE#''';
@@ -956,7 +956,7 @@ BEGIN
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
                     longitud_des_numerico := to_number(longitud_des);
-                    if (longitud_des_numerico > 8) then
+                    if (longitud_des_numerico > 11) then
                       cadena_values := '''NO INFORMADO''';
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := '''NI#''';
@@ -1026,7 +1026,7 @@ BEGIN
                     pos_cierra_paren := instr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE,')');
                     longitud_des := substr(r_mtdt_modelo_logico_COLUMNA.DATA_TYPE, pos_abre_paren+1, (pos_cierra_paren - pos_abre_paren)-1);
                     longitud_des_numerico := to_number(longitud_des);
-                    if (longitud_des_numerico > 8) then
+                    if (longitud_des_numerico > 11) then
                       cadena_values := cadena_values || ', ''NO INFORMADO''';
                     elsif (longitud_des_numerico > 2) then
                       cadena_values := cadena_values || ', ''NI#''';
