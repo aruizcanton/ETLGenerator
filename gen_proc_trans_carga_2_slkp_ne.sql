@@ -2647,7 +2647,7 @@ begin
       /* Ocurre que como existe un escenario de desagregacion en el pre-proceso hemos desagregado */
       /* y necesitamos una variable para almacenar los registros borrados */
       UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_del NUMBER;');
-      UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_agr NUMBER;');
+      --UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_agr NUMBER;');
     end if;
     /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
     if (reg_tabla.PARTICIONADO <> 'M24' or reg_tabla.PARTICIONADO is null) then
@@ -2749,16 +2749,16 @@ begin
       UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
     end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
-    if (v_nombre_tabla_agr <> 'No Existe') then
+    --if (v_nombre_tabla_agr <> 'No Existe') then
       /* Como existe un escenario de agregacion, hay que generar codigo para que se agrege */
       /* la inforamcion que se acaba de insertar */
-      UTL_FILE.put_line(fich_salida_pkg,'        if (forzado_in = ''F'') then');
-      UTL_FILE.put_line(fich_salida_pkg,'          /* Agregamos la informacion que acabamos de insertar en caso de que la ejecucion fuera forzada */');
-      UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_agr := ' || OWNER_DM || '.pkg_' || v_nombre_proceso_agr || '.' || 'agr_' || v_nombre_proceso_agr || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
-      UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros agr es: '' || numero_reg_agr || ''.'');');
-      UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || v_nombre_tabla_agr || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_agr);');
-      UTL_FILE.put_line(fich_salida_pkg,'        end if;');
-    end if;
+      --UTL_FILE.put_line(fich_salida_pkg,'        if (forzado_in = ''F'') then');
+      --UTL_FILE.put_line(fich_salida_pkg,'          /* Agregamos la informacion que acabamos de insertar en caso de que la ejecucion fuera forzada */');
+      --UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_agr := ' || OWNER_DM || '.pkg_' || v_nombre_proceso_agr || '.' || 'agr_' || v_nombre_proceso_agr || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
+      --UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros agr es: '' || numero_reg_agr || ''.'');');
+      --UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || v_nombre_tabla_agr || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_agr);');
+      --UTL_FILE.put_line(fich_salida_pkg,'        end if;');
+    --end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
@@ -2776,10 +2776,10 @@ begin
     /* (20150918) Angel Ruiz. Fin NF */
     UTL_FILE.put_line(fich_salida_pkg,'        COMMIT;');
     UTL_FILE.put_line(fich_salida_pkg,'      end if;');
-    UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then');
-    UTL_FILE.put_line(fich_salida_pkg,'        /* Cuando se trata de una ejecucion Forzada hacemos la llamada al Exchange */');
-    UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_DM || '.pkg_' || nombre_proceso || '.' || 'lex_' || nombre_proceso || '(fch_carga_in, fch_datos_in, ''F'');');    
-    UTL_FILE.put_line(fich_salida_pkg,'      end if;');
+    --UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then');
+    --UTL_FILE.put_line(fich_salida_pkg,'        /* Cuando se trata de una ejecucion Forzada hacemos la llamada al Exchange */');
+    --UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_DM || '.pkg_' || nombre_proceso || '.' || 'lex_' || nombre_proceso || '(fch_carga_in, fch_datos_in, ''F'');');    
+    --UTL_FILE.put_line(fich_salida_pkg,'      end if;');
     
     UTL_FILE.put_line(fich_salida_pkg,'    exception');
     --UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
