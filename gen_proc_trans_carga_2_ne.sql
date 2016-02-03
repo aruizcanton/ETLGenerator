@@ -664,7 +664,9 @@ cursor MTDT_TABLA
         valor_retorno :=  '    ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.VALUE;      
       when 'VAR_FCH_INICIO' then
         --valor_retorno :=  '    ' || ''' || var_fch_inicio || ''';
-        valor_retorno :=  '    SYSDATE';
+        --valor_retorno :=  '    SYSDATE';
+        /*(20160203) Angel Ruiz BUG. Debe insertarse la fecha de inicio del proceso de insercion */
+        valor_retorno :=  '    TO_DATE('''''' || fch_registro_in || '''''', ''''YYYYMMDDHH24MISS'''')';
       when 'VAR' then
         /* Se toma el valor de una variable de entorno */
         if reg_detalle_in.VALUE =  'VAR_FCH_CARGA' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
@@ -1115,7 +1117,7 @@ begin
       then
         /* Tenemos el escenario Nuevo */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1127,7 +1129,7 @@ begin
       then
         /* Tenemos el escenario OPE */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1139,7 +1141,7 @@ begin
       then
         /* Tenemos el escenario ALT */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1152,7 +1154,7 @@ begin
       then
         /* Tenemos el escenario ICC */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1165,7 +1167,7 @@ begin
       then
         /* Tenemos el escenario NUM */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || reg_scenario.TABLE_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER;');
+        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || reg_scenario.TABLE_NAME || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
         lista_scenarios_presentes.EXTEND;
@@ -1355,7 +1357,7 @@ begin
       then
         /* SCENARIO NUEVO */
           dbms_output.put_line ('Estoy dentro del scenario NUEVO');
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -1453,7 +1455,7 @@ begin
       then
         /* SCENARIO OPE */
           dbms_output.put_line ('Dentro de OPE');
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -1545,7 +1547,7 @@ begin
       if (reg_scenario.SCENARIO = 'ALT')  /* Proceso el escenario ALT */
       then
         /* SCENARIO ALT */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -1634,7 +1636,7 @@ begin
       if (reg_scenario.SCENARIO = 'ICC')  /* Proceso el escenario ICC */
       then
         /* SCENARIO ICC */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -1721,7 +1723,7 @@ begin
       if (reg_scenario.SCENARIO = 'NUM')  /* Proceso el escenario NUM */
       then
         /* SCENARIO NUM */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2) return NUMBER');
+          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
           UTL_FILE.put_line(fich_salida_pkg, '  IS');
           UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
           UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
@@ -1871,7 +1873,7 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'N'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_new := ' || 'pkg_' || nombre_proceso || '.' || 'new_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_new := ' || 'pkg_' || nombre_proceso || '.' || 'new_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_new;');
         UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_new || ''.'');');
       end if;
@@ -1881,7 +1883,7 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'OPE'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_ope := ' || 'pkg_' || nombre_proceso || '.' || 'ope_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_ope := ' || 'pkg_' || nombre_proceso || '.' || 'ope_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_ope;');
         UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_ope || ''.'');');
       end if;
@@ -1891,7 +1893,7 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'ALT'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_alt := ' || 'pkg_' || nombre_proceso || '.' || 'alt_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_alt := ' || 'pkg_' || nombre_proceso || '.' || 'alt_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_alt;');
         UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_alt || ''.'');');
       end if;
@@ -1901,7 +1903,7 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'ICC'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_icc := ' || 'pkg_' || nombre_proceso || '.' || 'icc_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_icc := ' || 'pkg_' || nombre_proceso || '.' || 'icc_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_icc;');
         UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros icc es: '' || numero_reg_icc || ''.'');');
       end if;
@@ -1911,7 +1913,7 @@ begin
     LOOP
       if lista_scenarios_presentes (indx) = 'NUM'
       then
-        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_num := ' || 'pkg_' || nombre_proceso || '.' || 'num_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_num := ' || 'pkg_' || nombre_proceso || '.' || 'num_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'         numero_reg_tot := numero_reg_tot + numero_reg_num;');
         UTL_FILE.put_line(fich_salida_pkg,'         dbms_output.put_line (''El numero de registros num es: '' || numero_reg_num || ''.'');');
       end if;
@@ -2013,7 +2015,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
     UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
     UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '  END load_ex_' || nombre_proceso || ';');
+    UTL_FILE.put_line(fich_salida_pkg, '  END lex_' || nombre_proceso || ';');
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
     UTL_FILE.put_line(fich_salida_pkg, '/' );
