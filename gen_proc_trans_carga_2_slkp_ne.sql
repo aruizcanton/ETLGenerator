@@ -1802,7 +1802,7 @@ begin
       --UTL_FILE.put_line(fich_salida_pkg,'        EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in;');
       /* (20160108) Angel Ruiz NF: AGREGACION */
       /* ------------------------------------ */
-      UTL_FILE.put_line(fich_salida_pkg,'        /* Estamos ejecutando la transformacion en modo forzado */');      
+      UTL_FILE.put_line(fich_salida_pkg,'        /* Estamos ejecutando la transformacion en modo forzado */');
       UTL_FILE.put_line(fich_salida_pkg,'        FOR fecha_datos_cargada IN (');
       UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO.FCH_DATOS FCH_DATOS, AGREGADO.FCH_REGISTRO FCH_REGISTRO'); 
       UTL_FILE.put_line(fich_salida_pkg,'          FROM');
@@ -1823,7 +1823,31 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
       UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
       UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO');
-      UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO.RN = 1)');
+      UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO.RN = 1');
+      /* (20160222) Angel Ruiz. Hago esta modificacion para excluir aquellas desagregaciones que ya esten hechas */
+      UTL_FILE.put_line(fich_salida_pkg,'          AND NOT EXISTS (');
+      UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO_2.FCH_DATOS FCH_DATOS, AGREGADO_2.FCH_REGISTRO FCH_REGISTRO'); 
+      UTL_FILE.put_line(fich_salida_pkg,'          FROM');
+      UTL_FILE.put_line(fich_salida_pkg,'          (');
+      UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(MTDT_MONITOREO.FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO , ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
+      UTL_FILE.put_line(fich_salida_pkg,'            FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO, ' );
+      UTL_FILE.put_line(fich_salida_pkg,'              ' || OWNER_MTDT || '.MTDT_PASO, ' || OWNER_MTDT || '.MTDT_RESULTADO' );
+      UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_ds_' || v_nombre_tabla_agr || '.sh'' AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PASO = 1 AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.CVE_PROCESO = MTDT_PASO.CVE_PROCESO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PASO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PROCESO = MTDT_MONITOREO.CVE_PROCESO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_RESULTADO = MTDT_MONITOREO.CVE_RESULTADO AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
+      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
+      UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO_2');
+      UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO_2.RN = 1 AND AGREGADO.FCH_DATOS = AGREGADO_2.FCH_DATOS');
+      UTL_FILE.put_line(fich_salida_pkg,'          AND AGREGADO.FCH_REGISTRO = AGREGADO_2.FCH_REGISTRO))');
+      /* (20160222) Angel Ruiz. FIN MODIFICACION */
       UTL_FILE.put_line(fich_salida_pkg,'        LOOP' );
       if (v_nombre_tabla_agr <> 'No Existe') then
         /* La tabla de hechos de la que estamos generando la transformacion posee desagregacion */
@@ -1863,6 +1887,7 @@ begin
         UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_dsg := ' || OWNER_DM || '.pkg_' || v_nombre_proceso_agr || '.' || 'dsg_' || v_nombre_proceso_agr || ' (fch_carga_in, fecha_datos_cargada.FCH_DATOS, fecha_datos_cargada.FCH_REGISTRO);');        
 
         UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ds_' || v_nombre_tabla_agr || '.sh'',' || '1, 0, to_date(fecha_datos_cargada.FCH_REGISTRO, ''yyyymmddhh24miss''), systimestamp, to_date(fecha_datos_cargada.FCH_DATOS, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, numero_reg_dsg);');
+        UTL_FILE.put_line(fich_salida_pkg,'          COMMIT;'); /* (20160222) Angel Ruiz. Añadido */
         UTL_FILE.put_line(fich_salida_pkg,'          /* Borro la tabla temporal para desagregacion */');
         UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T_agr || ''';');
       end if;
