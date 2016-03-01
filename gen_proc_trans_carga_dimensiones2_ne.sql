@@ -17,7 +17,7 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
     --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1')
-    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS')
+    and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
     --and TABLE_NAME in ('DMD_SERIADO')
     order by
     TABLE_TYPE;
@@ -164,7 +164,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   TYPE list_columns_primary  IS TABLE OF VARCHAR(30);
   TYPE list_strings  IS TABLE OF VARCHAR(30);
   
-  lista_pk                                                                    list_columns_primary := list_columns_primary (); 
+  lista_pk                               list_columns_primary := list_columns_primary (); 
   where_interface_columns                list_strings := list_strings();
   where_table_columns                      list_strings := list_strings();
   lista_scenarios_presentes                                    list_strings := list_strings();
@@ -1799,7 +1799,7 @@ begin
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' = ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' (+) AND');
                     END LOOP;
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(where_interface_columns.FIRST) || ' IS NULL' );
-                    /* A�adimos el campo FILTER */
+                    /* Anadimos el campo FILTER */
                     UTL_FILE.put_line(fich_salida_pkg, '    AND');
                     campo_filter := procesa_campo_filter(reg_scenario.FILTER);
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || campo_filter || ';');
@@ -1807,7 +1807,7 @@ begin
                 ELSE /* Puede que no haya un WHERE POR LAS COLUMNAS DE TABLA E INTERFACE PERO SI HAYA FILTER*/
                   if (reg_scenario.FILTER is not null) then
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || 'WHERE ');
-                    /* A�adimos el campo FILTER */
+                    /* Anadimos el campo FILTER */
                     campo_filter := procesa_campo_filter(reg_scenario.FILTER);
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || campo_filter || ';');
                   end if;
