@@ -1697,7 +1697,7 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
 
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''');
-          UTL_FILE.put_line(fich_salida_pkg,'    MERGE');
+          UTL_FILE.put_line(fich_salida_pkg,'    MERGE /*+ parallel(DESTINO,10) append use_hash(DESTINO ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || '_' || ''' || fch_datos_in || '') */');
           UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' DESTINO');
           UTL_FILE.put_line(fich_salida_pkg,'    USING ');
       
@@ -1707,7 +1707,7 @@ begin
 
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           v_list_campos_group_by.delete;  /* (20151124) Angel Ruiz. NF: AGREGADOS */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+          UTL_FILE.put_line(fich_salida_pkg,'    SELECT /*+ parallel(' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || '_' || ''' || fch_datos_in || '',10) */');
           open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
           primera_col := 1;
           loop
@@ -1847,7 +1847,7 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
+          UTL_FILE.put_line(fich_salida_pkg,'    commit;');
           UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
       
           UTL_FILE.put_line(fich_salida_pkg,'    exception');
@@ -1875,7 +1875,7 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
   
           UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''');
-          UTL_FILE.put_line(fich_salida_pkg,'    MERGE');
+          UTL_FILE.put_line(fich_salida_pkg,'    MERGE /*+ parallel(DESTINO,10) append use_hash(DESTINO ' || 'T_DSG_' || nombre_tabla_T || ') */');
           UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' DESTINO');
           UTL_FILE.put_line(fich_salida_pkg,'    USING ');
       
@@ -1885,7 +1885,7 @@ begin
 
           /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
           v_list_campos_group_by.delete;  /* (20151130) Angel Ruiz. Borro la lista de elementos */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+          UTL_FILE.put_line(fich_salida_pkg,'    SELECT /*+ parallel(T_DSG_' || nombre_tabla_T || ') */');
           open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
           primera_col := 1;
           loop
@@ -1973,7 +1973,7 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, ''';');
           UTL_FILE.put_line(fich_salida_pkg, '');
           UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
+          UTL_FILE.put_line(fich_salida_pkg,'    commit;');
           UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
       
           UTL_FILE.put_line(fich_salida_pkg,'    exception');
@@ -2107,82 +2107,17 @@ begin
       then
         /* Se trata de una ejecución Forzada */
         UTL_FILE.put_line(fich_salida_pkg,'    /* Este tip de procesos posee dos pasos de ejecucion */');
-        UTL_FILE.put_line(fich_salida_pkg, '    if (siguiente_paso_a_ejecutar = 1) then');
-        UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
-        UTL_FILE.put_line(fich_salida_pkg, '      if (forzado_in = ''F'') then');
-        UTL_FILE.put_line(fich_salida_pkg, '        /* EJECUCION EN MODO FORZADO */');
-        UTL_FILE.put_line(fich_salida_pkg,'        /* Calculamos las diferentes fechas de datos que se agregaron en la ultima agregacion */');
-        UTL_FILE.put_line(fich_salida_pkg,'        FOR fecha_datos_agregada IN (');
-        UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO.FCH_DATOS FCH_DATOS, AGREGADO.FCH_REGISTRO FCH_REGISTRO'); 
-        UTL_FILE.put_line(fich_salida_pkg,'          FROM');
-        UTL_FILE.put_line(fich_salida_pkg,'          (');
-        UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO, ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
-        UTL_FILE.put_line(fich_salida_pkg,'            FROM APP_MVNOMT.MTDT_MONITOREO, APP_MVNOMT.MTDT_PROCESO');
-        UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
-        UTL_FILE.put_line(fich_salida_pkg,'            MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_he_' || reg_tabla.TABLE_NAME || '.sh'' AND');
-        UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
-        UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
-        UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.CVE_PASO = 2 AND');
-        UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'')');
-        UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO');
-        UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO.RN = 1)');
-        --UTL_FILE.put_line(fich_salida_pkg,'          FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO' );
-        --UTL_FILE.put_line(fich_salida_pkg,'          WHERE');
-        --UTL_FILE.put_line(fich_salida_pkg,'            MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_he_' || reg_tabla.TABLE_NAME || '.sh'' AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.CVE_PASO = 2 AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'            MTDT_MONITOREO.FCH_REGISTRO IN (');
-        --UTL_FILE.put_line(fich_salida_pkg,'              SELECT MAX(MTDT_MONITOREO.FCH_REGISTRO)' );
-        --UTL_FILE.put_line(fich_salida_pkg,'              FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO' );
-        --UTL_FILE.put_line(fich_salida_pkg,'              WHERE');
-        --UTL_FILE.put_line(fich_salida_pkg,'                MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_he_' || reg_tabla.TABLE_NAME || '.sh'' AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'                MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'                MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'                MTDT_MONITOREO.CVE_PASO = 2 AND');
-        --UTL_FILE.put_line(fich_salida_pkg,'                MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'')))');
-        UTL_FILE.put_line(fich_salida_pkg,'        LOOP' );
-        UTL_FILE.put_line(fich_salida_pkg,'          /* Creo la tabla temporal sobre la voy a copiar los reg. a desagregar */');
-        UTL_FILE.put_line(fich_salida_pkg,'          exis_tabla :=  existe_tabla (' || '''T_DSG_' || nombre_tabla_T || ''' );');
-        UTL_FILE.put_line(fich_salida_pkg,'          if (exis_tabla = 0) then' );      
-        UTL_FILE.put_line(fich_salida_pkg,'            /* Creo la tabla */'); 
-        UTL_FILE.put_line(fich_salida_pkg,'            EXECUTE IMMEDIATE '''); 
-        UTL_FILE.put_line(fich_salida_pkg,'            CREATE TABLE  ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T || ' TABLESPACE ' || reg_tabla.TABLESPACE);
-        UTL_FILE.put_line(fich_salida_pkg,'            AS SELECT * FROM ' ||  OWNER_DM || '.' || PREFIJO_DM || 'F_' || SUBSTR(lista_table_base_name (indx), 3));
-        UTL_FILE.put_line(fich_salida_pkg,'            WHERE CVE_DIA =  '' || fecha_datos_agregada.FCH_DATOS || '' AND FCH_REGISTRO =  TO_DATE('''''' || fecha_datos_agregada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');  
-        UTL_FILE.put_line(fich_salida_pkg,'          else'); 
-        UTL_FILE.put_line(fich_salida_pkg,'            /* Borro la tabla */'); 
-        UTL_FILE.put_line(fich_salida_pkg,'            EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T || ''';');
-        UTL_FILE.put_line(fich_salida_pkg,'            EXECUTE IMMEDIATE '''); 
-        UTL_FILE.put_line(fich_salida_pkg,'            CREATE TABLE  ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T || ' TABLESPACE ' || reg_tabla.TABLESPACE);
-        UTL_FILE.put_line(fich_salida_pkg,'            AS SELECT * FROM ' ||  OWNER_DM || '.' || PREFIJO_DM || 'F_' || SUBSTR(lista_table_base_name (indx), 3));
-        UTL_FILE.put_line(fich_salida_pkg,'            WHERE CVE_DIA =  '' || fecha_datos_agregada.FCH_DATOS || '' AND FCH_REGISTRO =  TO_DATE('''''' || fecha_datos_agregada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');  
-        UTL_FILE.put_line(fich_salida_pkg,'          end if;'); 
-        UTL_FILE.put_line(fich_salida_pkg,'          /* Hago la desagregacion */');
-        UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_dsg := ' || 'pkg_' || nombre_proceso || '.' || 'dsg_' || nombre_proceso || ' (fch_carga_in, fecha_datos_agregada.FCH_DATOS, fecha_datos_agregada.FCH_REGISTRO);');        
-        UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_tot := numero_reg_tot + numero_reg_dsg;');
-        UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot);');
-        UTL_FILE.put_line(fich_salida_pkg,'          /* Borro la tabla */'); 
-        UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T || ''';');
-        UTL_FILE.put_line(fich_salida_pkg,'        END LOOP;' );
-        UTL_FILE.put_line(fich_salida_pkg,'        COMMIT;');
-        UTL_FILE.put_line(fich_salida_pkg,'      else');
-        UTL_FILE.put_line(fich_salida_pkg,'        /* Si no es una ejecucion forzada no hago desagregacion */');
-        UTL_FILE.put_line(fich_salida_pkg,'        /* Aunque si que inserto que le paso a terminado correctamente ya que asi ha sido. Como no ha habido */');
-        UTL_FILE.put_line(fich_salida_pkg,'        /* desagregacion, termina bien con el numero de registros desagregados igual a 0 */');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_dsg := 0;');        
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_dsg;');
-        UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot);');
-        UTL_FILE.put_line(fich_salida_pkg,'      end if;');
-        UTL_FILE.put_line(fich_salida_pkg,'      siguiente_paso_a_ejecutar := 2;');
+        --UTL_FILE.put_line(fich_salida_pkg, '    if (siguiente_paso_a_ejecutar = 1) then');
+        UTL_FILE.put_line(fich_salida_pkg, '    inicio_paso_tmr := cast (systimestamp as timestamp);');
+        UTL_FILE.put_line(fich_salida_pkg, '    if (forzado_in = ''F'') then');
+        UTL_FILE.put_line(fich_salida_pkg,'      siguiente_paso_a_ejecutar := 1;');
         UTL_FILE.put_line(fich_salida_pkg,'    end if;');
       
-        UTL_FILE.put_line(fich_salida_pkg, '    if (siguiente_paso_a_ejecutar = 2) then');
+        UTL_FILE.put_line(fich_salida_pkg, '    if (siguiente_paso_a_ejecutar = 1) then');
         UTL_FILE.put_line(fich_salida_pkg, '');
         /*(20151126) Angel Ruiz. NF: AGREGACION */
         /* Solo en el agregado facil, el que posee los registros del ultimo dia del mes se hace un truncate de la tabla temporal */
-        UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
+        --UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
         
         UTL_FILE.put_line(fich_salida_pkg,'      /* Es posible que haya datos de varias fechas ya que se admiten retrasados */');
         UTL_FILE.put_line(fich_salida_pkg,'      FOR fecha_datos_cargada IN (');
