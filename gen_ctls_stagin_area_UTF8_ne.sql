@@ -16,7 +16,7 @@ DECLARE
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA'  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
-    and CONCEPT_NAME in ('RECARGAS_MVNO');
+    and TRIM(CONCEPT_NAME) in ('RECARGAS_MVNO', 'CANAL', 'CADENA', 'SUBTIPO_CANAL', 'MEDIO_RECARGA', 'ERROR_RECARGA');
     --AND DELAYED = 'S';
     --WHERE CONCEPT_NAME NOT IN ( 'EMPRESA', 'ESTADO_CEL', 'FINALIZACION_LLAMADA', 'POSICION_TRAZO_LLAMADA', 'TRONCAL', 'TIPO_REGISTRO', 'MSC');
   
@@ -805,6 +805,9 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, 'done');
       /* (20150605) FIN */
     else
+      UTL_FILE.put_line(fich_salida_sh, 'TOT_LEIDOS=0');
+      UTL_FILE.put_line(fich_salida_sh, 'TOT_INSERTADOS=0');
+      UTL_FILE.put_line(fich_salida_sh, 'TOT_RECHAZADOS=0');
       UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
       UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
       --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${NOMBRE_FICH_CARGA}' || ' \'); 
@@ -827,6 +830,9 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, 'REG_LEIDOS=`grep "^Total logical records read:" ' || '${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log | cut -d":" -f2 | sed ''s/ *//''`');
       UTL_FILE.put_line(fich_salida_sh, 'REG_INSERTADOS=`grep "Rows* successfully loaded." ' || '${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log | sed ''s/^ *//'' | cut -d" " -f1`');
       UTL_FILE.put_line(fich_salida_sh, 'REG_RECHAZADOS=`grep "^Total logical records rejected:" ' || '${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log | cut -d":" -f2 | sed ''s/ *//''`');
+      UTL_FILE.put_line(fich_salida_sh, 'TOT_LEIDOS=`expr ${TOT_LEIDOS} + ${REG_LEIDOS}`');
+      UTL_FILE.put_line(fich_salida_sh, 'TOT_INSERTADOS=`expr ${TOT_INSERTADOS} + ${REG_INSERTADOS}`');
+      UTL_FILE.put_line(fich_salida_sh, 'TOT_RECHAZADOS=`expr ${TOT_RECHAZADOS} + ${REG_RECHAZADOS}`');
       UTL_FILE.put_line(fich_salida_sh, '');
     end if;
     /* (20151108) Angel Ruiz. BUG: El paso a historico de las tablas de staging se hace despues de haber llevado a cabo la carga */
