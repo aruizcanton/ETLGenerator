@@ -17,7 +17,8 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
     --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1')
-    and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
+    --and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
+    and TABLE_NAME in ('DMD_CADENA')
     --and TABLE_NAME in ('DMD_SERIADO')
     order by
     TABLE_TYPE;
@@ -162,7 +163,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   v_existe_reinyeccion varchar2(1):='N';  /* (20151120) Angel Ruiz. NF: Algun escenario posee el FLAG R activo */
   
   TYPE list_columns_primary  IS TABLE OF VARCHAR(30);
-  TYPE list_strings  IS TABLE OF VARCHAR(30);
+  TYPE list_strings  IS TABLE OF VARCHAR(100);
   
   lista_pk                               list_columns_primary := list_columns_primary (); 
   where_interface_columns                list_strings := list_strings();
@@ -207,8 +208,81 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   v_REQ_NUMER         MTDT_VAR_ENTORNO.VALOR%TYPE;
   
   
-
-
+  function cambio_puntoYcoma_por_coma (cadena_in in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (1000);
+    sustituto              varchar2(1000);
+    cola                      varchar2(1000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(1000);
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if (lon_cadena > 0) then
+      /* Busco VAR_FUN_NAME_LOOKUP */
+      sustituto := ',';
+      loop
+        dbms_output.put_line ('Entro en el LOOP de cambio_puntoYcoma_por_coma. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, ';', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (';'));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
+        --pos := pos_ant;
+      end loop;
+    end if;  
+    return cadena_resul;
+  end cambio_puntoYcoma_por_coma;
+  
+  function split_string_punto_coma ( cadena_in in varchar2) return list_strings
+  is
+  lon_cadena integer;
+  elemento varchar2 (100);
+  pos integer;
+  pos_ant integer;
+  lista_elementos                                      list_strings := list_strings (); 
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    pos_ant := 0;
+    if lon_cadena > 0 then
+      loop
+              dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_in);
+              if pos < lon_cadena then
+                pos := instr(cadena_in, ';', pos+1);
+              else
+                pos := 0;
+              end if;
+              dbms_output.put_line ('Primer valor de Pos: ' || pos);
+              if pos > 0 then
+                dbms_output.put_line ('Pos es mayor que 0');
+                dbms_output.put_line ('Pos es:' || pos);
+                dbms_output.put_line ('Pos_ant es:' || pos_ant);
+                elemento := substr(cadena_in, pos_ant+1, (pos - pos_ant) -1);
+                dbms_output.put_line ('El elemento es: ' || elemento);
+                lista_elementos.EXTEND;
+                lista_elementos(lista_elementos.LAST) := UPPER(LTRIM(RTRIM (elemento)));
+                pos_ant := pos;
+              end if;
+       exit when pos = 0;
+      end loop;
+      lista_elementos.EXTEND;
+      lista_elementos(lista_elementos.LAST) := UPPER(LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena))));
+      dbms_output.put_line ('El ultimo elemento es: ' || UPPER(LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena)))));
+    end if;
+    return lista_elementos;
+  end split_string_punto_coma;
 
   function split_string_coma ( cadena_in in varchar2) return list_strings
   is
@@ -248,6 +322,85 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     end if;
     return lista_elementos;
   end split_string_coma;
+  
+  function extrae_campo_decode (cadena_in in varchar2) return varchar2
+  is
+    lista_elementos list_strings := list_strings (); 
+
+  begin
+    lista_elementos := split_string_coma(cadena_in);
+    return lista_elementos(lista_elementos.count - 1);
+  
+  end extrae_campo_decode;
+
+  function extrae_campo_decode_sin_tabla (cadena_in in varchar2) return varchar2
+  is
+    lista_elementos list_strings := list_strings (); 
+
+  begin
+    lista_elementos := split_string_coma(cadena_in);
+    if instr(lista_elementos((lista_elementos.count) - 1), '.') > 0 then
+      return substr(lista_elementos(lista_elementos.count - 1), instr(lista_elementos((lista_elementos.count) - 1), '.') + 1);
+    else
+      return lista_elementos(lista_elementos.count - 1);
+    end if;
+  end extrae_campo_decode_sin_tabla;
+
+  function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+  is
+    parte_1 varchar2(100);
+    parte_2 varchar2(100);
+    parte_3 varchar2(100);
+    parte_4 varchar2(100);
+    decode_out varchar2(500);
+    lista_elementos list_strings := list_strings ();
+  
+  begin
+    /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
+    lista_elementos := split_string_coma(cadena_in);
+    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
+    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
+    parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
+    parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
+    if (instr(parte_1, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_1 := alias_in || '.' || parte_1 || '(+)';
+      else
+        parte_1 := alias_in || '.' || parte_1;
+      end if;
+    end if;
+    if (instr(parte_2, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_2 := alias_in || '.' || parte_2 || '(+)';
+      else
+        parte_2 := alias_in || '.' || parte_2;
+      end if;
+    end if;
+    if (instr(parte_3, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_3 := alias_in || '.' || parte_3 || '(+)';
+      else
+        parte_3 := alias_in || '.' || parte_3;
+      end if;
+    end if;
+    if (instr(parte_4, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_4 := alias_in || '.' || parte_4 || '(+)';
+      else
+        parte_4 := alias_in || '.' || parte_4;
+      end if;
+    end if;
+    decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
+    return decode_out;
+  end transformo_decode;
   
   function proc_campo_value_condicion (cadena_in in varchar2, nombre_funcion_lookup in varchar2) return varchar2
   is
@@ -626,9 +779,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || cambio_puntoYcoma_por_coma(v_IE_COLUMN_LKUP) || ') ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || cambio_puntoYcoma_por_coma(v_IE_COLUMN_LKUP) || ')';
         end if;
         --valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LKUP_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
       when 'LKUPD' then
@@ -742,8 +895,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
     if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then    /* (20150102) Angel Ruiz . Nueva incidencia. Hay una SELECT en lugar de una tabla para hacer LookUp */
       /* Para hacer el prototipo de la funcion he de usar la tabla base y los campos ie_olumn_lookup ya que no tenemos los campos de LookUp al ser una select */
-      lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
-      ie_lkup_columns := split_string_coma (reg_lookup_in.IE_COLUMN_LKUP);
+      lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+      ie_lkup_columns := split_string_punto_coma (reg_lookup_in.IE_COLUMN_LKUP);
       if (lkup_columns.COUNT > 1)
       then
         valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
@@ -762,7 +915,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         
     else  /* (20150102) Angel Ruiz . Nueva incidencia. Hay una tabla de LookUp normal. No SELECT */
     
-      lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+      lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
       if (lkup_columns.COUNT > 1)
       then
         valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
@@ -795,7 +948,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_nombre_tabla := reg_lookup_in.TABLE_LKUP;
     /* Se trata de hacer el LOOK UP con la tabla dimension */
     /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+    lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
     if (lkup_columns.COUNT > 1)
     then
       valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
@@ -859,8 +1012,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     if (instr (reg_lookup_in.TABLE_LKUP,'SELECT ') > 0) then    /* (20150102) Angel Ruiz . Nueva incidencia. Hay una SELECT en lugar de una tabla para hacer LookUp */
       /* Para hacer el prototipo de la funcion he de usar la tabla base y los campos ie_olumn_lookup ya que no tenemos los campos de LookUp al ser una select */
       /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-      lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
-      ie_lkup_columns := split_string_coma (reg_lookup_in.IE_COLUMN_LKUP);
+      lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+      ie_lkup_columns := split_string_punto_coma (reg_lookup_in.IE_COLUMN_LKUP);
       if (lkup_columns.COUNT > 1)
       then
         valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
@@ -880,7 +1033,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       end if;
     else
       /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-      lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+      lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
       if (lkup_columns.COUNT > 1)
       then
         valor_retorno := '  FUNCTION ' || 'LK_' || reg_lookup_in.TABLE_LKUP || ' (';
@@ -1032,7 +1185,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_nombre_func_lookup := 'LK_' || reg_lookup_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion */
     v_nombre_tabla := reg_lookup_in.TABLE_LKUP;
     /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+    lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
     if (lkup_columns.COUNT > 1)
     then
       valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
@@ -1524,8 +1677,8 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
-                where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
-                where_table_columns := split_string_coma(reg_scenario.TABLE_COLUMNS);
+                where_interface_columns := split_string_punto_coma (reg_scenario.INTERFACE_COLUMNS);
+                where_table_columns := split_string_punto_coma(reg_scenario.TABLE_COLUMNS);
                 dbms_output.put_line ('El numero de valores del Where interface es: ' || where_interface_columns.count);
                 dbms_output.put_line ('El numero de valores del Where interface es: ' || where_table_columns.count);
         
@@ -1541,13 +1694,23 @@ begin
                   if (reg_scenario.FILTER is null) then
                     FOR indx IN where_interface_columns.FIRST .. where_interface_columns.LAST
                     LOOP
-                      UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_detail.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_detail.TABLE_NAME || '.' || where_table_columns(indx) || '(+) AND');
+                      /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                      if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode(where_interface_columns(indx), reg_detail.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(where_table_columns(indx), reg_detail.TABLE_NAME, 1) || ' AND');
+                      else
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_detail.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_detail.TABLE_NAME || '.' || where_table_columns(indx) || '(+) AND');
+                      end if;
                     END LOOP;
                     UTL_FILE.put_line(fich_salida_pkg, '    '  || reg_detail.TABLE_NAME || '.' || where_table_columns ( where_table_columns.FIRST) || ' IS NULL;' );
                   else
                     FOR indx IN where_interface_columns.FIRST .. where_interface_columns.LAST
                     LOOP
-                      UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_detail.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_detail.TABLE_NAME || '.' || where_table_columns(indx) || '(+) AND');
+                      /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                      if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode(where_interface_columns(indx), reg_detail.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(where_table_columns(indx), reg_detail.TABLE_NAME, 1)  || ' AND');
+                      else
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_detail.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_detail.TABLE_NAME || '.' || where_table_columns(indx) || '(+) AND');
+                      end if;
                     END LOOP;
                     UTL_FILE.put_line(fich_salida_pkg, '    '  || reg_detail.TABLE_NAME || '.' || where_table_columns ( where_table_columns.FIRST) || ' IS NULL' );
                     /* Añadimos el campo FILTER */
@@ -1555,7 +1718,7 @@ begin
                     campo_filter := procesa_campo_filter(reg_scenario.FILTER);
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || campo_filter || ';');
                   end if;
-                ELSE /* Puede que no haya un WHERE POR LAS COLUMNAS DE TABLA E INTERFACE PERO SI HAYA FILTER*/
+                ELSE /* Puede que no haya un WHERE POR LAS COLUMNAS DE TABLA E INTERFACE PERO SI HAYA FILTER */
                   if (reg_scenario.FILTER is not null) then
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || 'WHERE ');
                     /* Añadimos el campo FILTER */
@@ -1647,8 +1810,8 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
-                where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
-                where_table_columns := split_string_coma(reg_scenario.TABLE_COLUMNS);
+                where_interface_columns := split_string_punto_coma (reg_scenario.INTERFACE_COLUMNS);
+                where_table_columns := split_string_punto_coma(reg_scenario.TABLE_COLUMNS);
                 dbms_output.put_line ('El numero de valores del Where interface es: ' || where_interface_columns.count);
                 dbms_output.put_line ('El numero de valores del Where interface es: ' || where_table_columns.count);
         
@@ -1664,18 +1827,38 @@ begin
                     FOR indx IN where_interface_columns.FIRST .. where_interface_columns.LAST
                     LOOP
                       IF indx = where_interface_columns.LAST THEN
-                        UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ';');
+                        /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                        if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ';');
+                        else
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ';');
+                        end if;
                       ELSE
-                        UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' and');
+                        /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                        if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0)  || ' = ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' and');
+                        else
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' and');
+                        end if;
                       END IF;
                     END LOOP;
                   else
                     FOR indx IN where_interface_columns.FIRST .. where_interface_columns.LAST
                     LOOP
                       IF indx = where_interface_columns.LAST THEN
-                        UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx));
+                        /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                        if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0));
+                        else
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx));
+                        end if;  
                       ELSE
-                        UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' and');
+                        /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                        if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' and');
+                        else
+                          UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' and');
+                        end if;
                       END IF;
                     END LOOP;
                     /* Añadimos el campo FILTER */
@@ -1773,8 +1956,8 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '    ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME || ', ' || OWNER_DM || '.' || reg_scenario.TABLE_NAME);
                 dbms_output.put_line ('Interface COLUMNS: ' || reg_scenario.INTERFACE_COLUMNS);
                 dbms_output.put_line ('Table COLUMNS: ' || reg_scenario.TABLE_COLUMNS);
-                where_interface_columns := split_string_coma (reg_scenario.INTERFACE_COLUMNS);
-                where_table_columns := split_string_coma(reg_scenario.TABLE_COLUMNS);
+                where_interface_columns := split_string_punto_coma (reg_scenario.INTERFACE_COLUMNS);
+                where_table_columns := split_string_punto_coma(reg_scenario.TABLE_COLUMNS);
                 dbms_output.put_line ('El numero de valores del Where interface es: ' || where_interface_columns.count);
                 dbms_output.put_line ('El numero de valores del Where interface es: ' || where_table_columns.count);
         
@@ -1790,13 +1973,23 @@ begin
                   if (reg_scenario.FILTER is null) then
                     FOR indx IN where_interface_columns.FIRST .. where_interface_columns.LAST
                     LOOP
+                      /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                      if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' = ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 1) || ' AND');
+                      else
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' = ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' (+) AND');
+                      end if;
                     END LOOP;
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(where_interface_columns.FIRST) || ' IS NULL;' );
                   else
                     FOR indx IN where_interface_columns.FIRST .. where_interface_columns.LAST
                     LOOP
+                      /* (20160301) Angel Ruiz. NF: DECODE en campos */
+                      if (instr(where_table_columns(indx), 'DECODE') > 0 or instr(where_table_columns(indx), 'decode') > 0) then
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' = ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 1) || ' AND');
+                      else
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' = ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' (+) AND');
+                      end if;
                     END LOOP;
                     UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(where_interface_columns.FIRST) || ' IS NULL' );
                     /* Anadimos el campo FILTER */
@@ -3056,19 +3249,25 @@ begin
                   
                   UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO ' || OWNER_SA || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg, '    (');
-                  UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  /* (20160304) Angel Ruiz. Cambio el separador de campos de , a ; */
+                  --UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || cambio_puntoYcoma_por_coma(reg_scenario.TABLE_COLUMNS));
                   UTL_FILE.put_line(fich_salida_pkg, '    )');
                 else
                   UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''' || OWNER_SA || '.'' || ''' || reg_scenario.TABLE_NAME || ''';');
                   UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO ' || OWNER_SA || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg, '    (');
-                  UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  /* (20160304) Angel Ruiz. Cambio el separador de campos de , a ; */
+                  --UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || cambio_puntoYcoma_por_coma(reg_scenario.TABLE_COLUMNS));
                   UTL_FILE.put_line(fich_salida_pkg, '    )');
                 end if;
                 if (reg_scenario."SELECT" is null) then
                   /* Significa que se crea a partir de todos los campos de la tabla */
                   UTL_FILE.put_line(fich_salida_pkg, '    SELECT');
-                  UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.INTERFACE_COLUMNS);
+                  /* (20160304) Angel Ruiz. Cambio el separador de campos de , a ; */
+                  --UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.INTERFACE_COLUMNS);
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || cambio_puntoYcoma_por_coma(reg_scenario.INTERFACE_COLUMNS));
                   UTL_FILE.put_line(fich_salida_pkg, '    FROM ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME);
                   if (reg_scenario.FILTER is not null) then
                     UTL_FILE.put_line(fich_salida_pkg, '    WHERE ' || procesa_campo_filter_dinam(reg_scenario.FILTER));
@@ -3125,19 +3324,25 @@ begin
                   
                   UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO ' || OWNER_SA || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg, '    (');
-                  UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  /* (20160304) Angel Ruiz. NF: cambio de , por ; en la separacion de campos */
+                  --UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || cambio_puntoYcoma_por_coma (reg_scenario.TABLE_COLUMNS));
                   UTL_FILE.put_line(fich_salida_pkg, '    )');
                 else
                   UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''TRUNCATE TABLE '' || ''' || OWNER_SA || '.'' || ''' || reg_scenario.TABLE_NAME || ''';');
                   UTL_FILE.put_line(fich_salida_pkg, '    INSERT INTO ' || OWNER_SA || '.' || reg_scenario.TABLE_NAME);
                   UTL_FILE.put_line(fich_salida_pkg, '    (');
-                  UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  /* (20160304) Angel Ruiz. NF: cambio de , por ; en la separacion de campos */
+                  --UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.TABLE_COLUMNS);
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || cambio_puntoYcoma_por_coma (reg_scenario.TABLE_COLUMNS));
                   UTL_FILE.put_line(fich_salida_pkg, '    )');
                 end if;
                 if (reg_scenario."SELECT" is null) then
                   /* Significa que se crea a partir de todos los campos de la tabla */
                   UTL_FILE.put_line(fich_salida_pkg, '    SELECT');
-                  UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.INTERFACE_COLUMNS);
+                  /* (20160304) Angel Ruiz. NF: cambio de , por ; en la separacion de campos */                  
+                  --UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_scenario.INTERFACE_COLUMNS);
+                  UTL_FILE.put_line(fich_salida_pkg, '    ' || cambio_puntoYcoma_por_coma(reg_scenario.INTERFACE_COLUMNS));
                   UTL_FILE.put_line(fich_salida_pkg, '    FROM ' || OWNER_SA || '.' || reg_scenario.TABLE_BASE_NAME);
                   if (reg_scenario.FILTER is not null) then
                     UTL_FILE.put_line(fich_salida_pkg, '    WHERE ' || procesa_campo_filter_dinam(reg_scenario.FILTER));
