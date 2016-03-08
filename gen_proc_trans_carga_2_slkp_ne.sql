@@ -15,7 +15,8 @@ SELECT
     WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and (20150907) Angel Ruiz NF. Nuevas tablas.
     trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_summary.TABLE_NAME) and
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_RECARGAS_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP', 'DMF_PARQUE_SERIADOS', 'DMF_FACT_SERIADOS');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ROAMN_TRAF', 'BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
@@ -106,9 +107,9 @@ SELECT
   reg_function MTDT_TC_FUNCTION%rowtype;
   
   type list_columns_primary  is table of varchar(30);
-  type list_strings  IS TABLE OF VARCHAR(30);
+  type list_strings  IS TABLE OF VARCHAR(400);
   type lista_tablas_from is table of varchar(200);
-  type lista_condi_where is table of varchar(150);
+  type lista_condi_where is table of varchar(500);
 
   
   lista_pk                                      list_columns_primary := list_columns_primary (); 
@@ -146,6 +147,127 @@ SELECT
   v_nombre_tabla_agr_redu           VARCHAR2(30):='No Existe';
   v_nombre_proceso_agr              VARCHAR2(30);
   nombre_tabla_T_agr                VARCHAR2(30);
+
+
+/************/
+/*************/
+/* (20150918) Angel Ruiz. NUEVA FUNCION */
+  function sustituye_comillas_dinam (cadena_in in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (1000);
+    sustituto              varchar2(100);
+    cola                      varchar2(1000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(1000);
+    begin
+      lon_cadena := length (cadena_in);
+      pos := 0;
+      posicion_ant := 0;
+      cadena_resul:= cadena_in;
+      if lon_cadena > 0 then
+        /* Busco LA COMILLA */
+        pos := 0;
+        posicion_ant := 0;
+        sustituto := '''''';
+        loop
+          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '''', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length (''''));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          pos_ant := pos + length ('''''');
+          pos := pos_ant;
+        end loop;
+      end if;
+      return cadena_resul;
+    end;
+
+/************/
+
+  function cambio_puntoYcoma_por_coma (cadena_in in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (1000);
+    sustituto              varchar2(1000);
+    cola                      varchar2(1000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(1000);
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    posicion_ant := 0;
+    cadena_resul:= cadena_in;
+    if (lon_cadena > 0) then
+      /* Busco VAR_FUN_NAME_LOOKUP */
+      sustituto := ',';
+      loop
+        dbms_output.put_line ('Entro en el LOOP de cambio_puntoYcoma_por_coma. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, ';', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (';'));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
+        --pos := pos_ant;
+      end loop;
+    end if;  
+    return cadena_resul;
+  end cambio_puntoYcoma_por_coma;
+
+  function split_string_punto_coma ( cadena_in in varchar2) return list_strings
+  is
+  lon_cadena integer;
+  elemento varchar2 (400);
+  pos integer;
+  pos_ant integer;
+  lista_elementos                                      list_strings := list_strings (); 
+  begin
+    lon_cadena := length (cadena_in);
+    pos := 0;
+    pos_ant := 0;
+    if lon_cadena > 0 then
+      loop
+              dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_in);
+              if pos < lon_cadena then
+                pos := instr(cadena_in, ';', pos+1);
+              else
+                pos := 0;
+              end if;
+              dbms_output.put_line ('Primer valor de Pos: ' || pos);
+              if pos > 0 then
+                dbms_output.put_line ('Pos es mayor que 0');
+                dbms_output.put_line ('Pos es:' || pos);
+                dbms_output.put_line ('Pos_ant es:' || pos_ant);
+                elemento := substr(cadena_in, pos_ant+1, (pos - pos_ant) -1);
+                dbms_output.put_line ('El elemento es: ' || elemento);
+                lista_elementos.EXTEND;
+                lista_elementos(lista_elementos.LAST) := UPPER(LTRIM(RTRIM (elemento)));
+                pos_ant := pos;
+              end if;
+       exit when pos = 0;
+      end loop;
+      lista_elementos.EXTEND;
+      lista_elementos(lista_elementos.LAST) := UPPER(LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena))));
+      dbms_output.put_line ('El ultimo elemento es: ' || UPPER(LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena)))));
+    end if;
+    return lista_elementos;
+  end split_string_punto_coma;  
   
   function split_string_coma ( cadena_in in varchar2) return list_strings
   is
@@ -183,6 +305,124 @@ SELECT
     end if;
     return lista_elementos;
   end split_string_coma;
+
+  function extrae_campo_decode (cadena_in in varchar2) return varchar2
+  is
+    lista_elementos list_strings := list_strings (); 
+
+  begin
+    lista_elementos := split_string_coma(cadena_in);
+    return lista_elementos(lista_elementos.count - 1);
+  
+  end extrae_campo_decode;
+
+  function extrae_campo_decode_sin_tabla (cadena_in in varchar2) return varchar2
+  is
+    lista_elementos list_strings := list_strings (); 
+
+  begin
+    lista_elementos := split_string_coma(cadena_in);
+    if instr(lista_elementos((lista_elementos.count) - 1), '.') > 0 then
+      return substr(lista_elementos(lista_elementos.count - 1), instr(lista_elementos((lista_elementos.count) - 1), '.') + 1);
+    else
+      return lista_elementos(lista_elementos.count - 1);
+    end if;
+  end extrae_campo_decode_sin_tabla;
+
+--  function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+--  is
+--    parte_1 varchar2(100);
+--    parte_2 varchar2(100);
+--    parte_3 varchar2(100);
+--    parte_4 varchar2(100);
+--    decode_out varchar2(500);
+--    lista_elementos list_strings := list_strings ();
+  
+--  begin
+--    /* Ejemplo de Deode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
+--    lista_elementos := split_string_coma(cadena_in);
+--    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
+--    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
+--    parte_3 := trim(lista_elementos(3));
+--    parte_4 := lista_elementos(4);
+--    if (outer_in = 1) then
+--      /* En la tranformacion del DECODE es necesario ponerle el signo de OUTER */
+--      decode_out := 'DECODE(' || alias_in || '.' || parte_1 || '(+), ' || sustituye_comillas_dinam(parte_2) || ', ' || alias_in || '.'|| parte_3 || '(+), ' || sustituye_comillas_dinam(parte_4);
+--    else    
+--      /* En la tranformacion del DECODE no es necesario ponerle el signo de OUTER */
+--      decode_out := 'DECODE(' || alias_in || '.' || parte_1 || ', ' || sustituye_comillas_dinam(parte_2) || ', ' || alias_in || '.'|| parte_3 || ', ' || sustituye_comillas_dinam(parte_4);
+--    end if;
+--    return decode_out;
+--  end transformo_decode;
+  function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+  is
+    parte_1 varchar2(100);
+    parte_2 varchar2(100);
+    parte_3 varchar2(100);
+    parte_4 varchar2(100);
+    decode_out varchar2(500);
+    lista_elementos list_strings := list_strings ();
+  
+  begin
+    /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
+    lista_elementos := split_string_coma(cadena_in);
+    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
+    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
+    parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
+    parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
+    if (instr(parte_1, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_1 := alias_in || '.' || parte_1 || '(+)';
+      else
+        parte_1 := alias_in || '.' || parte_1;
+      end if;
+    end if;
+    if (instr(parte_2, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_2 := alias_in || '.' || parte_2 || '(+)';
+      else
+        parte_2 := alias_in || '.' || parte_2;
+      end if;
+    end if;
+    if (instr(parte_3, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_3 := alias_in || '.' || parte_3 || '(+)';
+      else
+        parte_3 := alias_in || '.' || parte_3;
+      end if;
+    end if;
+    if (instr(parte_4, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      if (outer_in = 1) then
+        parte_4 := alias_in || '.' || parte_4 || '(+)';
+      else
+        parte_4 := alias_in || '.' || parte_4;
+      end if;
+    end if;
+    /* Puede ocurrir que alguna parte del decode tanga el signo ' como seria el caso de los campos literales */
+    /* como estamos generando querys dinamicas, tenemos que escapar las comillas */
+    if (instr(parte_1, '''') > 0) then
+      parte_1 := sustituye_comillas_dinam(parte_1);
+    end if;
+    if (instr(parte_2, '''') > 0) then
+      parte_2 := sustituye_comillas_dinam(parte_2);
+    end if;
+    if (instr(parte_3, '''') > 0) then
+      parte_3 := sustituye_comillas_dinam(parte_3);
+    end if;
+    if (instr(parte_4, '''') > 0) then
+      parte_4 := sustituye_comillas_dinam(parte_4);
+    end if;
+    decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
+    return decode_out;
+  end transformo_decode;
   
   function proceso_campo_value (cadena_in in varchar2, alias_in in varchar) return varchar2
   is
@@ -408,49 +648,6 @@ SELECT
     return cadena_resul;
   end;
 
-/************/
-/*************/
-/* (20150918) Angel Ruiz. NUEVA FUNCION */
-  function sustituye_comillas_dinam (cadena_in in varchar2) return varchar2
-  is
-    lon_cadena integer;
-    cabeza                varchar2 (1000);
-    sustituto              varchar2(100);
-    cola                      varchar2(1000);    
-    pos                   PLS_integer;
-    pos_ant           PLS_integer;
-    posicion_ant           PLS_integer;
-    cadena_resul varchar(1000);
-    begin
-      lon_cadena := length (cadena_in);
-      pos := 0;
-      posicion_ant := 0;
-      cadena_resul:= cadena_in;
-      if lon_cadena > 0 then
-        /* Busco LA COMILLA */
-        pos := 0;
-        posicion_ant := 0;
-        sustituto := '''''';
-        loop
-          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '''', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length (''''));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-          pos_ant := pos + length ('''''');
-          pos := pos_ant;
-        end loop;
-      end if;
-      return cadena_resul;
-    end;
-
-/************/
 
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
     valor_retorno VARCHAR (1000);
@@ -481,6 +678,7 @@ SELECT
     mitabla_look_up VARCHAR2(200);
     l_registro          ALL_TAB_COLUMNS%rowtype;
     v_value VARCHAR(200);
+    nombre_campo  VARCHAR2(30);
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -655,17 +853,6 @@ SELECT
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         /* (20150126) Angel Ruiz. Primero recojo la tabla del modelo con la que se hace LookUp. NO puede ser tablas T_* sino su equivalesnte del modelo */
         dbms_output.put_line('ESTOY EN EL LOOKUP. Al principio');
-        --if (regexp_count(reg_detalle_in.TABLE_LKUP,'^DMD_') > 0) then  /* Se trata de una dimension normal y corriente */
-        --  mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
-        --elsif  (regexp_count(reg_detalle_in.TABLE_LKUP,'^T_') >0) then/* Se trata de una tabla T_ */
-        --  mitabla_look_up:='DMD_' || substr(reg_detalle_in.TABLE_LKUP,3);
-        --elsif (regexp_count(reg_detalle_in.TABLE_LKUP,'^DMT_') >0) then /* Se trata de una tabla DMT_ */
-        --  mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
-        --elsif (regexp_count(reg_detalle_in.TABLE_LKUP,'^(') >0) then /* Se trata de una subquery */
-        --else
-        --  mitabla_look_up:=reg_detalle_in.TABLE_LKUP;
-        --end if;
-        --if (reg_detalle_in.LKUP_COM_RULE <> "") then
         l_FROM.extend;
         /* (20150130) Angel Ruiz */
         /* Nueva incidencia. */
@@ -678,7 +865,7 @@ SELECT
           /* (20150112) Angel Ruiz */
           /* Puede ocurrir que se se tenga varias veces la misma LookUp pero para campo diferentes */
           /* lo que se traduce en que hay que crear ALIAS */
-          /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM*/
+          /* BUSCAMOS SI YA ESTABA LA TABLA INCLUIDA EN EL FROM */
           v_encontrado:='N';
           FOR indx IN l_FROM.FIRST .. l_FROM.LAST
           LOOP
@@ -701,8 +888,11 @@ SELECT
 
         /* Miramos la parte de las condiciones */
         /* Puede haber varios campos por los que hacer LookUp y por lo tanto JOIN */
-        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
-        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+        /* (20160302) Angel Ruiz. NF: Campos separados por ; */
+        --table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        --ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+        table_columns_lkup := split_string_punto_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        ie_column_lkup := split_string_punto_coma (reg_detalle_in.IE_COLUMN_LKUP);
         
         /****************************************************************************/
         /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL SELECT */
@@ -725,22 +915,51 @@ SELECT
             valor_retorno := 'CASE WHEN (';
             FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
             LOOP
-              SELECT * INTO l_registro
-              FROM ALL_TAB_COLUMNS
-              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-              COLUMN_NAME = TRIM(ie_column_lkup(indx));
+              /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+              if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                nombre_campo := extrae_campo_decode_sin_tabla (ie_column_lkup(indx));
+                SELECT * INTO l_registro
+                FROM ALL_TAB_COLUMNS
+                WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+                COLUMN_NAME = TRIM(nombre_campo);
+              else
+                SELECT * INTO l_registro
+                FROM ALL_TAB_COLUMNS
+                WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+                COLUMN_NAME = TRIM(ie_column_lkup(indx));
+              end if;
             
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
                 if (indx = 1) then
-                  valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                  else
+                    valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                  end if;
                 else
-                  valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                  else
+                    valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                  end if;
                 end if;
               else 
                 if (indx = 1) then
-                  valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' = -3 ';
+                  else
+                    valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                  end if;
                 else
-                  valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' = -3 ';
+                  else
+                    valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' = -3 ';
+                  end if;
                 end if;
               end if;
             END LOOP;
@@ -765,36 +984,73 @@ SELECT
             dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
             
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
-            SELECT * INTO l_registro
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-            COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+              nombre_campo := extrae_campo_decode_sin_tabla (ie_column_lkup(indx));
+              SELECT * INTO l_registro
+              FROM ALL_TAB_COLUMNS
+              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+              COLUMN_NAME = TRIM(nombre_campo);
+            else
+              SELECT * INTO l_registro
+              FROM ALL_TAB_COLUMNS
+              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+              COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            end if;
             if (l_WHERE.count = 1) then
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
-                  l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''''NI#'''')' || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
                 else
-                  l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
                 end if;
               else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||', -3)' ||' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
-                l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                  l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                end if;
               end if;
             else
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
-                  l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''''NI#'''')' || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
                 else
-                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
                 end if;
               else /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', -3)' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
-                l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */                
+                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
               end if;
             end if;
           END LOOP;
         else    /* Solo hay un campo condicion */
-          
           /* Miramos si la tabla con la que hay que hacer LookUp es una tabla de rangos */
           l_WHERE.extend;
           if (instr (reg_detalle_in.TABLE_LKUP,'RANGO') > 0) then
@@ -812,31 +1068,63 @@ SELECT
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
-            SELECT * INTO l_registro
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-            COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+            if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+              nombre_campo := extrae_campo_decode_sin_tabla (reg_detalle_in.IE_COLUMN_LKUP);
+              SELECT * INTO l_registro
+              FROM ALL_TAB_COLUMNS
+              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+              COLUMN_NAME = trim(nombre_campo);
+            else
+              SELECT * INTO l_registro
+              FROM ALL_TAB_COLUMNS
+              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
+              COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+            end if;
             if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
-                  l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) := 'NVL(' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''''NI#'''')' ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  end if;
                 else
-                  l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) := transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  end if;
                 end if;
               else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
-                l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                  l_WHERE(l_WHERE.last) :=  transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                end if;
               end if;
             else  /* sino es el primer campo del Where  */
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
-                  l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''''NI#'''')' || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  end if;
                 else
-                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  else
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  end if;
                 end if;
               else     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
-                l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                end if;
               end if;
             end if;
           end if;
@@ -1564,21 +1852,6 @@ begin
     /* COMIEZO LA GENERACION DEL PACKAGE DEFINITION */
     /******/
     dbms_output.put_line ('Comienzo la generacion del PACKAGE DEFINITION');
-    /* Primero de todo miro si hay funciones de LOOKUP para crear */
-    --dbms_output.put_line ('Antes de mirar funciones para hacer LOOKUP');
-    --open MTDT_TC_LOOKUP (reg_tabla.TABLE_NAME);
-    --loop
-      --fetch MTDT_TC_LOOKUP
-      --into reg_lookup;
-      --exit when MTDT_TC_LOOKUP%NOTFOUND;
-      /* Se trata de hacer el LOOK UP con la tabla dimension */
-      --prototipo_fun := genera_encabezado_funcion_pkg (reg_lookup);
-      --UTL_FILE.put_line(fich_salida_pkg,'');
-      --UTL_FILE.put_line(fich_salida_pkg, prototipo_fun);
-      
-    --end loop;
-    --close MTDT_TC_LOOKUP;
-    --dbms_output.put_line ('Despues de mirar funciones para hacer LOOKUP');
     dbms_output.put_line ('Antes de mirar funciones para hacer regla FUNCTION');
     /* Segundo miro si hay funciones de la regla FUNCTION para crear */
 
@@ -1703,7 +1976,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
     UTL_FILE.put_line(fich_salida_pkg,'    return 0;');
     UTL_FILE.put_line(fich_salida_pkg,'  END existe_particion;');
-    /* (20150825) Angel Ruiz. N.F.: Particionado Contorlado con un parametro en la tabla MTDT_MODELO_LOGICO */
+    /* (20150825) Angel Ruiz. N.F.: Particionado Controlado con un parametro en la tabla MTDT_MODELO_SUMMARY */
     if (reg_tabla.PARTICIONADO = 'M24') then
       UTL_FILE.put_line(fich_salida_pkg,'  PROCEDURE pre_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2)'); 
       UTL_FILE.put_line(fich_salida_pkg,'  is'); 
@@ -1747,7 +2020,6 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;');      
       /* (20150825) Angel Ruiz. FIN N.F.: */
     else
-    
       /* Miramos si existe escenario de desagregacion para la tabla de hechos */
       /* que estamos cargando. Para de este modo hay que llevar a cabo la desagregacion*/
       v_nombre_tabla_agr := 'No Existe';
@@ -1756,6 +2028,7 @@ begin
         FROM
           MTDT_TC_SCENARIO
         WHERE MTDT_TC_SCENARIO.TABLE_TYPE = 'A' and
+        MTDT_TC_SCENARIO.SCENARIO = 'AGR' and
         instr(trim(MTDT_TC_SCENARIO.TABLE_BASE_NAME), 'T_' || nombre_tabla_reducido) >0)
       loop
         v_nombre_tabla_agr := v_EXISTE_DESAGREGACION.TABLE_NAME;
@@ -1797,59 +2070,59 @@ begin
       --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') UPDATE INDEXES'';');
       --UTL_FILE.put_line(fich_salida_pkg, '    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
       UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE '' || ''' || reg_tabla.TABLESPACE || ''';');
-      UTL_FILE.put_line(fich_salida_pkg,'    else'); 
-      UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then' );
-      --UTL_FILE.put_line(fich_salida_pkg,'        EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in;');
-      /* (20160108) Angel Ruiz NF: AGREGACION */
-      /* ------------------------------------ */
-      UTL_FILE.put_line(fich_salida_pkg,'        /* Estamos ejecutando la transformacion en modo forzado */');
-      UTL_FILE.put_line(fich_salida_pkg,'        FOR fecha_datos_cargada IN (');
-      UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO.FCH_DATOS FCH_DATOS, AGREGADO.FCH_REGISTRO FCH_REGISTRO'); 
-      UTL_FILE.put_line(fich_salida_pkg,'          FROM');
-      UTL_FILE.put_line(fich_salida_pkg,'          (');
-      UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(MTDT_MONITOREO.FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO , ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
-      UTL_FILE.put_line(fich_salida_pkg,'            FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO, ' );
-      UTL_FILE.put_line(fich_salida_pkg,'              ' || OWNER_MTDT || '.MTDT_PASO, ' || OWNER_MTDT || '.MTDT_RESULTADO' );
-      UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_he_' || reg_tabla.TABLE_NAME || '.sh'' AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PASO = 1 AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.CVE_PROCESO = MTDT_PASO.CVE_PROCESO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PASO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PROCESO = MTDT_MONITOREO.CVE_PROCESO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_RESULTADO = MTDT_MONITOREO.CVE_RESULTADO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
-      UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO');
-      UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO.RN = 1');
-      /* (20160222) Angel Ruiz. Hago esta modificacion para excluir aquellas desagregaciones que ya esten hechas */
-      UTL_FILE.put_line(fich_salida_pkg,'          AND NOT EXISTS (');
-      UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO_2.FCH_DATOS FCH_DATOS, AGREGADO_2.FCH_REGISTRO FCH_REGISTRO'); 
-      UTL_FILE.put_line(fich_salida_pkg,'          FROM');
-      UTL_FILE.put_line(fich_salida_pkg,'          (');
-      UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(MTDT_MONITOREO.FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO , ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
-      UTL_FILE.put_line(fich_salida_pkg,'            FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO, ' );
-      UTL_FILE.put_line(fich_salida_pkg,'              ' || OWNER_MTDT || '.MTDT_PASO, ' || OWNER_MTDT || '.MTDT_RESULTADO' );
-      UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_ds_' || v_nombre_tabla_agr || '.sh'' AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PASO = 1 AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.CVE_PROCESO = MTDT_PASO.CVE_PROCESO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PASO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PROCESO = MTDT_MONITOREO.CVE_PROCESO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_RESULTADO = MTDT_MONITOREO.CVE_RESULTADO AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
-      UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
-      UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO_2');
-      UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO_2.RN = 1 AND AGREGADO.FCH_DATOS = AGREGADO_2.FCH_DATOS');
-      UTL_FILE.put_line(fich_salida_pkg,'          AND AGREGADO.FCH_REGISTRO = AGREGADO_2.FCH_REGISTRO))');
-      /* (20160222) Angel Ruiz. FIN MODIFICACION */
-      UTL_FILE.put_line(fich_salida_pkg,'        LOOP' );
       if (v_nombre_tabla_agr <> 'No Existe') then
+        UTL_FILE.put_line(fich_salida_pkg,'    else'); 
+        UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then' );
+        --UTL_FILE.put_line(fich_salida_pkg,'        EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in;');
+        /* (20160108) Angel Ruiz NF: AGREGACION */
+        /* ------------------------------------ */
+        UTL_FILE.put_line(fich_salida_pkg,'        /* Estamos ejecutando la transformacion en modo forzado */');
+        UTL_FILE.put_line(fich_salida_pkg,'        FOR fecha_datos_cargada IN (');
+        UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO.FCH_DATOS FCH_DATOS, AGREGADO.FCH_REGISTRO FCH_REGISTRO'); 
+        UTL_FILE.put_line(fich_salida_pkg,'          FROM');
+        UTL_FILE.put_line(fich_salida_pkg,'          (');
+        UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(MTDT_MONITOREO.FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO , ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
+        UTL_FILE.put_line(fich_salida_pkg,'            FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO, ' );
+        UTL_FILE.put_line(fich_salida_pkg,'              ' || OWNER_MTDT || '.MTDT_PASO, ' || OWNER_MTDT || '.MTDT_RESULTADO' );
+        UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_he_' || reg_tabla.TABLE_NAME || '.sh'' AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PASO = 1 AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.CVE_PROCESO = MTDT_PASO.CVE_PROCESO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PASO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PROCESO = MTDT_MONITOREO.CVE_PROCESO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_RESULTADO = MTDT_MONITOREO.CVE_RESULTADO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
+        UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO');
+        UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO.RN = 1');
+        /* (20160222) Angel Ruiz. Hago esta modificacion para excluir aquellas desagregaciones que ya esten hechas */
+        UTL_FILE.put_line(fich_salida_pkg,'          AND NOT EXISTS (');
+        UTL_FILE.put_line(fich_salida_pkg,'          SELECT AGREGADO_2.FCH_DATOS FCH_DATOS, AGREGADO_2.FCH_REGISTRO FCH_REGISTRO'); 
+        UTL_FILE.put_line(fich_salida_pkg,'          FROM');
+        UTL_FILE.put_line(fich_salida_pkg,'          (');
+        UTL_FILE.put_line(fich_salida_pkg,'            SELECT TO_CHAR(MTDT_MONITOREO.FCH_DATOS, ''YYYYMMDD'') FCH_DATOS, TO_CHAR(MTDT_MONITOREO.FCH_REGISTRO, ''YYYYMMDDHH24MISS'') FCH_REGISTRO , ROW_NUMBER() OVER (PARTITION BY MTDT_MONITOREO.FCH_DATOS ORDER BY MTDT_MONITOREO.FCH_REGISTRO DESC) RN');
+        UTL_FILE.put_line(fich_salida_pkg,'            FROM ' || OWNER_MTDT || '.MTDT_MONITOREO, ' || OWNER_MTDT || '.MTDT_PROCESO, ' );
+        UTL_FILE.put_line(fich_salida_pkg,'              ' || OWNER_MTDT || '.MTDT_PASO, ' || OWNER_MTDT || '.MTDT_RESULTADO' );
+        UTL_FILE.put_line(fich_salida_pkg,'            WHERE');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.NOMBRE_PROCESO =  ' || '''load_ds_' || v_nombre_tabla_agr || '.sh'' AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PROCESO = MTDT_PROCESO.CVE_PROCESO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_RESULTADO = 0 AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.CVE_PASO = 1 AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PROCESO.CVE_PROCESO = MTDT_PASO.CVE_PROCESO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_PASO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PROCESO = MTDT_MONITOREO.CVE_PROCESO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_PASO = MTDT_MONITOREO.CVE_PASO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_RESULTADO.CVE_RESULTADO = MTDT_MONITOREO.CVE_RESULTADO AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_CARGA = TO_DATE(' || 'fch_carga_in, ''yyyymmdd'') AND');
+        UTL_FILE.put_line(fich_salida_pkg,'              MTDT_MONITOREO.FCH_DATOS = TO_DATE(' || 'fch_datos_in, ''yyyymmdd'')');
+        UTL_FILE.put_line(fich_salida_pkg,'          ) AGREGADO_2');
+        UTL_FILE.put_line(fich_salida_pkg,'          WHERE AGREGADO_2.RN = 1 AND AGREGADO.FCH_DATOS = AGREGADO_2.FCH_DATOS');
+        UTL_FILE.put_line(fich_salida_pkg,'          AND AGREGADO.FCH_REGISTRO = AGREGADO_2.FCH_REGISTRO))');
+        /* (20160222) Angel Ruiz. FIN MODIFICACION */
+        UTL_FILE.put_line(fich_salida_pkg,'        LOOP' );
         /* La tabla de hechos de la que estamos generando la transformacion posee desagregacion */
         /* Por lo que al ser ejecutada en modo Forzado, debemos generar el codigo para desagregar */
         v_nombre_tabla_agr_redu := substr(v_nombre_tabla_agr, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
@@ -1890,20 +2163,21 @@ begin
         UTL_FILE.put_line(fich_salida_pkg,'          COMMIT;'); /* (20160222) Angel Ruiz. Añadido */
         UTL_FILE.put_line(fich_salida_pkg,'          /* Borro la tabla temporal para desagregacion */');
         UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_DSG_' || nombre_tabla_T_agr || ''';');
+        UTL_FILE.put_line(fich_salida_pkg,'');      
+        UTL_FILE.put_line(fich_salida_pkg,'          /* Borramos los registros una vez desagregados */');
+        UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DELETE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' WHERE CVE_DIA = '' || fecha_datos_cargada.FCH_DATOS || '' AND FCH_REGISTRO = TO_DATE('''''' || fecha_datos_cargada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');
+        UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_del := sql%rowcount;');
+        UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros borrados es: '' || numero_reg_del);'); 
+        UTL_FILE.put_line(fich_salida_pkg,'        END LOOP;' );
+        UTL_FILE.put_line(fich_salida_pkg,'      end if;');
       end if;
-      UTL_FILE.put_line(fich_salida_pkg,'');      
-      UTL_FILE.put_line(fich_salida_pkg,'          /* Borramos los registros una vez desagregados */');
-      UTL_FILE.put_line(fich_salida_pkg,'          EXECUTE IMMEDIATE ''DELETE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' WHERE CVE_DIA = '' || fecha_datos_cargada.FCH_DATOS || '' AND FCH_REGISTRO = TO_DATE('''''' || fecha_datos_cargada.FCH_REGISTRO || '''''', ''''YYYYMMDDHH24MISS'''')'';');
-      UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_del := sql%rowcount;');
-      UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros borrados es: '' || numero_reg_del);'); 
-      UTL_FILE.put_line(fich_salida_pkg,'        END LOOP;' );
-      /* (20160108) Angel Ruiz FIN NF: AGREGACION */
-      /* ------------------------------------ */
-      UTL_FILE.put_line(fich_salida_pkg,'      end if;');
       UTL_FILE.put_line(fich_salida_pkg,'    end if;');
       if (v_nombre_tabla_agr <> 'No Existe') then
         UTL_FILE.put_line(fich_salida_pkg,'    return numero_reg_del;');
       end if;
+      /* (20160108) Angel Ruiz FIN NF: AGREGACION */
+      /* ------------------------------------ */
+
       UTL_FILE.put_line(fich_salida_pkg,'  exception');
       UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
       UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
