@@ -3,8 +3,8 @@ declare
 cursor MTDT_TABLA
   is
 SELECT
-      --DISTINCT TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME", (20150907) Angel Ruiz NF. Nuevas tablas.
-      TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME",
+      DISTINCT TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME", /*(20150907) Angel Ruiz NF. Nuevas tablas.*/
+      --TRIM(MTDT_TC_SCENARIO.TABLE_NAME) "TABLE_NAME",
       --TRIM(TABLE_BASE_NAME) "TABLE_BASE_NAME",
       --TRIM(mtdt_modelo_logico.TABLESPACE) "TABLESPACE" (20150907) Angel Ruiz NF. Nuevas tablas.
       TRIM(mtdt_modelo_summary.TABLESPACE) "TABLESPACE",
@@ -147,6 +147,7 @@ SELECT
   v_nombre_tabla_agr_redu           VARCHAR2(30):='No Existe';
   v_nombre_proceso_agr              VARCHAR2(30);
   nombre_tabla_T_agr                VARCHAR2(30);
+  v_existen_retrasados              VARCHAR2(1) := 'N';
 
 
 /************/
@@ -2183,23 +2184,45 @@ begin
       UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
       UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
       UTL_FILE.put_line(fich_salida_pkg,'  end pre_proceso;');
-      UTL_FILE.put_line(fich_salida_pkg,'  function pos_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2) return number'); 
-      UTL_FILE.put_line(fich_salida_pkg,'  is'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno number;'); 
-      UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    /* Proceso que se va ha encargar de hacer el pos-procesado despues de insertar */'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    /* consistente en comprobar si la particion de ' || reg_tabla.TABLE_NAME || ' de fecha de datos ya tenia datos, para salvaguardarlos si los tenia */');
-      --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
-      UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
-      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de filas salvaguardadas es: '' || SQL%ROWCOUNT);'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno := SQL%ROWCOUNT;'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    commit;'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    return valor_retorno;'); 
-      UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
-      UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
-      UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
-      UTL_FILE.put_line(fich_salida_pkg,'  end pos_proceso;'); 
+      /* (20160308) Angel Ruiz. NF: Preparo el script para generar cualquier tipo de procesos para cargar */
+      /* tablas de hechos, tanto del tipo con retrasados como del tipo sin retrasados */
+      v_existen_retrasados := 'N';  /* Por defecto las tablas de Staging no tienen retrasados */
+      /* Me quedo con el nombre de la tabla base sin el calificador de propietario */
+      for v_EXISTEN_DELAYED in (
+        select
+        TRIM(MTDT_INTERFACE_SUMMARY.DELAYED) "DELAYED"
+        from
+          MTDT_INTERFACE_SUMMARY, MTDT_TC_SCENARIO
+        WHERE
+          INSTR(MTDT_TC_SCENARIO.TABLE_BASE_NAME, 'SELECT') = 0 and /* No uso las tablas q tienen un SELECT */
+          INSTR(MTDT_TC_SCENARIO.TABLE_BASE_NAME, 'select') = 0 and /* ya que no podemos hayar la conexion */
+          MTDT_TC_SCENARIO.TABLE_TYPE = 'H' and /* entre MTDT_TC_SCENARIO y MTDT_INTERFACE_SUMMARY */
+          MTDT_INTERFACE_SUMMARY.CONCEPT_NAME = substr(substr(MTDT_TC_SCENARIO.TABLE_BASE_NAME, instr(MTDT_TC_SCENARIO.TABLE_BASE_NAME, '.') + 1), instr(substr(MTDT_TC_SCENARIO.TABLE_BASE_NAME, instr(MTDT_TC_SCENARIO.TABLE_BASE_NAME, '.') + 1), '_')+1) and
+          MTDT_TC_SCENARIO.TABLE_NAME = reg_tabla.TABLE_NAME
+      )
+      loop
+        v_existen_retrasados := v_EXISTEN_DELAYED.DELAYED;
+      end loop;
+      if (v_existen_retrasados = 'S') then
+        /* Tenemos un proceso de hechos que va a cargar una tabla que podra tener retarasados */
+        UTL_FILE.put_line(fich_salida_pkg,'  function pos_proceso (fch_carga_in IN VARCHAR2,  fch_datos_in IN VARCHAR2) return number'); 
+        UTL_FILE.put_line(fich_salida_pkg,'  is'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno number;'); 
+        UTL_FILE.put_line(fich_salida_pkg,'  begin'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    /* Proceso que se va ha encargar de hacer el pos-procesado despues de insertar */'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    /* consistente en comprobar si la particion de ' || reg_tabla.TABLE_NAME || ' de fecha de datos ya tenia datos, para salvaguardarlos si los tenia */');
+        --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
+        UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '') */ INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' select * from ' || OWNER_DM || '.'' || ''' || reg_tabla.TABLE_NAME || ''' || '' where CVE_DIA = '' || fch_datos_in;');
+        UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de filas salvaguardadas es: '' || SQL%ROWCOUNT);'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    valor_retorno := SQL%ROWCOUNT;'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    commit;'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    return valor_retorno;'); 
+        UTL_FILE.put_line(fich_salida_pkg,'  exception'); 
+        UTL_FILE.put_line(fich_salida_pkg,'  when OTHERS then'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);'); 
+        UTL_FILE.put_line(fich_salida_pkg,'    raise;'); 
+        UTL_FILE.put_line(fich_salida_pkg,'  end pos_proceso;'); 
+      end if;
     end if;
 
     /* (20150825) Angel Ruiz. N.F.: Se trata de una nueva regla SEQG */
@@ -3044,20 +3067,13 @@ begin
     DBMS_OUTPUT.PUT_LINE('--ANTES DE HOLA HOLA HOLA');
     DBMS_OUTPUT.PUT_LINE('El valor de PARTICIONADO ES: #' || reg_tabla.PARTICIONADO || '#');
     if (reg_tabla.PARTICIONADO is null or reg_tabla.PARTICIONADO <> 'M24') then
-      UTL_FILE.put_line(fich_salida_pkg, '        /* Salvaguardamos la informacion que ya estaba grabada en la particion */');
-      UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
+      /* (20160308) Angel Ruiz. NF: Preparo el script para generar cualquier tipo de procesos de hechos */
+      if (v_existen_retrasados = 'S') then
+        UTL_FILE.put_line(fich_salida_pkg, '        /* Salvaguardamos la informacion que ya estaba grabada en la particion */');
+        UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
+      end if;
     end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
-    --if (v_nombre_tabla_agr <> 'No Existe') then
-      /* Como existe un escenario de agregacion, hay que generar codigo para que se agrege */
-      /* la inforamcion que se acaba de insertar */
-      --UTL_FILE.put_line(fich_salida_pkg,'        if (forzado_in = ''F'') then');
-      --UTL_FILE.put_line(fich_salida_pkg,'          /* Agregamos la informacion que acabamos de insertar en caso de que la ejecucion fuera forzada */');
-      --UTL_FILE.put_line(fich_salida_pkg,'          numero_reg_agr := ' || OWNER_DM || '.pkg_' || v_nombre_proceso_agr || '.' || 'agr_' || v_nombre_proceso_agr || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
-      --UTL_FILE.put_line(fich_salida_pkg,'          dbms_output.put_line (''El numero de registros agr es: '' || numero_reg_agr || ''.'');');
-      --UTL_FILE.put_line(fich_salida_pkg,'          ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || v_nombre_tabla_agr || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_agr);');
-      --UTL_FILE.put_line(fich_salida_pkg,'        end if;');
-    --end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
@@ -3067,9 +3083,19 @@ begin
     else
       if (v_nombre_tabla_agr <> 'No Existe') then
         /* Hay un escenario de desagregacion. Hemos borrado registros despues de desagregar y los reflejamos en el monitoreo */
-        UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, numero_reg_del, numero_reg_salvaguardados);');
+        if (v_existen_retrasados = 'S') then
+          /* (20160309) Angel Ruiz. Si existen retrasados, quiere decir que hay reg. salvaguardados */
+          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, numero_reg_del, numero_reg_salvaguardados);');
+        else  /* (20160309) Angel Ruiz. Si no hay retrasados, no hay reg. salvaguardados */
+          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, numero_reg_del);');
+        end if;
       else
-        UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
+        if (v_existen_retrasados = 'S') then
+          /* (20160309) Angel Ruiz. Si existen retrasados, quiere decir que hay reg. salvaguardados */
+          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
+        else
+          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, 0);');
+        end if;
       end if;
     end if;
     /* (20150918) Angel Ruiz. Fin NF */
