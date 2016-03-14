@@ -752,7 +752,12 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         end if;
         
         /* Procesamos el campo LKUP_COM_RUL que es donde esta la condicion CASE WHEN*/
-        v_prototipo_func := 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+        /*(20160310) Angel Ruiz. NF: Decode en tablas de LookUp . Separador de campos ;*/
+        if (instr(v_IE_COLUMN_LKUP, 'DECODE') > 0 or instr(v_IE_COLUMN_LKUP, 'decode') > 0) then
+          v_prototipo_func := 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || prepara_campos_interface_col(v_IE_COLUMN_LKUP) || ')';
+        else
+          v_prototipo_func := 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || cambio_puntoYcoma_por_coma(v_IE_COLUMN_LKUP) || ')';
+        end if;
         valor_retorno := proc_campo_value_condicion (reg_detalle_in.LKUP_COM_RULE, v_prototipo_func);
       when 'LKUP' then
         /* Se trata de hacer el LOOK UP con la tabla dimension */
@@ -796,7 +801,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         else
           /* (20160304) Angel Ruiz. NF: DECODE en las funciones de LookUp */
           if (instr(v_IE_COLUMN_LKUP, 'DECODE') > 0 or instr(v_IE_COLUMN_LKUP, 'decode') > 0) then
-            valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || prepara_campos_interface_col(v_IE_COLUMN_LKUP, reg_detalle_in.TABLE_LKUP) || ')';
+            valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || prepara_campos_interface_col(v_IE_COLUMN_LKUP) || ')';
           else
             valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || cambio_puntoYcoma_por_coma(v_IE_COLUMN_LKUP) || ')';
           end if;
@@ -827,9 +832,17 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          if (instr(v_IE_COLUMN_LKUP, 'DECODE') > 0 or instr(v_IE_COLUMN_LKUP, 'decode') > 0) then
+            valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || prepara_campos_interface_col (v_IE_COLUMN_LKUP) || ') ELSE ' || trim(constante);
+          else
+            valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          end if;
         else
-          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+          if (instr(v_IE_COLUMN_LKUP, 'DECODE') > 0 or instr(v_IE_COLUMN_LKUP, 'decode') > 0) then
+            valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || prepara_campos_interface_col(v_IE_COLUMN_LKUP) || ')';
+          else
+            valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+          end if;
         end if;
         
       when 'FUNCTION' then
@@ -947,7 +960,6 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || reg_lookup_in.IE_COLUMN_LKUP || '%TYPE) return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
         end if;
       end if;
-        
     else  /* (20150102) Angel Ruiz . Nueva incidencia. Hay una tabla de LookUp normal. No SELECT */
       /* (20160228) Angel Ruiz. NF: Cambio de , por ; */
       --lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
@@ -975,7 +987,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         END LOOP;
         valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
       else        
-        if (instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'DECODE') >0 or instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'decode') >0)then
+        if (instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'DECODE') >0 or instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'decode') >0) then
           valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(reg_lookup_in.TABLE_COLUMN_LKUP) || '%TYPE) return ' || reg_tabla.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE';
         else
           valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_NAME || '.' || reg_lookup_in.TABLE_COLUMN || '%TYPE RESULT_CACHE;';
@@ -1009,14 +1021,26 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
         if indx = 1 then
-          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+            valor_retorno := valor_retorno || 'DECODE_' || indx || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(lkup_columns(indx)) || '%TYPE';
+          else
+            valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          end if;
         else
-          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+            valor_retorno := valor_retorno || ', ' || 'DECODE_' || indx || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(lkup_columns(indx)) || '%TYPE';
+          else
+            valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          end if;
         end if;
       END LOOP;
       valor_retorno := valor_retorno || ') return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.VALUE || '%TYPE RESULT_CACHE;';
-    else        
-      valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE;';
+    else
+      if (instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'DECODE') >0 or instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'decode') >0) then
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(reg_lookup_in.TABLE_COLUMN_LKUP) || '%TYPE) return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE;';
+      else
+        valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE) return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE RESULT_CACHE;';
+      end if;
     end if;
     return valor_retorno;
   end;
@@ -1081,7 +1105,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         LOOP
           if indx = 1 then
             /* (20160228) Angel Ruiz. NF: El separador pasa a ser , */
-            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0)then
+            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
               valor_retorno := valor_retorno || 'DECODE_' || indx || '_IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || extrae_campo_decode(ie_lkup_columns(indx)) || '%TYPE';
             else          
               valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || OWNER_SA || '.' || v_nombre_tabla || '.' || ie_lkup_columns(indx) || '%TYPE';
@@ -1156,7 +1180,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
         /* (20160301) Angel Ruiz. NF: DECODE como campo */
-        if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0)then
+        if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
           /* Existe la funcion DECODE en el campo que estamos tratando */
           nombre_campo := extrae_campo_decode(lkup_columns(indx));
           SELECT * INTO l_registro
@@ -1174,7 +1198,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
           if (indx = 1) then
             /* (20160301) Angel Ruiz. NF: DECODE como campo */
-            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0)then
+            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
               UTL_FILE.put_line (fich_salida_pkg, '  if (' || 'DECODE_' || indx || '_IN ' || 'IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NI#'' OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NO INFORMADO''');
             else    
               UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN ' || 'IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
@@ -1199,7 +1223,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         else
           if (indx = 1) then
             /* (20160301) Angel Ruiz. NF: DECODE como campo */
-            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0)then
+            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
               UTL_FILE.put_line (fich_salida_pkg, '  if (' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = -3');
             else
               UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
@@ -1207,7 +1231,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           else
             if (indx = lkup_columns.LAST) then
               /* (20160301) Angel Ruiz. NF: DECODE como campo */
-              if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0)then
+              if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
                 UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = -3) then');
               else
                 UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3) then');
@@ -1215,7 +1239,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             else
               /* (20160301) Angel Ruiz. NF: DECODE como campo */
               if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
-                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN' || ' = -3');
               else
                 UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
               end if;
@@ -1252,7 +1276,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       LOOP
         if indx = 1 then
           /*(20160301) Angel Ruiz. NF Decode en campos LookUp*/
-          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0)then
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
             valor_retorno := valor_retorno || transformo_decode(lkup_columns(indx), v_alias, 0) || ' = ' || 'DECODE_' || indx || '_in';
           else
             valor_retorno := valor_retorno || v_alias || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
@@ -1330,6 +1354,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_nombre_func_lookup             VARCHAR2(40);
     v_nombre_tabla                          VARCHAR2(30);
     l_registro          ALL_TAB_COLUMNS%rowtype;
+    nombre_campo  VARCHAR2(30);
 
   begin
     /* Se trata de hacer el LOOK UP con la tabla dimension */
@@ -1337,22 +1362,36 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_nombre_func_lookup := 'LK_' || reg_lookup_in.TABLE_COLUMN;  /* Llamo a mi funcion de LookUp esta concatenacion */
     v_nombre_tabla := reg_lookup_in.TABLE_LKUP;
     /* Miramos si hay varios campos por los que hay que hay que hacer JOIN */
-    lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+    /* (20160311) Angel Ruiz. N.F.: DECODE en las tblas de LookUp */
+    --lkup_columns := split_string_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
+    lkup_columns := split_string_punto_coma (reg_lookup_in.TABLE_COLUMN_LKUP);
     if (lkup_columns.COUNT > 1)
     then
       valor_retorno := '  FUNCTION ' || v_nombre_func_lookup || ' (';
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
         if indx = 1 then
-          valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+            valor_retorno := valor_retorno || 'DECODE_' || indx || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(lkup_columns(indx)) || '%TYPE';
+          else          
+            valor_retorno := valor_retorno || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          end if;
         else
-          valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+            valor_retorno := valor_retorno || ', ' || 'DECODE_' || indx || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(lkup_columns(indx)) || '%TYPE';
+          else
+            valor_retorno := valor_retorno || ', ' || lkup_columns(indx) || '_IN ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || '%TYPE';
+          end if;
         end if;
       END LOOP;
       valor_retorno := valor_retorno || ') ';
       UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
-    else        
-      UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE)'); 
+    else
+      if (instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'decode') > 0) then
+        UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || extrae_campo_decode(reg_lookup_in.TABLE_COLUMN_LKUP) || '%TYPE)');
+      else    
+        UTL_FILE.put_line (fich_salida_pkg, '  FUNCTION ' || v_nombre_func_lookup || ' (cod_in IN ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || '%TYPE)'); 
+      end if;
     end if;
     UTL_FILE.put_line (fich_salida_pkg, '    return ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.value || '%TYPE');
     UTL_FILE.put_line (fich_salida_pkg, '    RESULT_CACHE RELIES_ON (' || reg_lookup_in.TABLE_LKUP || ')');
@@ -1366,29 +1405,67 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       UTL_FILE.put_line (fich_salida_pkg, '');
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
-        SELECT * INTO l_registro
-        FROM ALL_TAB_COLUMNS
-        WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
-        COLUMN_NAME = trim(lkup_columns(indx));
+        /* (20160311) Angel Ruiz. NF: DECODE como campo */
+        if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+          nombre_campo := extrae_campo_decode(lkup_columns(indx));
+          SELECT * INTO l_registro
+          FROM ALL_TAB_COLUMNS
+          WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
+          COLUMN_NAME = trim(nombre_campo);
+        else
+          SELECT * INTO l_registro
+          FROM ALL_TAB_COLUMNS
+          WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
+          COLUMN_NAME = trim(lkup_columns(indx));
+        end if;
 
         if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
           if (indx = 1) then
-            UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN ' || 'IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
+            /* (20160311) Angel Ruiz. NF: DECODE como campo */
+            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+              UTL_FILE.put_line (fich_salida_pkg, '  if (' || 'DECODE_' || indx || '_IN ' || 'IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NI#'' OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NO INFORMADO''');
+            else          
+              UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN ' || 'IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
+            end if;
           else
             if (indx = lkup_columns.LAST) then
-              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' ||lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO'') then');
+              /* (20160311) Angel Ruiz. NF: DECODE como campo */
+              if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NI#'' OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NO INFORMADO'') then');
+              else
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' ||lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO'') then');
+              end if;
             else
-              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' ||lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
+              if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NI#'' OR ' || 'DECODE_' || indx || '_IN ' || ' = ''NO INFORMADO''');
+              else
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' ||lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
+              end if;
             end if;
           end if;
         else
           if (indx = 1) then
-            UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+            /* (20160311) Angel Ruiz. NF: DECODE como campo */
+            if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+              UTL_FILE.put_line (fich_salida_pkg, '  if (' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = -3');
+            else
+              UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+            end if;
           else
             if (indx = lkup_columns.LAST) then
-              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3) then');
+              /* (20160311) Angel Ruiz. NF: DECODE como campo */
+              if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || indx || '_IN ' || ' = -3) then');
+              else
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3) then');
+              end if;
             else
-              UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+              /* (20160311) Angel Ruiz. NF: DECODE como campo */
+              if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || 'DECODE_' || indx || '_IN ' || ' IS NULL OR ' || 'DECODE_' || '_IN' || ' = -3');
+              else            
+                UTL_FILE.put_line (fich_salida_pkg, '    ' || 'OR ' || lkup_columns(indx) || '_IN' || ' IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = -3');
+              end if;
             end if;
           end if;
         end if;
@@ -1409,9 +1486,19 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
         if indx = 1 then
-          valor_retorno := valor_retorno || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
+          /*(20160311) Angel Ruiz. NF Decode en campos LookUp*/
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+            valor_retorno := valor_retorno || transformo_decode(lkup_columns(indx), reg_lookup_in.TABLE_LKUP, 0) || ' = ' || 'DECODE_' || indx || '_in';
+          else
+            valor_retorno := valor_retorno || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
+          end if;
         else
-          valor_retorno := valor_retorno || ' and ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
+          /*(20160311) Angel Ruiz. NF Decode en campos LookUp*/
+          if (instr(lkup_columns(indx), 'DECODE') > 0 or instr(lkup_columns(indx), 'decode') > 0) then
+            valor_retorno := valor_retorno || ' and ' || transformo_decode(lkup_columns(indx), reg_lookup_in.TABLE_LKUP, 0) || ' = ' || 'DECODE_' || indx || '_in';
+          else        
+            valor_retorno := valor_retorno || ' and ' || reg_lookup_in.TABLE_LKUP || '.' || lkup_columns(indx) || ' = ' || lkup_columns(indx) || '_in';
+          end if;
         end if;
       END LOOP;
       if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
@@ -1431,9 +1518,19 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         end if;
       else 
         if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
-        UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in;' );
+          /*(20160311) Angel Ruiz. NF Decode en campos LookUp*/
+          if (instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'decode') > 0) then
+            UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || transformo_decode (reg_lookup_in.TABLE_COLUMN_LKUP, reg_lookup_in.TABLE_LKUP, 0) || ' = ' || 'cod_in;' );
+          else
+            UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in;' );
+          end if;
         else
-        UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in and ' || reg_lookup_in.TABLE_LKUP_COND || ';' );
+          /*(20160311) Angel Ruiz. NF Decode en campos LookUp*/
+          if (instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_lookup_in.TABLE_COLUMN_LKUP, 'decode') > 0) then
+            UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || transformo_decode (reg_lookup_in.TABLE_COLUMN_LKUP, reg_lookup_in.TABLE_LKUP, 0) || ' = ' || 'cod_in and ' || reg_lookup_in.TABLE_LKUP_COND || ';' );
+          else
+            UTL_FILE.put_line (fich_salida_pkg, '    WHERE ' || reg_lookup_in.TABLE_LKUP || '.' || reg_lookup_in.TABLE_COLUMN_LKUP || ' = ' || 'cod_in and ' || reg_lookup_in.TABLE_LKUP_COND || ';' );
+          end if;
         end if;
       end if;
     end if;
