@@ -918,7 +918,7 @@ SELECT
             LOOP
               /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
               if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
-                nombre_campo := extrae_campo_decode_sin_tabla (ie_column_lkup(indx));
+                nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
                 SELECT * INTO l_registro
                 FROM ALL_TAB_COLUMNS
                 WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -986,7 +986,7 @@ SELECT
             
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
             if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
-              nombre_campo := extrae_campo_decode_sin_tabla (ie_column_lkup(indx));
+              nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
               SELECT * INTO l_registro
               FROM ALL_TAB_COLUMNS
               WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -1070,7 +1070,7 @@ SELECT
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
             if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
-              nombre_campo := extrae_campo_decode_sin_tabla (reg_detalle_in.IE_COLUMN_LKUP);
+              nombre_campo := extrae_campo_decode (reg_detalle_in.IE_COLUMN_LKUP);
               SELECT * INTO l_registro
               FROM ALL_TAB_COLUMNS
               WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
