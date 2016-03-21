@@ -16,9 +16,9 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_RECARGA_ESP', 'SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO')
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
-    --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1')
+    and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1', 'SA_USUARIO_SAP1', 'SA_PARQUE_SERIADOS1')
     --and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
-    and TABLE_NAME in ('DMD_CADENA')
+    --and TABLE_NAME in ('DMD_CADENA')
     --and TABLE_NAME in ('DMD_SERIADO')
     order by
     TABLE_TYPE;
@@ -3070,30 +3070,39 @@ begin
               /* Ocurre que hemos de llevar un historico de esta tabla de INTEGRACION */
               if (v_interface_summary.FREQUENCY = 'D') then
                 UTL_FILE.put_line(fich_salida_pkg,'  /* Primero borramos la particion que se ha quedado obsoleta */');
-                UTL_FILE.put_line(fich_salida_pkg,'  fch_particion := TO_CHAR(ADD_MONTHS(TO_DATE(fch_carga_in,''YYYYMMDD''), -' || v_num_meses || '), ''YYYYMMDD'');');
-                UTL_FILE.put_line(fich_salida_pkg,'  FOR nombre_particion_rec IN (');
-                UTL_FILE.put_line(fich_salida_pkg,'    select partition_name' );
-                UTL_FILE.put_line(fich_salida_pkg,'    from user_tab_partitions' );
-                UTL_FILE.put_line(fich_salida_pkg,'    where table_name = ''SAH_' || v_concept_name || '''');
-                UTL_FILE.put_line(fich_salida_pkg,'    and partition_name < ''' || v_nombre_particion || ''' || ''_'' || fch_particion )');
-                UTL_FILE.put_line(fich_salida_pkg,'  LOOP' );
+                UTL_FILE.put_line(fich_salida_pkg,'  /* siempre que no estemos en una ejecucion forzosa */');
+                UTL_FILE.put_line(fich_salida_pkg,'  /* en caso contrario no tiene sentido */');
+                /* (20160315) Angel Ruiz. NF: Se lleva a cabo salvaguarda si la particion existe */
+                UTL_FILE.put_line(fich_salida_pkg,'  if (forzado_in = ''N'') then');
+                UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_CHAR(ADD_MONTHS(TO_DATE(fch_carga_in,''YYYYMMDD''), -' || v_num_meses || '), ''YYYYMMDD'');');
+                UTL_FILE.put_line(fich_salida_pkg,'    FOR nombre_particion_rec IN (');
+                UTL_FILE.put_line(fich_salida_pkg,'      select partition_name' );
+                UTL_FILE.put_line(fich_salida_pkg,'      from user_tab_partitions' );
+                UTL_FILE.put_line(fich_salida_pkg,'      where table_name = ''SAH_' || v_concept_name || '''');
+                UTL_FILE.put_line(fich_salida_pkg,'      and partition_name < ''' || v_nombre_particion || ''' || ''_'' || fch_particion )');
+                UTL_FILE.put_line(fich_salida_pkg,'    LOOP' );
                 --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''' || v_nombre_particion || ''' || ''_''' || ' || fch_particion, ''SAH_'' || ''' || v_concept_name || ''');');
-                UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (nombre_particion_rec.partition_name, ' || '''SAH_'' || ''' || v_concept_name || ''');');
-                UTL_FILE.put_line(fich_salida_pkg,'    if (exis_partition = 1) then' );
+                UTL_FILE.put_line(fich_salida_pkg,'      exis_partition :=  existe_particion (nombre_particion_rec.partition_name, ' || '''SAH_'' || ''' || v_concept_name || ''');');
+                UTL_FILE.put_line(fich_salida_pkg,'      if (exis_partition = 1) then' );
                 --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_particion' || ';');
-                UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION '' || nombre_particion_rec.partition_name'  || ';');
-                UTL_FILE.put_line(fich_salida_pkg,'    end if;' );
-                UTL_FILE.put_line(fich_salida_pkg,'  END LOOP;' );
+                UTL_FILE.put_line(fich_salida_pkg,'        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION '' || nombre_particion_rec.partition_name'  || ';');
+                UTL_FILE.put_line(fich_salida_pkg,'      end if;' );
+                UTL_FILE.put_line(fich_salida_pkg,'    END LOOP;' );
+                UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
                 UTL_FILE.put_line(fich_salida_pkg,'' );
                 UTL_FILE.put_line(fich_salida_pkg,'  /* Segundo comrpobamos si hay que crear o truncar la particion sobre la que vamos a salvaguardar la informacion */');
-                UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_CHAR(TO_DATE(fch_carga_in,''YYYYMMDD'')+1, ''YYYYMMDD'');'); 
-                UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''' || v_nombre_particion || ''' || ''_''' || ' || fch_carga_in, ''SAH_'' || ''' || v_concept_name || ''');');
+                UTL_FILE.put_line(fich_salida_pkg,'  fch_particion := TO_CHAR(TO_DATE(fch_carga_in,''YYYYMMDD'')+1, ''YYYYMMDD'');'); 
+                UTL_FILE.put_line(fich_salida_pkg,'  exis_partition :=  existe_particion (' || '''' || v_nombre_particion || ''' || ''_''' || ' || fch_carga_in, ''SAH_'' || ''' || v_concept_name || ''');');
                 UTL_FILE.put_line(fich_salida_pkg,'  if (exis_partition = 1) then' );
                 UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE  ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' TRUNCATE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_carga_in;');
                 UTL_FILE.put_line(fich_salida_pkg,'  else' );
                 --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''CREATE TABLE ' || 'app_mvnosa.SA_'' || ''' || reg_summary.CONCEPT_NAME || ''' || ''_'' || fch_datos_in  || '' AS SELECT * FROM SA_'' || ''' || reg_summary.CONCEPT_NAME || ''';');
-                UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE ' || TABLESPACE_SA || ''';');
+                /* (20160315) Angel Ruiz. NF: Se lleva a cabo salvaguarda si la particion existe */        
+                UTL_FILE.put_line(fich_salida_pkg,'    if (forzado_in = ''N'') then' );
+                UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' ADD PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' VALUES LESS THAN ('' || fch_particion || '') TABLESPACE ' || TABLESPACE_SA || ''';');
+                UTL_FILE.put_line(fich_salida_pkg,'    end if;' );
                 UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
+                UTL_FILE.put_line(fich_salida_pkg,'  if (exis_partition = 1 or (exis_partition = 0 and forzado_in = ''N'')) then' );
               elsif (v_interface_summary.FREQUENCY = 'E') then
                 /* (20151013) Angel Ruiz. NF: Hay que llevar un historico dependiendo del tipo de tabla de STAGIN. De carga DIARIA o de carga EVENTUAL */
                 UTL_FILE.put_line(fich_salida_pkg, '  fch_partition_num number(8);');
@@ -3107,20 +3116,25 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN' );
                 UTL_FILE.put_line(fich_salida_pkg,'' );
                 UTL_FILE.put_line(fich_salida_pkg,'  /* Primero borramos la particion que se ha quedado obsoleta */');
-                UTL_FILE.put_line(fich_salida_pkg,'  fch_particion := TO_CHAR(ADD_MONTHS(TO_DATE(fch_carga_in,''YYYYMMDD''), -' || v_num_meses || '), ''YYYYMMDD'');');
-                UTL_FILE.put_line(fich_salida_pkg,'  FOR nombre_particion_rec IN (');
-                UTL_FILE.put_line(fich_salida_pkg,'    select partition_name' );
-                UTL_FILE.put_line(fich_salida_pkg,'    from user_tab_partitions' );
-                UTL_FILE.put_line(fich_salida_pkg,'    where table_name = ''SAH_' || v_concept_name || '''');
-                UTL_FILE.put_line(fich_salida_pkg,'    and partition_name < ''' || v_nombre_particion || ''' || ''_'' || fch_particion )');
-                UTL_FILE.put_line(fich_salida_pkg,'  LOOP' );
+                UTL_FILE.put_line(fich_salida_pkg,'  /* siempre que no estemos en una ejecucion forzosa */');
+                UTL_FILE.put_line(fich_salida_pkg,'  /* en caso contrario no tiene sentido */');
+                /* (20160315) Angel Ruiz. NF: Se lleva a cabo salvaguarda si la particion existe */
+                UTL_FILE.put_line(fich_salida_pkg,'  if (forzado_in = ''N'') then');
+                UTL_FILE.put_line(fich_salida_pkg,'    fch_particion := TO_CHAR(ADD_MONTHS(TO_DATE(fch_carga_in,''YYYYMMDD''), -' || v_num_meses || '), ''YYYYMMDD'');');
+                UTL_FILE.put_line(fich_salida_pkg,'    FOR nombre_particion_rec IN (');
+                UTL_FILE.put_line(fich_salida_pkg,'      select partition_name' );
+                UTL_FILE.put_line(fich_salida_pkg,'      from user_tab_partitions' );
+                UTL_FILE.put_line(fich_salida_pkg,'      where table_name = ''SAH_' || v_concept_name || '''');
+                UTL_FILE.put_line(fich_salida_pkg,'      and partition_name < ''' || v_nombre_particion || ''' || ''_'' || fch_particion )');
+                UTL_FILE.put_line(fich_salida_pkg,'    LOOP' );
                 --UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (' || '''' || v_nombre_particion || ''' || ''_''' || ' || fch_particion, ''SAH_'' || ''' || v_concept_name || ''');');
-                UTL_FILE.put_line(fich_salida_pkg,'    exis_partition :=  existe_particion (nombre_particion_rec.partition_name, ' || '''SAH_'' || ''' || v_concept_name || ''');');
-                UTL_FILE.put_line(fich_salida_pkg,'    if (exis_partition = 1) then' );
+                UTL_FILE.put_line(fich_salida_pkg,'      exis_partition :=  existe_particion (nombre_particion_rec.partition_name, ' || '''SAH_'' || ''' || v_concept_name || ''');');
+                UTL_FILE.put_line(fich_salida_pkg,'      if (exis_partition = 1) then' );
                 --UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_particion' || ';');
-                UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION '' || nombre_particion_rec.partition_name'  || ';');
-                UTL_FILE.put_line(fich_salida_pkg,'    end if;' );
-                UTL_FILE.put_line(fich_salida_pkg,'  END LOOP;' );
+                UTL_FILE.put_line(fich_salida_pkg,'        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || ''' || ''.SAH_'' || ''' || v_concept_name || ''' || '' DROP PARTITION '' || nombre_particion_rec.partition_name'  || ';');
+                UTL_FILE.put_line(fich_salida_pkg,'      end if;' );
+                UTL_FILE.put_line(fich_salida_pkg,'    END LOOP;' );
+                UTL_FILE.put_line(fich_salida_pkg,'  end if;' );
                 UTL_FILE.put_line(fich_salida_pkg,'' );
                 UTL_FILE.put_line(fich_salida_pkg,'  /* Segundo llevamos a cabo la gestion de las particiones */');
                 UTL_FILE.put_line(fich_salida_pkg,'  /* Recorremos todas las particiones para ver si existe la partiticion o hay que crearla, o bien hay que splitearla */');
@@ -3148,16 +3162,20 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg,'    /* Truncamos la particion porque ya existe*/');
                 UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || '.' || 'SAH_' || v_concept_name || ' TRUNCATE PARTITION '' || v_nombre_parti;');
                 UTL_FILE.put_line(fich_salida_pkg,'  elsif v_hay_split = ''S'' then');
-                UTL_FILE.put_line(fich_salida_pkg,'    /* Hay que partir la particion inmediatamente superior */');
-                UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || '.' || 'SAH_' || v_concept_name || ' SPLIT PARTITION '' || v_nombre_parti || '' AT ('' || v_fch_split || '') INTO (PARTITION '' || ''' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' , PARTITION '' || v_nombre_parti || '')''; ');
+                UTL_FILE.put_line(fich_salida_pkg,'    if (forzado_in = ''N'') then');
+                UTL_FILE.put_line(fich_salida_pkg,'      /* Hay que partir la particion inmediatamente superior */');
+                UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || '.' || 'SAH_' || v_concept_name || ' SPLIT PARTITION '' || v_nombre_parti || '' AT ('' || v_fch_split || '') INTO (PARTITION '' || ''' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' , PARTITION '' || v_nombre_parti || '')''; ');
+                UTL_FILE.put_line(fich_salida_pkg,'    end if;');
                 UTL_FILE.put_line(fich_salida_pkg,'  else');
-                UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || '.' || 'SAH_' || v_concept_name || ' ADD PARTITION '' || ''' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' VALUES LESS THAN ('' || v_fch_carga_in_mas_1 || '') TABLESPACE '' || ''' || TABLESPACE_SA || ''';');
+                UTL_FILE.put_line(fich_salida_pkg,'    if (forzado_in = ''N'') then');
+                UTL_FILE.put_line(fich_salida_pkg,'      EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_SA || '.' || 'SAH_' || v_concept_name || ' ADD PARTITION '' || ''' || v_nombre_particion || ''' || ''_'' || fch_carga_in || '' VALUES LESS THAN ('' || v_fch_carga_in_mas_1 || '') TABLESPACE '' || ''' || TABLESPACE_SA || ''';');
+                UTL_FILE.put_line(fich_salida_pkg,'    end if;');
                 UTL_FILE.put_line(fich_salida_pkg,'  end if;');
+                UTL_FILE.put_line(fich_salida_pkg,'  if (v_existe_particion = ''S'' or (v_existe_particion = ''N'' and forzado_in = ''N'')) then' );
               end if;
-              
-              UTL_FILE.put_line(fich_salida_pkg,'  /* TERCERO LLEVO A CABO LA SALVAGUARDA DE LA INFORMACION */' );
-              UTL_FILE.put_line(fich_salida_pkg,'  INSERT /*+ APPEND */ INTO ' || OWNER_SA || '.SAH_' || v_concept_name);
-              UTL_FILE.put_line(fich_salida_pkg,'  (');
+              UTL_FILE.put_line(fich_salida_pkg,'    /* TERCERO LLEVO A CABO LA SALVAGUARDA DE LA INFORMACION */' );
+              UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND */ INTO ' || OWNER_SA || '.SAH_' || v_concept_name);
+              UTL_FILE.put_line(fich_salida_pkg,'    (');
               OPEN dtd_interfaz_detail (v_concept_name, 'SA');
               primera_col := 1;
               LOOP
@@ -3165,16 +3183,16 @@ begin
                 INTO reg_interface_detail;
                 EXIT WHEN dtd_interfaz_detail%NOTFOUND;
                 IF primera_col = 1 THEN /* Si es primera columna */
-                  UTL_FILE.put_line(fich_salida_pkg,'  ' || reg_interface_detail.COLUMNA);
+                  UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_interface_detail.COLUMNA);
                   primera_col := 0;
                 ELSE
-                  UTL_FILE.put_line(fich_salida_pkg,'  ,' || reg_interface_detail.COLUMNA);
+                  UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_interface_detail.COLUMNA);
                 END IF;
               END LOOP;
               CLOSE dtd_interfaz_detail;
-              UTL_FILE.put_line(fich_salida_pkg,'  ,CVE_DIA');
-              UTL_FILE.put_line(fich_salida_pkg,'  )');
-              UTL_FILE.put_line(fich_salida_pkg,'  SELECT');
+              UTL_FILE.put_line(fich_salida_pkg,'    ,CVE_DIA');
+              UTL_FILE.put_line(fich_salida_pkg,'    )');
+              UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
               OPEN dtd_interfaz_detail (v_concept_name, 'SA');
               primera_col := 1;
               LOOP
@@ -3182,17 +3200,18 @@ begin
                 INTO reg_interface_detail;
                 EXIT WHEN dtd_interfaz_detail%NOTFOUND;
                 IF primera_col = 1 THEN /* Si es primera columna */
-                  UTL_FILE.put_line(fich_salida_pkg,'  ' || reg_interface_detail.COLUMNA);
+                  UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_interface_detail.COLUMNA);
                   primera_col := 0;
                 ELSE
-                  UTL_FILE.put_line(fich_salida_pkg,'  ,' || reg_interface_detail.COLUMNA);
+                  UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_interface_detail.COLUMNA);
                 END IF;
               END LOOP;
               CLOSE dtd_interfaz_detail;
-              UTL_FILE.put_line(fich_salida_pkg, '  ,TO_NUMBER(fch_carga_in)');
-              UTL_FILE.put_line(fich_salida_pkg, '  FROM ' || OWNER_SA || '.' || reg_tabla.TABLE_NAME);
-              UTL_FILE.put_line(fich_salida_pkg, '  ;');
-              UTL_FILE.put_line(fich_salida_pkg, '  commit;');
+              UTL_FILE.put_line(fich_salida_pkg, '    ,TO_NUMBER(fch_carga_in)');
+              UTL_FILE.put_line(fich_salida_pkg, '    FROM ' || OWNER_SA || '.' || reg_tabla.TABLE_NAME);
+              UTL_FILE.put_line(fich_salida_pkg, '    ;');
+              UTL_FILE.put_line(fich_salida_pkg, '    commit;');
+              UTL_FILE.put_line(fich_salida_pkg, '  end if;');
               UTL_FILE.put_line(fich_salida_pkg, '');
               --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_SA || ''' || ''.'' || ''' || reg_tabla.TABLE_NAME || ''';');
               UTL_FILE.put_line(fich_salida_pkg, '');
