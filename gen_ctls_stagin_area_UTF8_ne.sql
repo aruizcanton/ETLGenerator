@@ -14,9 +14,9 @@ DECLARE
       TRIM(DELAYED) "DELAYED",
       TRIM(HISTORY) "HISTORY"
     FROM MTDT_INTERFACE_SUMMARY    
-    WHERE SOURCE <> 'SA'  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
+    WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
-    and TRIM(CONCEPT_NAME) in ('RECARGAS_MVNO', 'CANAL', 'CADENA', 'SUBTIPO_CANAL', 'MEDIO_RECARGA', 'ERROR_RECARGA');
+    --and TRIM(CONCEPT_NAME) in ('RECARGAS_MVNO', 'CANAL', 'CADENA', 'SUBTIPO_CANAL', 'MEDIO_RECARGA', 'ERROR_RECARGA');
     --AND DELAYED = 'S';
     --WHERE CONCEPT_NAME NOT IN ( 'EMPRESA', 'ESTADO_CEL', 'FINALIZACION_LLAMADA', 'POSICION_TRAZO_LLAMADA', 'TRONCAL', 'TIPO_REGISTRO', 'MSC');
   
@@ -770,10 +770,10 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_CTL=`echo ${NOMBRE_FICH_DATOS} | sed -e ''s/\.[Dd][Aa][Tt]/\.ctl/''`');
       UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_DATOS_T=`echo ${NOMBRE_FICH_DATOS} | sed -e ''s/\.[Dd][Aa][Tt]/_/''`');
       --UTL_FILE.put_line(fich_salida_sh, '  cat ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl | sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/g" > ' || '${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
-      UTL_FILE.put_line(fich_salida_sh, '  sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/" ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl > '  || '${' || NAME_DM || '_TMP}/${NOMBRE_FICH_CTL}');
+      UTL_FILE.put_line(fich_salida_sh, '  sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/" ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl > '  || '${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
       UTL_FILE.put_line(fich_salida_sh, '  # Llamada a sqlldr');
       UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS} \'); 
-      UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_TMP}/${NOMBRE_FICH_CTL} \' );
+      UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL} \' );
       --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS%.*}_${FECHA_HORA}' || '.log \');
       UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log \');
       UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
@@ -790,9 +790,39 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
       UTL_FILE.put_line(fich_salida_sh, '    exit 1');    
       UTL_FILE.put_line(fich_salida_sh, '  fi');    
+      UTL_FILE.put_line(fich_salida_sh, '  # La carga se ha realizado correctamente');
+      UTL_FILE.put_line(fich_salida_sh, '  # Llevamos a cabo la insercion de las marcas en la auditoria');
+      UTL_FILE.put_line(fich_salida_sh, '  # Llamamos a SqlPlus');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+      UTL_FILE.put_line(fich_salida_sh, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
+      UTL_FILE.put_line(fich_salida_sh, 'whenever sqlerror exit 1;');
+      UTL_FILE.put_line(fich_salida_sh, 'whenever oserror exit 2;');
+      UTL_FILE.put_line(fich_salida_sh, 'set feedback off;');
+      UTL_FILE.put_line(fich_salida_sh, 'set serveroutput on;');
+      UTL_FILE.put_line(fich_salida_sh, 'set echo on;');
+      UTL_FILE.put_line(fich_salida_sh, 'set pagesize 0;');
+      UTL_FILE.put_line(fich_salida_sh, 'set verify off;');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'begin');
+      UTL_FILE.put_line(fich_salida_sh, '  ' || OWNER_SA || '.pkg_' || nombre_proceso || '.' || 'mar_' || nombre_proceso || ' (''${FCH_CARGA}'', ''${FCH_DATOS}'', ''${BAN_FORZADO}'', ''${INICIO_PASO_TMR}'', ''${NOMBRE_FICH_DATOS}'');');
+      UTL_FILE.put_line(fich_salida_sh, 'end;');
+      UTL_FILE.put_line(fich_salida_sh, '/');
+      UTL_FILE.put_line(fich_salida_sh, 'exit 0;');
+      UTL_FILE.put_line(fich_salida_sh, 'EOF');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, '  err_salida=$?');
+      UTL_FILE.put_line(fich_salida_sh, '  if [ ${err_salida} -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a mar_' || nombre_proceso || '. Error:  ${err_salida}."');
+      UTL_FILE.put_line(fich_salida_sh, '    ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
+      UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');        
+      UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
+      UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_sh, '    exit 1');
+      UTL_FILE.put_line(fich_salida_sh, '  fi');
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, '  #Borramos el fichero ctl generado en vuelo.');
-      UTL_FILE.put_line(fich_salida_sh, '  rm ${' || NAME_DM || '_TMP}/${NOMBRE_FICH_CTL}');
+      UTL_FILE.put_line(fich_salida_sh, '  rm ${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, '  REG_LEIDOS=`grep "^Total logical records read:" ' || '${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log | cut -d":" -f2 | sed ''s/ *//''`');
       UTL_FILE.put_line(fich_salida_sh, '  REG_INSERTADOS=`grep "Rows* successfully loaded." ' || '${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log | sed ''s/^ *//'' | cut -d" " -f1`');
