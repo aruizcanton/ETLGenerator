@@ -11,7 +11,9 @@ DECLARE
       SEPARATOR,
       LENGTH,
       DELAYED,
-      HISTORY
+      HISTORY,
+      MARCA,
+      HUSO      
     FROM MTDT_INTERFACE_SUMMARY
     WHERE SOURCE <> 'SA';
     --where DELAYED = 'S';
@@ -67,6 +69,8 @@ DECLARE
       OWNER_DM                            VARCHAR2(60);
       OWNER_MTDT                       VARCHAR2(60);
       OWNER_TC                            VARCHAR2(60);
+      PREFIJO_DM                            VARCHAR2(60);
+      NAME_DM                            VARCHAR2(60);
       nombre_proceso                      VARCHAR(30);
       TABLESPACE_SA                  VARCHAR2(60);
       v_num_meses                          VARCHAR2(2);
@@ -82,6 +86,10 @@ BEGIN
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
+  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';
+  SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
+  
+  
   
   /* (20141219) FIN*/
   OPEN dtd_interfaz_summary;
@@ -118,6 +126,12 @@ BEGIN
       if (reg_summary.HISTORY IS NOT NULL) then
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
         UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE pos_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2 := ''N'');');
+      end if;
+      /* (20160316) Angel Ruiz. NF: Se añade marcas de extraccion */
+      if (reg_summary.MARCA IS NOT NULL) then
+        /* El interfaz posee valor en el campo MARCA, por lo que hay que realizar su gestion */
+        UTL_FILE.put_line(fich_salida_pkg, '' ); 
+        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE mar_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2, fch_inicio_in IN TIMESTAMP, nombre_fich_in IN VARCHAR2);');
       end if;
       UTL_FILE.put_line(fich_salida_pkg, '' ); 
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
@@ -296,6 +310,41 @@ BEGIN
       end if;      
 /************/
 /************/
+      /* (20160316). Angel Ruiz. NF: Se añade control de marcas en los ficehros cargados */
+      if (reg_summary.MARCA IS NOT NULL) then
+        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE mar_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2, fch_inicio_in IN TIMESTAMP, nombre_fich_in IN VARCHAR2)');
+        UTL_FILE.put_line(fich_salida_pkg, '  IS' ); 
+        UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
+        UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
+        UTL_FILE.put_line(fich_salida_pkg,'   fch_particion varchar2(8);');
+        
+        UTL_FILE.put_line(fich_salida_pkg,'  BEGIN' );
+        UTL_FILE.put_line(fich_salida_pkg,'' );
+        UTL_FILE.put_line(fich_salida_pkg,'    /* Insertamos el registro de marca para el fichero que viene por parametro */' );
+        UTL_FILE.put_line(fich_salida_pkg,'    FOR MARCAS IN (');
+        UTL_FILE.put_line(fich_salida_pkg,'      SELECT ' );
+        UTL_FILE.put_line(fich_salida_pkg,'        MAX(' || reg_summary.MARCA || ') "MARCA_FINAL",' );
+        UTL_FILE.put_line(fich_salida_pkg,'        MIN(' || reg_summary.MARCA || ') "MARCA_INICIAL",' );
+        UTL_FILE.put_line(fich_salida_pkg,'        MAX(' || reg_summary.HUSO || ') "MARCA_FINAL_HUSO",' );
+        UTL_FILE.put_line(fich_salida_pkg,'        MIN(' || reg_summary.HUSO || ') "MARCA_INICIAL_HUSO"' );
+        UTL_FILE.put_line(fich_salida_pkg,'      FROM ' );
+        UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_SA || '.' || 'SA_' || reg_summary.CONCEPT_NAME);
+        UTL_FILE.put_line(fich_salida_pkg,'      WHERE ' );
+        UTL_FILE.put_line(fich_salida_pkg,'        FILE_NAME = nombre_fich_in)');
+        UTL_FILE.put_line(fich_salida_pkg,'    LOOP' );
+        UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo_marca (''' || 'load_SA_' || reg_summary.CONCEPT_NAME || '.sh'', fch_inicio_in, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), nombre_fich_in, MARCAS.MARCA_INICIAL, MARCAS.MARCA_FINAL, MARCAS.MARCA_INICIAL_HUSO, MARCAS.MARCA_FINAL_HUSO);');
+        UTL_FILE.put_line(fich_salida_pkg,'    END LOOP;' );
+        UTL_FILE.put_line(fich_salida_pkg,'    COMMIT;' );      
+        UTL_FILE.put_line(fich_salida_pkg,'' );
+        UTL_FILE.put_line(fich_salida_pkg,'  exception');
+        UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
+        UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Se ha producido un error en el pre-proceso de staging. Tabla: '' || ''' || 'SA_' || reg_summary.CONCEPT_NAME || ''');');
+        UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
+        UTL_FILE.put_line(fich_salida_pkg,'    raise;');
+        UTL_FILE.put_line(fich_salida_pkg, '  END mar_' || nombre_proceso || ';'); 
+        UTL_FILE.put_line(fich_salida_pkg, '');
+      end if;
+      /* (20160316). Angel Ruiz. FIN NF: Se añade control de marcas en los ficehros cargados */
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
       UTL_FILE.put_line(fich_salida_pkg, '/' );
       UTL_FILE.put_line(fich_salida_pkg, 'GRANT EXECUTE ON ' || OWNER_SA || '.pkg_' || nombre_proceso || ' TO ' || OWNER_TC || ';');
