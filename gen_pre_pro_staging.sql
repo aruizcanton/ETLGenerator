@@ -131,7 +131,7 @@ BEGIN
       if (reg_summary.MARCA IS NOT NULL) then
         /* El interfaz posee valor en el campo MARCA, por lo que hay que realizar su gestion */
         UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE mar_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2, fch_inicio_in IN TIMESTAMP, nombre_fich_in IN VARCHAR2);');
+        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE mar_' || nombre_proceso || ' (nom_proceso_in IN VARCHAR2, fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_inicio_in IN TIMESTAMP, num_inserts_in in NUMBER := 0, num_reads_in in NUMBER := 0, num_discards_in in NUMBER := 0);');
       end if;
       UTL_FILE.put_line(fich_salida_pkg, '' ); 
       UTL_FILE.put_line(fich_salida_pkg, 'END pkg_' || nombre_proceso || ';' );
@@ -312,7 +312,7 @@ BEGIN
 /************/
       /* (20160316). Angel Ruiz. NF: Se añade control de marcas en los ficehros cargados */
       if (reg_summary.MARCA IS NOT NULL) then
-        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE mar_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, forzado_in IN VARCHAR2, fch_inicio_in IN TIMESTAMP, nombre_fich_in IN VARCHAR2)');
+        UTL_FILE.put_line(fich_salida_pkg, '  PROCEDURE mar_' || nombre_proceso || ' (nom_proceso_in IN VARCHAR2, fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_inicio_in IN TIMESTAMP, num_inserts_in in NUMBER := 0, num_reads_in in NUMBER := 0, num_discards_in in NUMBER := 0)');
         UTL_FILE.put_line(fich_salida_pkg, '  IS' ); 
         UTL_FILE.put_line(fich_salida_pkg,'   exis_tabla number(1);');
         UTL_FILE.put_line(fich_salida_pkg,'   exis_partition number(1);');
@@ -326,15 +326,18 @@ BEGIN
         UTL_FILE.put_line(fich_salida_pkg,'        MAX(' || reg_summary.MARCA || ') "MARCA_FINAL",' );
         UTL_FILE.put_line(fich_salida_pkg,'        MIN(' || reg_summary.MARCA || ') "MARCA_INICIAL",' );
         UTL_FILE.put_line(fich_salida_pkg,'        MAX(' || reg_summary.HUSO || ') "MARCA_FINAL_HUSO",' );
-        UTL_FILE.put_line(fich_salida_pkg,'        MIN(' || reg_summary.HUSO || ') "MARCA_INICIAL_HUSO"' );
+        UTL_FILE.put_line(fich_salida_pkg,'        MIN(' || reg_summary.HUSO || ') "MARCA_INICIAL_HUSO",' );
+        UTL_FILE.put_line(fich_salida_pkg,'        FILE_NAME');
         UTL_FILE.put_line(fich_salida_pkg,'      FROM ' );
         UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_SA || '.' || 'SA_' || reg_summary.CONCEPT_NAME);
-        UTL_FILE.put_line(fich_salida_pkg,'      WHERE ' );
-        UTL_FILE.put_line(fich_salida_pkg,'        FILE_NAME = nombre_fich_in)');
+        UTL_FILE.put_line(fich_salida_pkg,'      GROUP BY ' );
+        UTL_FILE.put_line(fich_salida_pkg,'        FILE_NAME)');
         UTL_FILE.put_line(fich_salida_pkg,'    LOOP' );
-        UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo_marca (''' || 'load_SA_' || reg_summary.CONCEPT_NAME || '.sh'', fch_inicio_in, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), nombre_fich_in, MARCAS.MARCA_INICIAL, MARCAS.MARCA_FINAL, MARCAS.MARCA_INICIAL_HUSO, MARCAS.MARCA_FINAL_HUSO);');
+        UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo_marca (nom_proceso_in, fch_inicio_in, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), MARCAS.FILE_NAME, MARCAS.MARCA_INICIAL, MARCAS.MARCA_FINAL, MARCAS.MARCA_INICIAL_HUSO, MARCAS.MARCA_FINAL_HUSO);');
         UTL_FILE.put_line(fich_salida_pkg,'    END LOOP;' );
-        UTL_FILE.put_line(fich_salida_pkg,'    COMMIT;' );      
+        UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (nom_proceso_in, 1, 0, fch_inicio_in, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_inserts_in, 0, 0, num_reads_in, num_discards_in);');
+        UTL_FILE.put_line(fich_salida_pkg,'    commit;' );      
+        UTL_FILE.put_line(fich_salida_pkg,'    ' );      
         UTL_FILE.put_line(fich_salida_pkg,'' );
         UTL_FILE.put_line(fich_salida_pkg,'  exception');
         UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');

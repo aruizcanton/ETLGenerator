@@ -12,7 +12,9 @@ DECLARE
       TRIM(LENGTH) "LENGTH",
       TRIM(FREQUENCY) "FREQUENCY",
       TRIM(DELAYED) "DELAYED",
-      TRIM(HISTORY) "HISTORY"
+      TRIM(HISTORY) "HISTORY",
+      MARCA,
+      HUSO      
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
@@ -512,21 +514,59 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '   return 0');
     UTL_FILE.put_line(fich_salida_sh, '}');
     UTL_FILE.put_line(fich_salida_sh, '');
-    UTL_FILE.put_line(fich_salida_sh, 'InsertaFinOK()');
-    UTL_FILE.put_line(fich_salida_sh, '{');
-    UTL_FILE.put_line(fich_salida_sh, '   #Se especifican parametros usuario y la BD');
-    --UTL_FILE.put_line(fich_salida_sh, '   BD_SID=$1');
-    --UTL_FILE.put_line(fich_salida_sh, '   USER=$2');
-    UTL_FILE.put_line(fich_salida_sh, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_SA_' || reg_summary.CONCEPT_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA} ${TOT_INSERTADOS} 0 0 ${TOT_LEIDOS} ${TOT_RECHAZADOS}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
-    UTL_FILE.put_line(fich_salida_sh, '   if [ $? -ne 0 ]');
-    UTL_FILE.put_line(fich_salida_sh, '   then');
-    UTL_FILE.put_line(fich_salida_sh, '      SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
-    UTL_FILE.put_line(fich_salida_sh, '      echo "${INTERFAZ}: Error al intentar insertar un registro en el metadato." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_sh, '      ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-    UTL_FILE.put_line(fich_salida_sh, '      exit 1;');
-    UTL_FILE.put_line(fich_salida_sh, '   fi');
-    UTL_FILE.put_line(fich_salida_sh, '   return 0');
-    UTL_FILE.put_line(fich_salida_sh, '}');
+    /*(20160321) Angel Ruiz. NF: Marcas de extraccion en las tablas de auditoria */
+    if (nombre_fich_cargado = 'Y' and reg_summary.MARCA IS NOT NULL) then
+      /* El procedure InsertaFinOK sera diferente en el caso de que haya que insertar marcas de extraccion */
+      UTL_FILE.put_line(fich_salida_sh, 'InsertaFinOK()');
+      UTL_FILE.put_line(fich_salida_sh, '{');
+      UTL_FILE.put_line(fich_salida_sh, '  # La carga se ha realizado correctamente');
+      UTL_FILE.put_line(fich_salida_sh, '  # Llevamos a cabo la insercion de las marcas en la auditoria');
+      UTL_FILE.put_line(fich_salida_sh, '  # Llamamos a SqlPlus');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
+      UTL_FILE.put_line(fich_salida_sh, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
+      UTL_FILE.put_line(fich_salida_sh, 'whenever sqlerror exit 1;');
+      UTL_FILE.put_line(fich_salida_sh, 'whenever oserror exit 2;');
+      UTL_FILE.put_line(fich_salida_sh, 'set feedback off;');
+      UTL_FILE.put_line(fich_salida_sh, 'set serveroutput on;');
+      UTL_FILE.put_line(fich_salida_sh, 'set echo on;');
+      UTL_FILE.put_line(fich_salida_sh, 'set pagesize 0;');
+      UTL_FILE.put_line(fich_salida_sh, 'set verify off;');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'begin');
+      UTL_FILE.put_line(fich_salida_sh, '  ' || OWNER_SA || '.pkg_' || nombre_proceso || '.' || 'mar_' || nombre_proceso || ' (''load_SA_' || reg_summary.CONCEPT_NAME || '.sh'', ''${FCH_CARGA}'', ''${FCH_DATOS}'', ''${INICIO_PASO_TMR}'', ''${TOT_INSERTADOS}'', ''${TOT_LEIDOS}'', ''${TOT_RECHAZADOS}'');');
+      UTL_FILE.put_line(fich_salida_sh, 'end;');
+      UTL_FILE.put_line(fich_salida_sh, '/');
+      UTL_FILE.put_line(fich_salida_sh, 'exit 0;');
+      UTL_FILE.put_line(fich_salida_sh, 'EOF');
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, ' if [ $? -ne 0 ]');
+      UTL_FILE.put_line(fich_salida_sh, ' then');
+      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
+      UTL_FILE.put_line(fich_salida_sh, '    echo "${INTERFAZ}: Error al intentar insertar un registro en el metadato." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_sh, '    ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
+      UTL_FILE.put_line(fich_salida_sh, '    exit 1;');
+      UTL_FILE.put_line(fich_salida_sh, ' fi');
+      UTL_FILE.put_line(fich_salida_sh, ' return 0');
+      UTL_FILE.put_line(fich_salida_sh, '}');
+      /*(20160321) Angel Ruiz. FIN NF: Marcas de extraccion en las tablas de auditoria */
+    else
+      UTL_FILE.put_line(fich_salida_sh, 'InsertaFinOK()');
+      UTL_FILE.put_line(fich_salida_sh, '{');
+      UTL_FILE.put_line(fich_salida_sh, '   #Se especifican parametros usuario y la BD');
+      --UTL_FILE.put_line(fich_salida_sh, '   BD_SID=$1');
+      --UTL_FILE.put_line(fich_salida_sh, '   USER=$2');
+      UTL_FILE.put_line(fich_salida_sh, '   EjecutaInserMonitoreo ${BD_SID} ${BD_USUARIO} ${' || NAME_DM || '_SQL}/insert_monitoreo.sql ' || 'load_SA_' || reg_summary.CONCEPT_NAME || '.sh 1 0 "''${INICIO_PASO_TMR}''" systimestamp ${FCH_DATOS} ${FCH_CARGA} ${TOT_INSERTADOS} 0 0 ${TOT_LEIDOS} ${TOT_RECHAZADOS}' || ' >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log 2>&' || '1' );
+      UTL_FILE.put_line(fich_salida_sh, '   if [ $? -ne 0 ]');
+      UTL_FILE.put_line(fich_salida_sh, '   then');
+      UTL_FILE.put_line(fich_salida_sh, '      SUBJECT="${INTERFAZ}:Error en InsertarFinOK"');
+      UTL_FILE.put_line(fich_salida_sh, '      echo "${INTERFAZ}: Error al intentar insertar un registro en el metadato." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_sh, '      ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
+      UTL_FILE.put_line(fich_salida_sh, '      exit 1;');
+      UTL_FILE.put_line(fich_salida_sh, '   fi');
+      UTL_FILE.put_line(fich_salida_sh, '   return 0');
+      UTL_FILE.put_line(fich_salida_sh, '}');
+    end if;
     UTL_FILE.put_line(fich_salida_sh, '');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
@@ -790,36 +830,6 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
       UTL_FILE.put_line(fich_salida_sh, '    exit 1');    
       UTL_FILE.put_line(fich_salida_sh, '  fi');    
-      UTL_FILE.put_line(fich_salida_sh, '  # La carga se ha realizado correctamente');
-      UTL_FILE.put_line(fich_salida_sh, '  # Llevamos a cabo la insercion de las marcas en la auditoria');
-      UTL_FILE.put_line(fich_salida_sh, '  # Llamamos a SqlPlus');
-      UTL_FILE.put_line(fich_salida_sh, '');
-      UTL_FILE.put_line(fich_salida_sh, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
-      UTL_FILE.put_line(fich_salida_sh, 'connect ${BD_USUARIO}/${BD_CLAVE}@${BD_SID}');
-      UTL_FILE.put_line(fich_salida_sh, 'whenever sqlerror exit 1;');
-      UTL_FILE.put_line(fich_salida_sh, 'whenever oserror exit 2;');
-      UTL_FILE.put_line(fich_salida_sh, 'set feedback off;');
-      UTL_FILE.put_line(fich_salida_sh, 'set serveroutput on;');
-      UTL_FILE.put_line(fich_salida_sh, 'set echo on;');
-      UTL_FILE.put_line(fich_salida_sh, 'set pagesize 0;');
-      UTL_FILE.put_line(fich_salida_sh, 'set verify off;');
-      UTL_FILE.put_line(fich_salida_sh, '');
-      UTL_FILE.put_line(fich_salida_sh, 'begin');
-      UTL_FILE.put_line(fich_salida_sh, '  ' || OWNER_SA || '.pkg_' || nombre_proceso || '.' || 'mar_' || nombre_proceso || ' (''${FCH_CARGA}'', ''${FCH_DATOS}'', ''${BAN_FORZADO}'', ''${INICIO_PASO_TMR}'', ''${NOMBRE_FICH_DATOS}'');');
-      UTL_FILE.put_line(fich_salida_sh, 'end;');
-      UTL_FILE.put_line(fich_salida_sh, '/');
-      UTL_FILE.put_line(fich_salida_sh, 'exit 0;');
-      UTL_FILE.put_line(fich_salida_sh, 'EOF');
-      UTL_FILE.put_line(fich_salida_sh, '');
-      UTL_FILE.put_line(fich_salida_sh, '  err_salida=$?');
-      UTL_FILE.put_line(fich_salida_sh, '  if [ ${err_salida} -ne 0 ]; then');
-      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: Surgio un error en el sqlplus en la llamada a mar_' || nombre_proceso || '. Error:  ${err_salida}."');
-      UTL_FILE.put_line(fich_salida_sh, '    ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-      UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');        
-      UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
-      UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
-      UTL_FILE.put_line(fich_salida_sh, '    exit 1');
-      UTL_FILE.put_line(fich_salida_sh, '  fi');
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, '  #Borramos el fichero ctl generado en vuelo.');
       UTL_FILE.put_line(fich_salida_sh, '  rm ${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
