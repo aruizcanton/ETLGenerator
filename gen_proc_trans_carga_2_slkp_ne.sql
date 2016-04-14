@@ -148,6 +148,7 @@ SELECT
   v_nombre_proceso_agr              VARCHAR2(30);
   nombre_tabla_T_agr                VARCHAR2(30);
   v_existen_retrasados              VARCHAR2(1) := 'N';
+  v_numero_indices                  PLS_INTEGER:=0;
 
 
 /************/
@@ -3232,7 +3233,15 @@ begin
       UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);    
       --UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
       UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
-      UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' ');    
+      UTL_FILE.put_line(fich_salida_pkg, '        WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' ');
+      /* (20160412) Angel Ruiz. NF: Las tablas del modelo pueden tener indices */
+      /* con lo que debemos incluir o no los indices en el exchange */
+      v_numero_indices := 0;
+      select count(*) into v_numero_indices from MTDT_MODELO_DETAIL where TRIM(TABLE_NAME) = reg_scenario.TABLE_NAME AND UPPER(TRIM(INDICE)) = 'S';
+      if (v_numero_indices > 0) then
+        UTL_FILE.put_line(fich_salida_pkg, '      INCLUDING INDEXES'' || '' ');    
+      end if;
+      /* (20160412) Angel Ruiz. FIN NF */
       UTL_FILE.put_line(fich_salida_pkg, '        WITHOUT VALIDATION'';');    
     end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
