@@ -3573,7 +3573,7 @@ begin
             if (v_interface_summary.HISTORY IS NOT NULL) then
               /* He de incluir la salvaguarda de los datos */
              UTL_FILE.put_line(fich_salida_pkg, '    /* SALVAGUARDAMOS LOS DATOS */');
-             UTL_FILE.put_line(fich_salida_pkg, '    pos_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+             UTL_FILE.put_line(fich_salida_pkg, '    pos_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, forzado_in);');
             end if;
             /* (20151108) Angel Ruiz. FIN BUG.*/
             UTL_FILE.put_line(fich_salida_pkg, '');
