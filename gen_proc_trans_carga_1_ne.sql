@@ -14,7 +14,8 @@ cursor MTDT_TABLA
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_MVNO', 'DMF_RECARGAS_MVNO', 'DMF_PARQUE_MVNO');  
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS');  
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_RECARGAS_MVNO');  
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_RECARGAS_MVNO');  
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_FACT_SERIADOS');  
 
     --SELECT
       --DISTINCT TRIM(TABLE_NAME) "TABLE_NAME",
@@ -161,6 +162,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   nombre_funcion                   VARCHAR2(100);
   v_encontrado											VARCHAR2(1):= 'N';
   v_contador                        PLS_INTEGER:=0;
+  v_numero_indices                  PLS_INTEGER:=0;
   
 	
   function cambio_puntoYcoma_por_coma (cadena_in in varchar2) return varchar2
@@ -2691,6 +2693,14 @@ begin
     --UTL_FILE.put_line(fich_salida_pkg, '      EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
     UTL_FILE.put_line(fich_salida_pkg, '      EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
     UTL_FILE.put_line(fich_salida_pkg, '      WITH TABLE ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ''' || '' ');    
+    /* (20160412) Angel Ruiz. NF: Las tablas del modelo pueden tener indices */
+    /* con lo que debemos incluir o no los indices en el exchange */
+    v_numero_indices := 0;
+    select count(*) into v_numero_indices from MTDT_MODELO_DETAIL where TRIM(TABLE_NAME) = reg_scenario.TABLE_NAME AND UPPER(TRIM(INDICE)) = 'S';
+    if (v_numero_indices > 0) then
+      UTL_FILE.put_line(fich_salida_pkg, '      INCLUDING INDEXES'' || '' ');    
+    end if;
+    /* (20160412) Angel Ruiz. FIN NF */
     UTL_FILE.put_line(fich_salida_pkg, '      WITHOUT VALIDATION'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_DMF_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
