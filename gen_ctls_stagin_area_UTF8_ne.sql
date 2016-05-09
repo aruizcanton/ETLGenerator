@@ -18,6 +18,7 @@ DECLARE
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
+    --and trim(CONCEPT_NAME) in ('CUENTA', 'PARQUE_ABO_PRE');
     --and TRIM(CONCEPT_NAME) in ('RECARGAS_MVNO', 'CANAL', 'CADENA', 'SUBTIPO_CANAL', 'MEDIO_RECARGA', 'ERROR_RECARGA');
     --AND DELAYED = 'S';
     --WHERE CONCEPT_NAME NOT IN ( 'EMPRESA', 'ESTADO_CEL', 'FINALIZACION_LLAMADA', 'POSICION_TRAZO_LLAMADA', 'TRONCAL', 'TIPO_REGISTRO', 'MSC');
@@ -80,6 +81,7 @@ DECLARE
       long_parte_decimal                  PLS_integer;
       mascara                                     VARCHAR2(250);
       nombre_fich_cargado               VARCHAR2(1) := 'N';
+      v_ulti_pos                        PLS_integer;
       
 
   function procesa_campo_formateo (cadena_in in varchar2, nombre_campo_in in varchar2) return varchar2
@@ -397,7 +399,15 @@ BEGIN
             primera_col := 0;
           ELSE
             if lista_pos.last = num_column then
-              UTL_FILE.put_line (fich_salida, ', ' || reg_datail.COLUMNA || '            POSITION(' || reg_datail.POSITION || ':' || reg_summary.LENGTH || ')     ' || tipo_col); 
+              /* Se trata de la ultima columna */
+              if (instr(reg_datail.LENGTH, ',') > 0) then
+                /* Si aparece una coma es que es del tipo 15,3 */
+                v_ulti_pos := (reg_datail.POSITION + to_number(trim(substr(reg_datail.LENGTH, 1, instr(reg_datail.LENGTH, ',') -1)))) -1;
+                UTL_FILE.put_line (fich_salida, ', ' || reg_datail.COLUMNA || '            POSITION(' || reg_datail.POSITION || ':' || to_char(v_ulti_pos) || ')     ' || tipo_col); 
+              else
+                v_ulti_pos := (reg_datail.POSITION + to_number(trim(reg_datail.LENGTH))) -1;
+                UTL_FILE.put_line (fich_salida, ', ' || reg_datail.COLUMNA || '            POSITION(' || reg_datail.POSITION || ':' || to_char(v_ulti_pos) || ')     ' || tipo_col); 
+              end if;
             else
               UTL_FILE.put_line (fich_salida, ', ' || reg_datail.COLUMNA || '            POSITION(' || reg_datail.POSITION || ':' || (lista_pos (num_column+1)-1) || ')     ' || tipo_col); 
             end if;
