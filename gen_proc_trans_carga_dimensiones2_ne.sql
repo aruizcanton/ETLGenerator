@@ -2981,7 +2981,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_tabla (table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
             UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || '''''' and owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
             UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
             UTL_FILE.put_line(fich_salida_pkg,'  exception');
             UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
@@ -2991,7 +2991,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_particion (partition_name_in IN VARCHAR2, table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
             UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || '''''' and table_owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
             UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
             UTL_FILE.put_line(fich_salida_pkg,'  exception');
             UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
