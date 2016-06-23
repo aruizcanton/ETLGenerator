@@ -8,7 +8,8 @@ DECLARE
       INTERFACE_NAME,
       TYPE,
       SEPARATOR,
-      DELAYED
+      DELAYED,
+      TYPE_VALIDATION
     FROM MTDT_INTERFACE_SUMMARY;
     
   CURSOR dtd_interfaz_summary_history
@@ -47,6 +48,7 @@ DECLARE
       OWNER_TC                            VARCHAR2(60);
       OWNER_DWH                         VARCHAR2(60);
       OWNER_RD                            VARCHAR2(60);
+      OWNER_EX                          VARCHAR2(60);
       v_existe_tablas_RE integer:=0;
       v_encontrado VARCHAR2(1):='N';
 
@@ -62,6 +64,7 @@ BEGIN
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';
   SELECT VALOR INTO OWNER_DWH FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DWH';
   SELECT VALOR INTO OWNER_RD FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_RD';
+  SELECT VALOR INTO OWNER_EX FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_EX';
   /* (20150119) FIN*/
 
   /* (20151117) Angel Ruiz. NF. Generacion de los creates de tablas SAD y SADH*/
@@ -87,6 +90,9 @@ BEGIN
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_TC || ';');
       DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DM || ';');
       DBMS_OUTPUT.put_line('GRANT select on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_DWH || ';');
+      if (reg_summary.TYPE_VALIDATION = 'I') then
+        DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' TO ' || OWNER_EX || ';');
+      end if;
       if v_existe_tablas_RE = 1 then
         /* Existen tablas de inyeccion */
         v_encontrado:='N';
