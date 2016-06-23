@@ -399,13 +399,13 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '  done');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
 
-    UTL_FILE.put_line(fich_salida_sh, 'TOT_LEIDOS=0');
-    UTL_FILE.put_line(fich_salida_sh, 'TOT_INSERTADOS=0');
-    UTL_FILE.put_line(fich_salida_sh, 'TOT_RECHAZADOS=0');
-    UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
+    --UTL_FILE.put_line(fich_salida_sh, 'TOT_LEIDOS=0');
+    --UTL_FILE.put_line(fich_salida_sh, 'TOT_INSERTADOS=0');
+    --UTL_FILE.put_line(fich_salida_sh, 'TOT_RECHAZADOS=0');
+    --UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
     
     /* (20141219) Angel Ruiz. Finalmente todos los procesos van a llamar a un pro-procesado para truncar tablsa o particiones antes de ejecutar el sqlploader*/
-    UTL_FILE.put_line(fich_salida_sh, '# Llamada al proceso previo al loader para el truncado de la tabla de STAGIN');
+    --UTL_FILE.put_line(fich_salida_sh, '# Llamada al proceso previo al loader para el truncado de la tabla de STAGIN');
     UTL_FILE.put_line(fich_salida_sh, '');
     UTL_FILE.put_line(fich_salida_sh, '# Llamada a sql_plus');
     UTL_FILE.put_line(fich_salida_sh, 'sqlplus -s /nolog <<EOF >> ${' || NAME_DM || '_TRAZAS}/load_Pre_Valida_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ' ||  '2>&' || '1');
