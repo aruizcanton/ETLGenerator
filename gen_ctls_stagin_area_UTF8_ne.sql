@@ -61,8 +61,9 @@ DECLARE
       nombre_fich                              VARCHAR(40);
       nombre_fich_sh                        VARCHAR(40);  
       tipo_col                                      VARCHAR(1000);
-      nombre_interface_a_cargar   VARCHAR(150);
-      nombre_flag_a_cargar            VARCHAR(150);
+      nombre_interface_a_cargar   VARCHAR2(150);
+      nombre_flag_a_cargar            VARCHAR2(150);
+      nombre_fich_descartados     VARCHAR2(150);
       pos_ini_pais                             PLS_integer;
       pos_fin_pais                             PLS_integer;
       pos_ini_fecha                           PLS_integer;
@@ -442,6 +443,7 @@ BEGIN
     end if;
     /*****************************/
     nombre_flag_a_cargar := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'flag';
+    nombre_fich_descartados := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'bad';
     UTL_FILE.put_line(fich_salida_sh, '#!/bin/bash');
     UTL_FILE.put_line(fich_salida_sh, '#############################################################################');
     UTL_FILE.put_line(fich_salida_sh, '#                                                                           #');
@@ -739,30 +741,6 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '  exit 1');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
     UTL_FILE.put_line(fich_salida_sh, '');
-    --UTL_FILE.put_line(fich_salida_sh, '# Antes de llamar al sqlloader preparamos el fichero de control del loader (.ctl)');
-    --UTL_FILE.put_line(fich_salida_sh, '# para que cargue la fecha de datos correspondiente a la pasada por parametro');
-    --UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
-    --UTL_FILE.put_line(fich_salida_sh, 'sed ''s/_YYYYMMDD/${FCH_DATOS/'' ' || '${MVNO_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl > ' || '${MVNO_TMP}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl');
-    --UTL_FILE.put_line(fich_salida_sh, '');
-    --UTL_FILE.put_line(fich_salida_sh, 'sqlldr ${BD_USUARIO}/${BD_CLAVE} DATA=${MVNO_FUENTE}/' || nombre_interface_a_cargar || ' \'); 
-    --UTL_FILE.put_line(fich_salida_sh, 'CONTROL=${MVNO_TMP}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
-    --UTL_FILE.put_line(fich_salida_sh, 'LOG=${MVNO_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_$FCH_CARGA' || '.log \');
-    --UTL_FILE.put_line(fich_salida_sh, 'BAD=${MVNO_DESCARTADOS}/' || 'DMDIST_' || reg_summary.COUNTRY || '_' || reg_summary.SOURCE || '_' || reg_summary.CONCEPT_NAME || '_$FCH_CARGA' || '.bad ' ||  '>> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_$FCH_CARGA.log ' || '2>&' || '1');
-    --UTL_FILE.put_line(fich_salida_sh, '');
-    --UTL_FILE.put_line(fich_salida_sh, 'err_salida=$?');
-    --UTL_FILE.put_line(fich_salida_sh, '');
-    --UTL_FILE.put_line(fich_salida_sh, 'if [ ${err_salida} -ne 0 ]; then');
-    --UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="${INTERFAZ}: Surgio un error en el sqlloader en la carga de la tabla de staging ' || 'SA_' || reg_summary.CONCEPT_NAME || '. Error:  ${err_salida}."');
-    --UTL_FILE.put_line(fich_salida_sh, '  ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-    --UTL_FILE.put_line(fich_salida_sh, '  echo ${SUBJECT} >> ' || '${MVNO_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_$FCH_CARGA.log');    
-    --UTL_FILE.put_line(fich_salida_sh, '  echo `date`');
-    --UTL_FILE.put_line(fich_salida_sh, '  InsertaFinFallido');
-    --UTL_FILE.put_line(fich_salida_sh, '  exit 1');    
-    --UTL_FILE.put_line(fich_salida_sh, 'fi');    
-    --UTL_FILE.put_line(fich_salida_sh, 'rm ${MVNO_TMP}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl');
-    --UTL_FILE.put_line(fich_salida_sh, '');
-    --else
-    --end if;
     /* (20150225) ANGEL RUIZ. Aparecen HH24MISS como parte del nombre en el DM Distribucion */
     /* (20150827) ANGEL RUIZ. He comentado el IF de despues porque no funcionaba cuando el fichero viene sin HHMMSS*/
     --if (pos_ini_hora > 0) then
@@ -864,7 +842,7 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
       UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
       --UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
-      UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || nombre_fich_descartados ||  ' >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, 'err_salida=$?');
       UTL_FILE.put_line(fich_salida_sh, '');
