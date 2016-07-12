@@ -98,6 +98,7 @@ BEGIN
       /* Ahora creamos para la tabla TEMPORAL pero solo para aquellas que no se van a cargar como carga inicial */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
         DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ' to ' || OWNER_TC || ';');
+        DBMS_OUTPUT.put_line('GRANT select, insert, update, delete on ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ' to ' || OWNER_SA || ';');
       end if;
       DBMS_OUTPUT.put_line('');
       
