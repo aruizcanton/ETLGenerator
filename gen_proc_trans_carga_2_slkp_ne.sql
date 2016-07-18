@@ -16,15 +16,16 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_logico.TABLE_NAME) and (20150907) Angel Ruiz NF. Nuevas tablas.
     trim(MTDT_TC_SCENARIO.TABLE_NAME) = trim(mtdt_modelo_summary.TABLE_NAME) and
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFD_CU_MVNO', 'DMF_TRAFE_CU_MVNO', 'DMF_TRAFV_CU_MVNO');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_RECARGAS_MVNO');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_RECARGAS_MVNO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_TRAFV_CU_MVNO');  
-    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP', 'DMF_PARQUE_SERIADOS', 'DMF_FACT_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP', 'DMF_PARQUE_SERIADOS', 'DMF_CLASE_VALORACION');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ROAMN_TRAF', 'BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COMIS_TMK', 'BSF_PRE_COMIS_PROPIO', 'BSF_COMIS_CDA', 'BSF_COMIS_DIGITAL', 'BSF_CDG_PARQUE');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_COMIS_TMK', 'BSF_COMIS_DIGITAL', 'BSF_PRE_COMIS_CDA', 'BSF_PRE_COMIS_PROPIO', 'BSF_PRE_COMIS_ESP');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ALTAS_POSTPAGO', 'BSF_ALTAS_PREPAGO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
-    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_CLASE_VALORACION');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_CLASE_VALORACION');
     
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -108,7 +109,7 @@ SELECT
   
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(400);
-  type lista_tablas_from is table of varchar(200);
+  type lista_tablas_from is table of varchar(800);
   type lista_condi_where is table of varchar(500);
 
   
@@ -677,10 +678,12 @@ SELECT
     table_columns_lkup  list_strings := list_strings();
     ie_column_lkup    list_strings := list_strings();
     tipo_columna  VARCHAR2(30);
-    mitabla_look_up VARCHAR2(200);
+    mitabla_look_up VARCHAR2(800);
     l_registro          ALL_TAB_COLUMNS%rowtype;
+    l_registro1         ALL_TAB_COLUMNS%rowtype;
     v_value VARCHAR(200);
     nombre_campo  VARCHAR2(30);
+    v_alias_incluido PLS_Integer:=0;
   begin
     /* Seleccionamos el escenario primero */
       case reg_detalle_in.RUL
@@ -721,8 +724,8 @@ SELECT
         end if;
         /* Miramos la parte de las condiciones */
         /* Puede haber varios campos por los que hacer LookUp y por lo tanto JOIN */
-        table_columns_lkup := split_string_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
-        ie_column_lkup := split_string_coma (reg_detalle_in.IE_COLUMN_LKUP);
+        table_columns_lkup := split_string_punto_coma (reg_detalle_in.TABLE_COLUMN_LKUP);
+        ie_column_lkup := split_string_punto_coma (reg_detalle_in.IE_COLUMN_LKUP);
 
         /****************************************************************************/
         /* CONTRUIMOS EL CAMPO PARA LA PARTE DEL SELECT */
@@ -858,10 +861,18 @@ SELECT
         l_FROM.extend;
         /* (20150130) Angel Ruiz */
         /* Nueva incidencia. */
-        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0) then
+        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0 or instr (reg_detalle_in.TABLE_LKUP,'select') > 0) then
           /* Aparecen queries en lugar de tablas en la columna de nombre de tabla para LookUp */
-          v_alias := 'LKUP_' || l_FROM.count;
-          mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
+          if (REGEXP_LIKE(reg_detalle_in.TABLE_LKUP, '\) *[a-zA-Z_0-9]+$')) then
+          /* (20160629) Angel Ruiz. NF: Se aceptan tablas de LKUP que son SELECT que ademas tienen un ALIAS */
+            v_alias := trim(substr(REGEXP_SUBSTR (reg_detalle_in.TABLE_LKUP, '\) *[a-zA-Z_0-9]+$'), 2));
+            mitabla_look_up := reg_detalle_in.TABLE_LKUP;
+            v_alias_incluido := 1;
+          else
+            v_alias := 'LKUP_' || l_FROM.count;
+            mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
+            v_alias_incluido := 0;
+          end if;
           l_FROM (l_FROM.last) := ', ' || mitabla_look_up;
         else
           /* (20150112) Angel Ruiz */
@@ -925,6 +936,7 @@ SELECT
                 WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
                 COLUMN_NAME = TRIM(nombre_campo);
               else
+                dbms_output.put_line ('El campo por el que voy a hacer LookUp de la TABLE_BASE es: ' || TRIM(ie_column_lkup(indx)));
                 SELECT * INTO l_registro
                 FROM ALL_TAB_COLUMNS
                 WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -965,9 +977,49 @@ SELECT
                 end if;
               end if;
             END LOOP;
-            valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) END';
+            /* (20160630) Angel Ruiz. NF: Se admiten Queries como tablas de LookUp y con ALIAS */
+            SELECT * INTO l_registro1
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_NAME and
+            COLUMN_NAME = reg_detalle_in.TABLE_COLUMN;
+            dbms_output.put_line ('Estoy donde quiero.');
+            dbms_output.put_line ('El nombre de TABLE_NAME ES: ' || reg_detalle_in.TABLE_NAME);
+            dbms_output.put_line ('El nombre de TABLE_COLUMN ES: ' || reg_detalle_in.TABLE_COLUMN);
+            dbms_output.put_line ('El tipo de DATOS es: ' || l_registro1.DATA_TYPE);
+            if (l_registro1.DATA_TYPE = 'NUMBER') then
+              if (v_alias_incluido = 1) then
+              /* (20160629) Angel Ruiz. NF: Se incluye la posibilidad de incluir el ALIAS en tablas de LKUP que sean SELECT */
+                valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || reg_detalle_in.VALUE || ', -2) END';
+              else
+                valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) END';
+              end if;
+            else
+              if (v_alias_incluido = 1) then
+              /* (20160629) Angel Ruiz. NF: Se incluye la posibilidad de incluir el ALIAS en tablas de LKUP que sean SELECT */
+                valor_retorno := valor_retorno || ') THEN ''''NO INFORMADO'''' ELSE ' || 'NVL(' || reg_detalle_in.VALUE || ', ''''GENERICO'''') END';
+              else
+                valor_retorno := valor_retorno || ') THEN ''''NO INFORMADO'''' ELSE ' || 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', ''''GENERICO'''') END';
+              end if;
+            end if;
           else
-            valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
+            /* (20160630) Angel Ruiz. NF: Se admiten Queries como tablas de LookUp y con ALIAS */
+            SELECT * INTO l_registro1
+            FROM ALL_TAB_COLUMNS
+            WHERE TABLE_NAME =  reg_detalle_in.TABLE_NAME and
+            COLUMN_NAME = reg_detalle_in.TABLE_COLUMN;
+            if (l_registro1.DATA_TYPE = 'NUMBER') then
+              if (v_alias_incluido = 1) then
+                valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', -2)';
+              else
+                valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
+              end if;
+            else
+              if (v_alias_incluido = 1) then
+                valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', ''''GENERICO'''')';
+              else
+                valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', ''''GENERICO'''')';
+              end if;
+            end if;
           end if;
 
         end if;
@@ -1403,6 +1455,21 @@ SELECT
           l_WHERE.extend;
           l_WHERE(l_WHERE.last) :=  ' AND ' || procesa_condicion_lookup(reg_detalle_in.TABLE_LKUP_COND, v_alias);
         end if;
+        when 'LKUPD' then
+          if (reg_detalle_in.LKUP_COM_RULE is not null) then
+            /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
+            cadena := trim(reg_detalle_in.LKUP_COM_RULE);
+            pos_del_si := instr(cadena, 'SI');
+            pos_del_then := instr(cadena, 'THEN');
+            pos_del_else := instr(cadena, 'ELSE');
+            pos_del_end := instr(cadena, 'END');  
+            condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
+            condicion_pro := procesa_COM_RULE_lookup(condicion);
+            constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
+            valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || reg_detalle_in.VALUE || ', '' '') ELSE ' || trim(constante) || ' END';
+          else
+            valor_retorno := reg_detalle_in.VALUE;
+          end if;
       end case;
     return valor_retorno;
   end;
