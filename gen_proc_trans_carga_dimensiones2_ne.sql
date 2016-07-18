@@ -16,10 +16,12 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_RECARGA_ESP', 'SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO')
     --and TABLE_NAME in ('SA_ALTAS_POSTPAGO', 'SA_ALTAS_PREPAGO', 'SA_PRE_COMIS_PROPIO', 'SA_PRE_COMIS_CDA', 'SA_COMIS_DIGITAL')
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
-    and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS', 'SA_MOVIMIENTOS_SERIADOS1', 'SA_USUARIO_SAP1', 'SA_PARQUE_SERIADOS1')
+    --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1', 'SA_PARQUE_SERIADOS1')
     --and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
-    --and TABLE_NAME in ('DMD_CADENA')
+    --and TABLE_NAME in ('SA_CLIENTE_DIST1', 'DWD_CLIENTE_DISTRIBUIDOR')
     --and TABLE_NAME in ('DMD_SERIADO')
+    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_CLIENTE_DIST1', 'SA_PARQUE_SERIADOS1', 'SA_USUARIO_SAP1',
+    'SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -809,9 +811,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           pos_del_end := instr(cadena, 'END');  
           condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ') ELSE ' || trim(constante);
+          valor_retorno := 'CASE WHEN ' || trim(condicion) || 'THEN ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || cambio_puntoYcoma_por_coma(v_IE_COLUMN_LKUP) || ') ELSE ' || trim(constante);
         else
-          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || v_IE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || v_nombre_func_lookup || ' (' || cambio_puntoYcoma_por_coma(v_IE_COLUMN_LKUP) || ')';
         end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
@@ -844,6 +846,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         end if;
       when 'HARDC' then
         valor_retorno := '    ' || reg_detalle_in.VALUE;
+        
       when 'SEQ' then
         valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
         --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
@@ -1069,6 +1072,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       UTL_FILE.put_line (fich_salida_pkg, '');
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
+        dbms_output.put_line ('#### El campo que busco en el LookUp es: ' || lkup_columns(indx));
         SELECT * INTO l_registro
         FROM ALL_TAB_COLUMNS
         WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
@@ -2981,7 +2985,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_tabla (table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
             UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || '''''' and owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || '''''' and owner = '''''' || ''' || OWNER_SA || ''' || ''''''; END;'';');
             UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
             UTL_FILE.put_line(fich_salida_pkg,'  exception');
             UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
@@ -2991,7 +2995,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_particion (partition_name_in IN VARCHAR2, table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
             UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || '''''' and table_owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || '''''' and table_owner = '''''' || ''' || OWNER_SA || ''' || ''''''; END;'';');
             UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
             UTL_FILE.put_line(fich_salida_pkg,'  exception');
             UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
