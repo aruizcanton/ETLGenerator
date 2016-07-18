@@ -744,7 +744,9 @@ BEGIN
     /* (20150225) ANGEL RUIZ. Aparecen HH24MISS como parte del nombre en el DM Distribucion */
     /* (20150827) ANGEL RUIZ. He comentado el IF de despues porque no funcionaba cuando el fichero viene sin HHMMSS*/
     --if (pos_ini_hora > 0) then
-      UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar ||'`');
+      /* (20160712) Angel Ruiz */
+      --UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar ||'`');
+      UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar ||'`');
       --UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_FLAG=`ls -1 ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar ||'`');
     --end if;    
     /****************************/
@@ -837,7 +839,9 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, 'TOT_INSERTADOS=0');
       UTL_FILE.put_line(fich_salida_sh, 'TOT_RECHAZADOS=0');
       UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
-      UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
+      /*(20160712) Angel Ruiz */
+      --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
+      UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=/DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar || ' \'); 
       --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${NOMBRE_FICH_CARGA}' || ' \'); 
       UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
       UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
@@ -915,10 +919,11 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'if [ ! -d ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} ] ; then');
     UTL_FILE.put_line(fich_salida_sh, '  mkdir ${' || NAME_DM || '_DESTINO}/${FCH_CARGA}');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
-    --UTL_FILE.put_line(fich_salida_sh, 'mv ${NOMBRE_FICH_CARGA}' || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    --UTL_FILE.put_line(fich_salida_sh, 'mv ${NOMBRE_FICH_FLAG}' || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    /* (20160712) Angel Ruiz */
+    --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    UTL_FILE.put_line(fich_salida_sh, 'mv /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    UTL_FILE.put_line(fich_salida_sh, 'mv /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
     UTL_FILE.put_line(fich_salida_sh, 'exit 0');    
     /******/
     /* FIN DE LA GENERACION DEL sh de CARGA */
