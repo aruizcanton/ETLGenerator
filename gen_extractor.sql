@@ -234,6 +234,7 @@ SELECT
   v_country                            varchar2(20);
   v_type_validation                   varchar2(1);
   v_separador_campos                VARCHAR2(1);
+  v_contador                        PLS_integer;
   
 
 
@@ -1201,7 +1202,7 @@ SELECT
 /************/
 
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (1000);
+    valor_retorno VARCHAR (1500);
     posicion          PLS_INTEGER;
     cad_pri           VARCHAR(500);
     cad_seg         VARCHAR(500);
@@ -1235,6 +1236,7 @@ SELECT
     v_table_look_up varchar2(1000);
     v_alias_table_look_up varchar2(1000);
     v_temporal varchar2(500);
+    v_reg_table_lkup varchar2(1000);
   begin
     /* Seleccionamos el escenario primero */
       dbms_output.put_line('ESTOY EN EL genera_campo_select. Columna: ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN);
@@ -1453,15 +1455,20 @@ SELECT
         else
           dbms_output.put_line('Dentro del ELSE del SELECT');
           /* (20160401) Detectamos si la tabla de LookUp posee Alias */
-          if (REGEXP_LIKE(trim(reg_detalle_in.TABLE_LKUP), '^[a-zA-Z_0-9#\.]+ +[a-zA-Z_0-9]+$') = true) then
+          v_reg_table_lkup := procesa_campo_filter(reg_detalle_in.TABLE_LKUP);
+          if (REGEXP_LIKE(trim(v_reg_table_lkup), '^[a-zA-Z_0-9#\.&]+ +[a-zA-Z_0-9]+$') = true) then
             /* La tabla de LKUP posee Alias */
-            v_alias_table_look_up := trim(REGEXP_SUBSTR(TRIM(reg_detalle_in.TABLE_LKUP), ' +[a-zA-Z_0-9]+$'));
-            v_table_look_up := trim(REGEXP_SUBSTR(TRIM(reg_detalle_in.TABLE_LKUP), '^+[a-zA-Z_0-9\.#]+ '));
-            if (REGEXP_LIKE(v_table_look_up, '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+') = true) then
+            dbms_output.put_line('La tabla de LKUP posee alias');
+            v_alias_table_look_up := trim(REGEXP_SUBSTR(TRIM(v_reg_table_lkup), ' +[a-zA-Z_0-9]+$'));
+            v_table_look_up := trim(REGEXP_SUBSTR(TRIM(v_reg_table_lkup), '^+[a-zA-Z_0-9\.#&]+ '));
+            dbms_output.put_line('El alias es: ' || v_alias_table_look_up);
+            dbms_output.put_line('La tabla de LKUP es: ' || v_table_look_up);
+            if (REGEXP_LIKE(v_table_look_up, '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9&]+') = true) then
               /* La tabla de LKUP esta calificada */
-              v_table_look_up := procesa_campo_filter(v_table_look_up);
+              v_table_look_up := v_table_look_up;
             else
               /* La tabla de LKUP no esta calificada, entonces la califico */
+              /*(20160713) Angel Ruiz. BUG. Le anyado el procesa_campo_filter */
               v_table_look_up := OWNER_EX || '.' || v_table_look_up;
             end if;
             mitabla_look_up := v_table_look_up || ' ' || v_alias_table_look_up;
@@ -1484,16 +1491,27 @@ SELECT
             end if;
             v_alias := v_alias_table_look_up;
           else    /* La tabla de LKUP no posee Alias */
-            v_table_look_up := reg_detalle_in.TABLE_LKUP;
-            if (REGEXP_LIKE(v_table_look_up, '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+') = true) then
+            dbms_output.put_line('La tabla de LKUP no posee alias');
+            --v_table_look_up := reg_detalle_in.TABLE_LKUP;
+            v_table_look_up := v_reg_table_lkup;            
+            --if (REGEXP_LIKE(v_table_look_up, '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+') = true) then
+            if (REGEXP_LIKE(v_table_look_up, '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9&]+') = true) then
               /* La tabla de LKUP esta calificada */
-              v_alias_table_look_up := SUBSTR(REGEXP_SUBSTR(v_table_look_up, '\.[a-zA-Z_0-9]+'), 2);
-              v_table_look_up := procesa_campo_filter(v_table_look_up);
+              dbms_output.put_line('La tabla de LKUP esta calificado');
+              --v_alias_table_look_up := SUBSTR(REGEXP_SUBSTR(v_table_look_up, '\.[a-zA-Z_0-9]+'), 2);
+              v_alias_table_look_up := SUBSTR(REGEXP_SUBSTR(v_table_look_up, '\.[a-zA-Z_0-9&]+'), 2);
+              --v_table_look_up := procesa_campo_filter(v_table_look_up);
+              v_table_look_up := v_table_look_up;
             else
+              dbms_output.put_line('La tabla de LKUP no esta calificado');
               /* La tabla de LKUP no esta calificada, entonces la califico */
               v_alias_table_look_up := v_table_look_up;
+              /*(20160713) Angel Ruiz. BUG. Anyado procesa_campo_filter */
+              --v_table_look_up := OWNER_EX || '.' || procesa_campo_filter(v_table_look_up);
               v_table_look_up := OWNER_EX || '.' || v_table_look_up;
             end if;
+            dbms_output.put_line('El alias es: ' || v_alias_table_look_up);
+            dbms_output.put_line('La tabla de LKUP es: ' || v_table_look_up);
             mitabla_look_up := v_table_look_up;
             v_encontrado:='N';
             FOR indx IN l_FROM.FIRST .. l_FROM.LAST
@@ -2311,6 +2329,42 @@ begin
       end if;
     end loop; /* fin del LOOP MTDT_SCENARIO  */
     close MTDT_SCENARIO;
+
+    /* (20160714) Angel Ruiz. BUG. Si hay escenario COMPUESTO, no realiza bien */
+    /* la sustitucion de [YYYYMM] */
+    if (v_hay_sce_COMPUESTO = true) then
+    /* Hay que calcular si existe tabla dinamica con [YYYYMM] */
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_DETAIL where 
+      trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+      instr(MTDT_EXT_DETAIL.TABLE_LKUP, '[YYYYMM]') > 0;
+      if (v_contador > 0) then
+        v_tabla_dinamica := true;
+      end if;
+      /* Tambien puede aparecer [YYYYMM] en TABLE_BASE_NAME */
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_SCENARIO where 
+      trim(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+      instr(MTDT_EXT_SCENARIO.TABLE_BASE_NAME, '[YYYYMM]') > 0;
+      if (v_contador > 0) then
+        v_tabla_dinamica := true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_SCENARIO where
+      TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
+      instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_INI#') > 0;
+      if (v_contador > 0) then
+        v_fecha_ini_param:=true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_SCENARIO where
+      TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
+      instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_FIN#') > 0;
+      if (v_contador > 0) then
+        v_fecha_fin_param:=true;
+      end if;
+    end if;
+    /* (20160714) Fin BUG.*/
 
     /* GENERACION DEL PACKAGE BODY */
 
@@ -3334,8 +3388,17 @@ begin
       UTL_FILE.put_line(fich_salida_load, 'ObtenInterfaz');
       UTL_FILE.put_line(fich_salida_load, 'ValidaConteo');
     end if;
-    UTL_FILE.put_line(fich_salida_load, 'GeneraFlag');    
-    UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos');
+    UTL_FILE.put_line(fich_salida_load, 'GeneraFlag');
+    /* (20160712) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
+    /* dado que seran concatenados con otra fuente */
+    if ( reg_tabla.TABLE_NAME in ('CLIENTE', 'CUENTA', 'PARQUE_ABO_POST', 'PARQUE_ABO_PRE', 'SEGMENTO_CLIENTE'
+          , 'CATEGORIA_CLIENTE', 'ESTATUS_OPERACION', 'FORMA_PAGO', 'MOVIMIENTO_ABO', 'PROMOCION'
+          , 'CICLO', 'SVA', 'CANAL_OFERTA', 'PARQUE_SVA', 'MOVIMIENTO_SVA', 'ICC', 'FACTURACION_IMEI', 'CANAL'
+          , 'PUNTO_VENTA', 'TIPO_CUENTA')) then
+      UTL_FILE.put_line(fich_salida_load, '#EnviaArchivos');
+    else
+      UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos');
+    end if;
     UTL_FILE.put_line(fich_salida_load, 'InsertaFinOK');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# FIN DEL SHELL                                                                #');
