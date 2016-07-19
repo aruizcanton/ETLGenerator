@@ -2660,13 +2660,18 @@ begin
         --dbms_output.put_line ('El valor que han cogifo v_FROM:' || v_FROM);
         --dbms_output.put_line ('El valor que han cogifo v_WHERE:' || v_WHERE);
         UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-        --UTL_FILE.put_line(fich_salida_pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
-        if (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) then
-          /* Comprobamos si la tabla esta calificada */
+        --UTL_FILE.put_line(fich_salida pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
+        if (instr (reg_scenario.TABLE_BASE_NAME,'SELECT') > 0 or instr (reg_scenario.TABLE_BASE_NAME,'select') > 0 ) then
+        /* (20160719) Angel Ruiz. BUG. Pueden venir QUERIES en TABLE_BASE_NAME */
           UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
         else
-          /* L atabla base no esta calificada, por defecto la calificamos con OWNER_EX */
-          UTL_FILE.put_line (fich_salida_pkg, '    '  || OWNER_EX || '.' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+          if (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) then
+            /* Comprobamos si la tabla esta calificada */
+            UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+          else
+            /* L atabla base no esta calificada, por defecto la calificamos con OWNER_EX */
+            UTL_FILE.put_line (fich_salida_pkg, '    '  || OWNER_EX || '.' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+          end if;
         end if;
         /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
         v_hay_look_up:='N';
@@ -3158,6 +3163,14 @@ begin
         UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA} ${FECHA_FIN}');
       else
         UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA} ${FECHA_FIN}');
+      end if;
+    elsif (v_tabla_dinamica = false and v_fecha_ini_param = true and v_fecha_fin_param = false) then
+      if (v_type_validation = 'I') then
+        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+        /* va a las tablas de Stagin sin pasar por ficehro plano */
+        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA}');
+      else
+        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA}');
       end if;
     else  
       if (v_type_validation = 'I') then
