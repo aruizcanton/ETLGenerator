@@ -11,8 +11,8 @@ SELECT
     WHERE
       (trim(MTDT_EXT_SCENARIO.STATUS) = 'P' or trim(MTDT_EXT_SCENARIO.STATUS) = 'D')
       and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in (
-      'PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
-    , 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
+      ' PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
+      , 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
     , 'CICLO_FACTURACION', 'CUENTA', 'ESTATUS_OPERACION'
     , 'FORMA_PAGO', 'SEGMENTO_CLIENTE', 'TIPO_DISTRIBUIDOR'
     , 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'ESTADO_CANAL', 'CAUSA_BLOQUEO'
@@ -32,6 +32,7 @@ SELECT
     , 'USUARIO_GC', 'TRAF_TARIFICADO_VOZ_POST', 'TRAF_TARIFICADO_DATOS_POST'
     , 'PROVEEDOR_TELCO', 'MEDIO_CONTACTO', 'UNIDAD_FUNCIONAL2', 'UNIDAD_FUNCIONAL1'
     , 'CENTRO_ATENCION', 'ESTADO_CONTACTO', 'CALIDAD_PERCIBIDA', 'TIPO_CUENTA'
+    , 'TIPO_CONCEPTO_FACTURA'
     );
     
     --and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in ('PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
@@ -485,68 +486,130 @@ SELECT
     parte_2 varchar2(100);
     parte_3 varchar2(100);
     parte_4 varchar2(100);
-    decode_out varchar2(500);
+    decode_out varchar2(1000);
+    v_decode varchar2(500);
+    v_nuevo_decode varchar2(800);
+    v_transfor_out varchar(1000);
     lista_elementos list_strings := list_strings ();
   
   begin
     /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
-    lista_elementos := split_string_coma(cadena_in);
-    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
-    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
-    parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
-    parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
-    if (instr(parte_1, '''') = 0) then
+    /* (20160720) Angel Ruiz.(BUG). Rehago completamente el parseo del DECODE */
+    /* Me quedo con lo que es la instruccion DECODE, por si el campo */
+    /* pudiera estar formado por otro tipo de sentencias como NVL(DECODE(..),...) */
+    v_decode := REGEXP_SUBSTR(cadena_in, 'DECODE *\( *[a-zA-Z0-9_]+( *, *[a-zA-Z0-9_'']+)+ *\)');
+    --lista_elementos := split_string_coma(cadena_in);
+    dbms_output.put_line ('PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP');
+    dbms_output.put_line ('El decode es: ' || v_decode);
+    lista_elementos := split_string_coma(v_decode);
+    if (lista_elementos.COUNT > 0 ) then
+      dbms_output.put_line ('El nuemro de elementos es: ' || lista_elementos.COUNT);
+      FOR indice_decode IN lista_elementos.FIRST .. lista_elementos.LAST
+      LOOP
+        if (indice_decode = 1) then
+        /* Se trata del primer elemento "DECODE (IDE_FUENTE" de nuestro ejemplo */
+          parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(indice_decode), '(') + 1)); /* Me quedo con ID_FUENTE*/
+          if (instr(lista_elementos(indice_decode), '''') = 0) then
+          /* Esta parte del DECODE no es un literal */
+          /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+            if (outer_in = 1) then
+              parte_1 := alias_in || '.' || parte_1 || '(+)';
+            else
+              parte_1 := alias_in || '.' || parte_1;
+            end if;
+            v_nuevo_decode := 'DECODE(' || parte_1;
+          end if;
+        elsif (indice_decode = lista_elementos.LAST) then
+        /* Se trata del ultimo elemento del DECODE. En nuestro ejemplo "'1'" */
+          parte_4 := trim(substr(lista_elementos(indice_decode), 1, instr(lista_elementos(indice_decode), ')') - 1));  /* Me quedo con '1' */
+          if (instr(parte_4, '''') = 0) then
+            /* Esta parte del DECODE no es un literal */
+            /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+            if (outer_in = 1) then
+              parte_4 := alias_in || '.' || parte_4 || '(+)';
+            else
+              parte_4 := alias_in || '.' || parte_4;
+            end if;
+          end if;
+          v_nuevo_decode := v_nuevo_decode || ',' || parte_4 || ')';
+        else
+        /* Se trata de todos los elemntos intermedios del DECODE */
+          parte_2 := lista_elementos(indice_decode);  /* Me quedo con 'SER' */
+          if (instr(parte_2, '''') = 0) then
+            /* Esta parte del DECODE no es un literal */
+            /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+            if (outer_in = 1) then
+              parte_2 := alias_in || '.' || parte_2 || '(+)';
+            else
+              parte_2 := alias_in || '.' || parte_2;
+            end if;
+          end if;
+          v_nuevo_decode := v_nuevo_decode || ', ' || parte_2;
+        end if;
+      END LOOP;
+      dbms_output.put_line ('El valor del DECODE TRANSFORMADO ES: ' || v_nuevo_decode);
+      v_transfor_out := REGEXP_REPLACE(cadena_in, 'DECODE *\( *[a-zA-Z0-9_]+( *, *[a-zA-Z0-9_'']+)+ *\)', v_nuevo_decode);
+      dbms_output.put_line ('El valor de toda la cadena TRANSFORMADA es: ' || v_transfor_out);
+    else
+      v_transfor_out := cadena_in;
+    end if;
+    return v_transfor_out;
+    --parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
+    --parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
+    --parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
+    --parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
+    --if (instr(parte_1, '''') = 0) then
       /* Esta parte del DECODE no es un literal */
       /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_1 := alias_in || '.' || parte_1 || '(+)';
-      else
-        parte_1 := alias_in || '.' || parte_1;
-      end if;
-    end if;
-    if (instr(parte_2, '''') = 0) then
+      --if (outer_in = 1) then
+        --parte_1 := alias_in || '.' || parte_1 || '(+)';
+      --else
+        --parte_1 := alias_in || '.' || parte_1;
+      --end if;
+    --end if;
+    --if (instr(parte_2, '''') = 0) then
       /* Esta parte del DECODE no es un literal */
       /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_2 := alias_in || '.' || parte_2 || '(+)';
-      else
-        parte_2 := alias_in || '.' || parte_2;
-      end if;
-    end if;
-    if (instr(parte_3, '''') = 0) then
+      --if (outer_in = 1) then
+        --parte_2 := alias_in || '.' || parte_2 || '(+)';
+      --else
+        --parte_2 := alias_in || '.' || parte_2;
+      --end if;
+    --end if;
+    --if (instr(parte_3, '''') = 0) then
       /* Esta parte del DECODE no es un literal */
       /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_3 := alias_in || '.' || parte_3 || '(+)';
-      else
-        parte_3 := alias_in || '.' || parte_3;
-      end if;
-    end if;
-    if (instr(parte_4, '''') = 0) then
+      --if (outer_in = 1) then
+        --parte_3 := alias_in || '.' || parte_3 || '(+)';
+      --else
+        --parte_3 := alias_in || '.' || parte_3;
+      --end if;
+    --end if;
+    --if (instr(parte_4, '''') = 0) then
       /* Esta parte del DECODE no es un literal */
       /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_4 := alias_in || '.' || parte_4 || '(+)';
-      else
-        parte_4 := alias_in || '.' || parte_4;
-      end if;
-    end if;
+      --if (outer_in = 1) then
+        --parte_4 := alias_in || '.' || parte_4 || '(+)';
+      --else
+        --parte_4 := alias_in || '.' || parte_4;
+      --end if;
+    --end if;
     /* Puede ocurrir que alguna parte del decode tanga el signo ' como seria el caso de los campos literales */
     /* como estamos generando querys dinamicas, tenemos que escapar las comillas */
-    if (instr(parte_1, '''') > 0) then
-      parte_1 := sustituye_comillas_dinam(parte_1);
-    end if;
-    if (instr(parte_2, '''') > 0) then
-      parte_2 := sustituye_comillas_dinam(parte_2);
-    end if;
-    if (instr(parte_3, '''') > 0) then
-      parte_3 := sustituye_comillas_dinam(parte_3);
-    end if;
-    if (instr(parte_4, '''') > 0) then
-      parte_4 := sustituye_comillas_dinam(parte_4);
-    end if;
-    decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
-    return decode_out;
+    --if (instr(parte_1, '''') > 0) then
+      --parte_1 := sustituye_comillas_dinam(parte_1);
+    --end if;
+    --if (instr(parte_2, '''') > 0) then
+      --parte_2 := sustituye_comillas_dinam(parte_2);
+    --end if;
+    --if (instr(parte_3, '''') > 0) then
+      --parte_3 := sustituye_comillas_dinam(parte_3);
+    --end if;
+    --if (instr(parte_4, '''') > 0) then
+      --parte_4 := sustituye_comillas_dinam(parte_4);
+    --end if;
+    --decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
+    --return decode_out;
   end transformo_decode;
   
   function proceso_campo_value (cadena_in in varchar2, alias_in in varchar) return varchar2
@@ -1583,11 +1646,23 @@ SELECT
             
             if (l_WHERE.count = 1) then
               /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-              if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+              if (instr(upper(ie_column_lkup(indx)), 'DECODE') > 0 and instr(upper(table_columns_lkup(indx)), 'DECODE') > 0) then
                 if (reg_detalle_in."OUTER" = 'Y') then
                   l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
                 else
                   l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 0);
+                end if;
+              elsif (instr(upper(ie_column_lkup(indx)), 'DECODE') > 0 and instr(upper(table_columns_lkup(indx)), 'DECODE') = 0) then
+                if (reg_detalle_in."OUTER" = 'Y') then
+                  l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || v_alias || '.' || table_columns_lkup(indx);
+                end if;
+              elsif (instr(upper(ie_column_lkup(indx)), 'DECODE') = 0 and instr(upper(table_columns_lkup(indx)), 'DECODE') > 0) then
+                if (reg_detalle_in."OUTER" = 'Y') then
+                  l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || ie_column_lkup(indx) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || ie_column_lkup(indx) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 0);
                 end if;
               elsif (instr(upper(table_columns_lkup(indx)), 'BETWEEN') > 0) then
                 if (reg_detalle_in."OUTER" = 'Y') then
@@ -1609,12 +1684,24 @@ SELECT
                 end if;
               end if;
             else  /* siguientes elementos del where */
-              if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+              if (instr(upper(ie_column_lkup(indx)), 'DECODE') > 0 and instr(upper(table_columns_lkup(indx)), 'DECODE') > 0) then
                 if (reg_detalle_in."OUTER" = 'Y') then
                   l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
                 else
                   l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 0);
                 end if;
+              elsif (instr(upper(ie_column_lkup(indx)), 'DECODE') > 0 and instr(upper(table_columns_lkup(indx)), 'DECODE') = 0) then
+                if (reg_detalle_in."OUTER" = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), v_alias_table_base_name, 0) || ' = ' || v_alias || '.' || table_columns_lkup(indx);
+                end if;
+              elsif (instr(upper(ie_column_lkup(indx)), 'DECODE') = 0 and instr(upper(table_columns_lkup(indx)), 'DECODE') > 0) then
+                if (reg_detalle_in."OUTER" = 'Y') then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || ie_column_lkup(indx) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || ie_column_lkup(indx) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 0);
+                end if;              
               elsif (instr(upper(table_columns_lkup(indx)), 'BETWEEN') > 0) then
                 if (reg_detalle_in."OUTER" = 'Y') then
                   l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || ie_column_lkup(indx) || ' ' || transformo_between(v_alias, table_columns_lkup(indx), true);
