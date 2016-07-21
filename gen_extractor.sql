@@ -11,8 +11,8 @@ SELECT
     WHERE
       (trim(MTDT_EXT_SCENARIO.STATUS) = 'P' or trim(MTDT_EXT_SCENARIO.STATUS) = 'D')
       and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in (
-      ' PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
-      , 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
+    'PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
+    , 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
     , 'CICLO_FACTURACION', 'CUENTA', 'ESTATUS_OPERACION'
     , 'FORMA_PAGO', 'SEGMENTO_CLIENTE', 'TIPO_DISTRIBUIDOR'
     , 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'ESTADO_CANAL', 'CAUSA_BLOQUEO'
@@ -2393,8 +2393,69 @@ begin
       close MTDT_INTERFAZ_DETAIL;
       UTL_FILE.put_line (fich_salida_pkg,')');
     end if;
+    
+    
     /* GENERO los SQL para los escenarios */
     dbms_output.put_line ('Comienzo a generar los metodos para los escenarios');
+    
+    /* (20160714) Angel Ruiz. BUG. no realiza bien */
+    /* la sustitucion de [YYYYMM]. Tengo que buscar primero de todo si  */
+    /* hay tablas dinamicas, es decir, si la cadena [YYYYMM] aparece en */
+    /* la especificacion del todo interfaz */
+
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_DETAIL where 
+    trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+    instr(MTDT_EXT_DETAIL.TABLE_LKUP, '[YYYYMM]') > 0;
+    if (v_contador > 0) then
+      v_tabla_dinamica := true;
+    end if;
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_DETAIL where 
+    trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+    instr(MTDT_EXT_DETAIL.TABLE_BASE_NAME, '[YYYYMM]') > 0;
+    if (v_contador > 0) then
+      v_tabla_dinamica := true;
+    end if;
+    /* Tambien puede aparecer [YYYYMM] en TABLE_BASE_NAME */
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_SCENARIO where 
+    trim(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+    instr(MTDT_EXT_SCENARIO.TABLE_BASE_NAME, '[YYYYMM]') > 0;
+    if (v_contador > 0) then
+      v_tabla_dinamica := true;
+    end if;
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_SCENARIO where
+    TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
+    instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_INI#') > 0;
+    if (v_contador > 0) then
+      v_fecha_ini_param:=true;
+    end if;
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_DETAIL where
+    TRIM(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and
+    instr(MTDT_EXT_DETAIL.TABLE_LKUP, '#FCH_INI#') > 0;
+    if (v_contador > 0) then
+      v_fecha_ini_param:=true;
+    end if;
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_SCENARIO where
+    TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
+    instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_FIN#') > 0;
+    if (v_contador > 0) then
+      v_fecha_fin_param:=true;
+    end if;
+    v_contador:=0;
+    select count(*) into v_contador from MTDT_EXT_DETAIL where
+    TRIM(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and
+    instr(MTDT_EXT_DETAIL.TABLE_LKUP, '#FCH_FIN#') > 0;
+    if (v_contador > 0) then
+      v_fecha_ini_param:=true;
+    end if;
+    /* (20160714) Fin BUG.*/
+    
+    
     v_hay_sce_COMPUESTO := false;
     open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
     loop
@@ -2417,41 +2478,6 @@ begin
     end loop; /* fin del LOOP MTDT_SCENARIO  */
     close MTDT_SCENARIO;
 
-    /* (20160714) Angel Ruiz. BUG. Si hay escenario COMPUESTO, no realiza bien */
-    /* la sustitucion de [YYYYMM] */
-    if (v_hay_sce_COMPUESTO = true) then
-    /* Hay que calcular si existe tabla dinamica con [YYYYMM] */
-      v_contador:=0;
-      select count(*) into v_contador from MTDT_EXT_DETAIL where 
-      trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
-      instr(MTDT_EXT_DETAIL.TABLE_LKUP, '[YYYYMM]') > 0;
-      if (v_contador > 0) then
-        v_tabla_dinamica := true;
-      end if;
-      /* Tambien puede aparecer [YYYYMM] en TABLE_BASE_NAME */
-      v_contador:=0;
-      select count(*) into v_contador from MTDT_EXT_SCENARIO where 
-      trim(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and 
-      instr(MTDT_EXT_SCENARIO.TABLE_BASE_NAME, '[YYYYMM]') > 0;
-      if (v_contador > 0) then
-        v_tabla_dinamica := true;
-      end if;
-      v_contador:=0;
-      select count(*) into v_contador from MTDT_EXT_SCENARIO where
-      TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
-      instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_INI#') > 0;
-      if (v_contador > 0) then
-        v_fecha_ini_param:=true;
-      end if;
-      v_contador:=0;
-      select count(*) into v_contador from MTDT_EXT_SCENARIO where
-      TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
-      instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_FIN#') > 0;
-      if (v_contador > 0) then
-        v_fecha_fin_param:=true;
-      end if;
-    end if;
-    /* (20160714) Fin BUG.*/
 
     /* GENERACION DEL PACKAGE BODY */
 
