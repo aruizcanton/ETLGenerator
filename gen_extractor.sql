@@ -32,7 +32,7 @@ SELECT
     , 'USUARIO_GC', 'TRAF_TARIFICADO_VOZ_POST', 'TRAF_TARIFICADO_DATOS_POST'
     , 'PROVEEDOR_TELCO', 'MEDIO_CONTACTO', 'UNIDAD_FUNCIONAL2', 'UNIDAD_FUNCIONAL1'
     , 'CENTRO_ATENCION', 'ESTADO_CONTACTO', 'CALIDAD_PERCIBIDA', 'TIPO_CUENTA'
-    , 'TIPO_CONCEPTO_FACTURA'
+    , 'TIPO_CONCEPTO_FACTURA', 'TIPIFICACION_TT', 'ESPECIFICACION_TT', 'ORIGEN_VENTA_COMERCIAL'
     );
     
     --and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in ('PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
@@ -157,14 +157,14 @@ SELECT
   
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(400);
-  type lista_tablas_from is table of varchar(2000);
-  type lista_condi_where is table of varchar(1000);
+  type lista_tablas_from is table of varchar(4000); /* [URC] se cambia longitud de 2000 a 4000 */
+  type lista_condi_where is table of varchar(4000); /* [URC] se cambia longitud de 1000 a 4000 */
 
   
   lista_pk                                      list_columns_primary := list_columns_primary (); 
   tipo_col                                     varchar2(50);
   primera_col                               PLS_INTEGER;
-  columna                                    VARCHAR2(2000);
+  columna                                    VARCHAR2(4000); -- URC [ Incremento Longitud de 2000 a 4000 por ORA-06502: PL/SQL: error : character string buffer too small numérico o de valor]
   prototipo_fun                             VARCHAR2(2000);
   fich_salida_load                        UTL_FILE.file_type;
   fich_salida_exchange              UTL_FILE.file_type;
@@ -499,8 +499,6 @@ SELECT
     /* pudiera estar formado por otro tipo de sentencias como NVL(DECODE(..),...) */
     v_decode := REGEXP_SUBSTR(cadena_in, 'DECODE *\( *[a-zA-Z0-9_]+( *, *[a-zA-Z0-9_'']+)+ *\)');
     --lista_elementos := split_string_coma(cadena_in);
-    dbms_output.put_line ('PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP');
-    dbms_output.put_line ('El decode es: ' || v_decode);
     lista_elementos := split_string_coma(v_decode);
     if (lista_elementos.COUNT > 0 ) then
       dbms_output.put_line ('El nuemro de elementos es: ' || lista_elementos.COUNT);
@@ -1286,7 +1284,7 @@ SELECT
     cola                   VARCHAR2(500);
     pos_ant            PLS_integer;
     v_encontrado  VARCHAR2(1);
-    v_alias             VARCHAR2(1000);
+    v_alias             VARCHAR2(20000);  /*[URC] Cambia longitud de 1000 a 20000 por ORA-06502: PL/SQL: error : character string buffer too small numérico o de valor */
     table_columns_lkup  list_strings := list_strings();
     ie_column_lkup    list_strings := list_strings();
     tipo_columna  VARCHAR2(30);
@@ -1296,10 +1294,10 @@ SELECT
     nombre_campo  VARCHAR2(30);
     v_table_base_name varchar2(100);
     v_alias_table_base_name varchar2(100);
-    v_table_look_up varchar2(1000);
-    v_alias_table_look_up varchar2(1000);
+    v_table_look_up varchar2(10000); /*[URC] Cambia longitud de 1000 a 10000 por ORA-06502: PL/SQL: error : character string buffer too small numérico o de valor */
+    v_alias_table_look_up varchar2(10000);  /*[URC] Cambia longitud de 1000 a 10000 por ORA-06502: PL/SQL: error : character string buffer too small numérico o de valor */
     v_temporal varchar2(500);
-    v_reg_table_lkup varchar2(1000);
+    v_reg_table_lkup varchar2(10000); /*[URC] Cambia longitud de 1000 a 10000 por ORA-06502: PL/SQL: error : character string buffer too small numérico o de valor */
   begin
     /* Seleccionamos el escenario primero */
       dbms_output.put_line('ESTOY EN EL genera_campo_select. Columna: ' || reg_detalle_in.TABLE_NAME || '.' || reg_detalle_in.TABLE_COLUMN);
@@ -1501,7 +1499,7 @@ SELECT
         l_FROM.extend;
         /* (20150130) Angel Ruiz */
         /* Nueva incidencia. */
-        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT') > 0 or instr (reg_detalle_in.TABLE_LKUP,'select') > 0 ) then
+        if (regexp_instr (reg_detalle_in.TABLE_LKUP, '[Ss][Ee][Ll][Ee][Cc][Tt]') > 0) then  /* (20160802) Angel Ruiz. BUG: No detectaba correctamente la palabra SELECT */
           /* Aparecen queries en lugar de tablas en la columna de nombre de tabla para LookUp */
           /* Me quedo con el Alias que aparece en la SELECT*/
           --if (REGEXP_LIKE(reg_detalle_in.TABLE_LKUP, '^ *\( *SELECT[a-z A-Z\*=.,_\'']*\) *[a-zA-Z_]+$') = true) then
@@ -2223,7 +2221,7 @@ SELECT
       end if;
       UTL_FILE.put_line (fich_salida_pkg, valor_retorno);
     else
-      /* 20141204 Angel Ruiz - Añadido para las tablas de LOOK UP que son un rango */
+      /* 20141204 Angel Ruiz - Anyadido para las tablas de LOOK UP que son un rango */
       if (instr (reg_lookup_in.TABLE_LKUP,'RANGO') > 0) then
         /* Se trata de una tabla de Rango y la trato diferente */
         if (reg_lookup_in.TABLE_LKUP_COND IS NULL) THEN
@@ -2299,7 +2297,7 @@ begin
     else
       nombre_proceso := nombre_tabla_reducido;
     end if;
-    /* (20150414) Angel Ruiz. Incidencia. El nombre de la partición es demasiado largo */
+    /* (20150414) Angel Ruiz. Incidencia. El nombre de la particion es demasiado largo */
     if (length(nombre_tabla_reducido) <= 18) then
       v_nombre_particion := 'PA_' || nombre_tabla_reducido;
     else
@@ -2323,12 +2321,14 @@ begin
         sum(to_number(case 
         when instr(mtdt_interface_detail.length, ',') > 0 then 
           (trim(substr(mtdt_interface_detail.length, 1, instr(mtdt_interface_detail.length, ',') - 1)))
+        when instr(mtdt_interface_detail.length, '.') > 0 then
+         (trim(substr(mtdt_interface_detail.length, 1, instr(mtdt_interface_detail.length, '.') - 1)))
         else
           trim(mtdt_interface_detail.length)
         end)) into v_line_size
       from mtdt_interface_detail where trim(CONCEPT_NAME) = reg_tabla.TABLE_NAME;      
     end if;
-    /* (20160606) Angel Ruiz. NF: Se trata de la validación en la que en lugar de ir a un fichero plano */
+    /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
     /* va directamente a las tablas de Stagin */
     select nvl(TYPE_VALIDATION, 'T') into v_type_validation from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
     
@@ -2336,13 +2336,21 @@ begin
     UTL_FILE.put_line (fich_salida_pkg,'WHENEVER OSERROR EXIT 2;');
     
     if (v_type_validation <> 'I') then
-      /* (20160606) Angel Ruiz. NF: Se trata de la validación en la que en lugar de ir a un fichero plano */
+      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
       /* va directamente a las tablas de Stagin */
-
       /* Solo ponemos la cabecera del fichero SQL si no se trata del tipo que va directamente a tablas de Staging sin */
-      /* pasar por fichero plano */
+      /* pasar por fichero plano, tipo de validacion I */
+      
       if (v_type = 'P') then
+      /* Si se trata de un interfaz a fichero plano */
         UTL_FILE.put_line (fich_salida_pkg,'SET LINESIZE ' || v_line_size || ';');
+        if (v_line_size > 4000) then
+        /* (20160803) Angel Ruiz. BUG: Si la longitud de la linea del fichero plano */
+        /* excede los 4000 caracteres da error, por lo que hay que escribir tres set mas */
+          UTL_FILE.put_line (fich_salida_pkg,'SET LONG ' || v_line_size || ';');
+          UTL_FILE.put_line (fich_salida_pkg,'SET LONGCHUNK ' || v_line_size || ';');
+        end if;
+        /* (20160803) Angel Ruiz. Fin BUG */        
       end if;
       UTL_FILE.put_line (fich_salida_pkg,'SET PAGESIZE 0;');
       UTL_FILE.put_line (fich_salida_pkg,'SET FEEDBACK OFF;');
@@ -2366,11 +2374,11 @@ begin
     dbms_output.put_line ('Comienzo la generacion del PACKAGE DEFINITION');
     dbms_output.put_line ('Antes de mirar funciones para hacer regla FUNCTION');
 
-    /* (20160606) Angel Ruiz. NF: Se trata de la validación en la que en lugar de ir a un fichero plano */
+    /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
     /* va directamente a las tablas de Stagin */
     select nvl(UPPER(TRIM(TYPE_VALIDATION)), 'T') into v_type_validation from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
     if (v_type_validation = 'I') then
-      /* (20160606) Angel Ruiz. NF: Se trata de la validación en la que en lugar de ir a un fichero plano */
+      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
       /* va directamente a las tablas de STAGING. Se generan por lo tanto INSERTs */
       UTL_FILE.put_line (fich_salida_pkg,'');
       UTL_FILE.put_line (fich_salida_pkg,'TRUNCATE TABLE ' || OWNER_SA || '.SA_' || reg_tabla.TABLE_NAME || ';');      
@@ -2504,7 +2512,7 @@ begin
         /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
         l_FROM.delete;
         l_WHERE.delete;
-        /* Fin de la inicialización */
+        /* Fin de la inicializacion */
         if (reg_scenario.OVER_PARTION is not null) then
           /* (20160510) Angel Ruiz. Hay clausula OVER PARTITION */
           UTL_FILE.put_line(fich_salida_pkg,'SELECT REGISTRY FROM (');
@@ -2579,6 +2587,12 @@ begin
               end case;
             else
               /* Se trata de un fichero plano por posicion */
+              /* (20160803) Angel Ruiz. BUG. Si la linea supera los 4000 caracteres da error */
+              /* por lo que voy a convertir el primer campos a CLOB */
+              if (v_line_size > 4000) then
+                UTL_FILE.put_line(fich_salida_pkg, 'TO_CLOB(');
+              end if;
+              /* (20160803) Angel Ruiz. FIN BUG */
               case 
                 when reg_detail.TYPE = 'AN' then
                   /* Se tarta de un valor de tipo alfanumerico */
@@ -2591,12 +2605,68 @@ begin
                     if (reg_detail.VALUE = 'NA') then
                       UTL_FILE.put_line(fich_salida_pkg, '''-' || lpad('1', reg_detail.LONGITUD -1, '0') || '''' || '          --' || reg_detail.TABLE_COLUMN);
                     else
-                      --UTL_FILE.put_line(fich_salida_pkg, 'CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD || ', '' '') ELSE LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                      UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);                        
+                      /* (20160803) Angel Ruiz. BUG. Me doy cuenta de que si el literal lleva un signo no funciona */
+                      /* He de usar el mismo algoritmo que para los importes */
+                      --UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                        /* Quiere decir que en la longitud aparecen zona de decimales */
+                        /* Preparo la mascara */
+                        v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                        v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                        v_mascara := 'S';
+                        for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                        loop
+                          v_mascara := v_mascara || '0';
+                        end loop;
+                        v_mascara := v_mascara || '.';
+                        for indice in  1..v_long_parte_decimal
+                        loop
+                          v_mascara := v_mascara || '0';
+                        end loop;
+                        UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      else
+                        /* Quiere decir que en la longitud no aparece zona de decimales */
+                        v_long_total := to_number (trim(reg_detail.LONGITUD));
+                        v_long_parte_decimal := 0;
+                        v_mascara := 'S';
+                        for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                        loop
+                          v_mascara := v_mascara || '0';
+                        end loop;
+                        UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      end if;
                     end if;
                   else
-                    --UTL_FILE.put_line(fich_salida_pkg, 'CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD || ', '' '') ELSE LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    /* (20160803) Angel Ruiz. BUG: Me doy cuenta que si el numero viene con signo negativo no funcionaria */
+                    /* por lo que tengo que usar el mismo algoritmo que en los campos de tipo Importe */
+                    --UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                      /* Quiere decir que en la longitud aparecen zona de decimales */
+                      /* Preparo la mascara */
+                      v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                      v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                      v_mascara := 'S';
+                      for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                      loop
+                        v_mascara := v_mascara || '0';
+                      end loop;
+                      v_mascara := v_mascara || '.';
+                      for indice in  1..v_long_parte_decimal
+                      loop
+                        v_mascara := v_mascara || '0';
+                      end loop;
+                      UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    else
+                      /* Quiere decir que en la longitud no aparece zona de decimales */
+                      v_long_total := to_number (trim(reg_detail.LONGITUD));
+                      v_long_parte_decimal := 0;
+                      v_mascara := 'S';
+                      for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                      loop
+                        v_mascara := v_mascara || '0';
+                      end loop;
+                      UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    end if;
                   end if;
                 when reg_detail.TYPE = 'IM' then
                   /*(20160503) Angel Ruiz */
@@ -2641,6 +2711,13 @@ begin
                   /* Se trata de un valor de tipo TIME HHMISS */
                   UTL_FILE.put_line(fich_salida_pkg, 'RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
               end case;
+              /* Se trata de un fichero plano por posicion */
+              /* (20160803) Angel Ruiz. BUG. Si la linea supera los 4000 caracteres da error */
+              /* por lo que voy a convertir el primer campos a CLOB */
+              if (v_line_size > 4000) then
+                UTL_FILE.put_line(fich_salida_pkg, ')');
+              end if;
+              /* (20160803) Angel Ruiz. FIN BUG */
             end if;
             primera_col := 0;
           else /* NO SE TRATA DE LA PRIMERA COLUMNA */
@@ -2694,12 +2771,70 @@ begin
                     if (reg_detail.VALUE = 'NA') then
                       UTL_FILE.put_line(fich_salida_pkg, '|| ''-' || lpad('1', reg_detail.LONGITUD -1, '0') || '''' || '          --' || reg_detail.TABLE_COLUMN);
                     else
-                      --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD || ', '' '') ELSE LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                      UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      /* (20160803) Angel Ruiz. BUG. Si el campo viene con signo negativo no funciona y he de tratarlo */
+                      /* con el mismo algoritmo que los importes */
+                      --UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                        /* Quiere decir que en la longitud aparecen zona de decimales */
+                        /* Preparo la mascara */
+                        v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                        v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                        v_mascara := 'S';
+                        for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                        loop
+                          v_mascara := v_mascara || '0';
+                        end loop;
+                        v_mascara := v_mascara || '.';
+                        for indice in  1..v_long_parte_decimal
+                        loop
+                          v_mascara := v_mascara || '0';
+                        end loop;
+                        UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      else
+                        /* Quiere decir que en la longitud no aparece zona de decimales */
+                        v_long_total := to_number (trim(reg_detail.LONGITUD));
+                        v_long_parte_decimal := 0;
+                        v_mascara := 'S';
+                        for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                        loop
+                          v_mascara := v_mascara || '0';
+                        end loop;
+                        UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      end if;
+                      /* (20160803) Angel Ruiz. Fin BUG */                      
                     end if;
                   else
-                      --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD || ', '' '') ELSE LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                      UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    /* (20160803) Angel Ruiz. BUG. Si el campo viene con signo negativo no funciona y he de tratarlo */
+                    /* con el mismo algoritmo que los importes */
+                    --UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                      /* Quiere decir que en la longitud aparecen zona de decimales */
+                      /* Preparo la mascara */
+                      v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                      v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                      v_mascara := 'S';
+                      for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                      loop
+                        v_mascara := v_mascara || '0';
+                      end loop;
+                      v_mascara := v_mascara || '.';
+                      for indice in  1..v_long_parte_decimal
+                      loop
+                        v_mascara := v_mascara || '0';
+                      end loop;
+                      UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    else
+                      /* Quiere decir que en la longitud no aparece zona de decimales */
+                      v_long_total := to_number (trim(reg_detail.LONGITUD));
+                      v_long_parte_decimal := 0;
+                      v_mascara := 'S';
+                      for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                      loop
+                        v_mascara := v_mascara || '0';
+                      end loop;
+                      UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                    end if;
+                    /* (20160803) Angel Ruiz. Fin del BUG. */
                   end if;
                 when reg_detail.TYPE = 'IM' then
                   /* Se trata de un valor de tipo importe */
@@ -2864,7 +2999,7 @@ begin
     /**************/
     
     UTL_FILE.put_line(fich_salida_pkg, '');
-    /* (20160606) Angel Ruiz. NF: Se trata de la validación en la que en lugar de ir a un fichero plano */
+    /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
     /* va directamente a las tablas de Stagin */
     if (v_type_validation <> 'I') then
       UTL_FILE.put_line(fich_salida_pkg, 'SPOOL OFF;');
@@ -3538,7 +3673,7 @@ begin
     /*************************/
     /*************************/
     /* (20160608) Angel Ruiz. NF: Para el tipo de validacion I. */
-    /* Aqui implemento la generación de dos nuevos scripts. */
+    /* Aqui implemento la generacion de dos nuevos scripts. */
     /* para la extraccion a fichero plano desde la tabla de Staging que es donde esta cargada */
     /* estos dos nuevos scripts se encargan de escribir el fichero plano, el caso del script .sql */
     /* y de llamar a este script desde un script .sh  */
@@ -3703,7 +3838,7 @@ begin
       UTL_FILE.put_line (fich_salida_pkg_desde_stage, OWNER_SA || '.SA_' || reg_tabla.TABLE_NAME);      
       UTL_FILE.put_line (fich_salida_pkg_desde_stage,';');
       UTL_FILE.put_line(fich_salida_pkg_desde_stage, '');
-      /* (20160606) Angel Ruiz. NF: Se trata de la validación en la que en lugar de ir a un fichero plano */
+      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
       /* va directamente a las tablas de Stagin */
       UTL_FILE.put_line(fich_salida_pkg_desde_stage, 'SPOOL OFF;');
       UTL_FILE.put_line(fich_salida_pkg_desde_stage, 'exit SUCCESS;');
