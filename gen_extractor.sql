@@ -65,7 +65,7 @@ SELECT
       trim(MTDT_EXT_SCENARIO.TABLE_NAME) = trim(MTDT_INTERFACE_SUMMARY.CONCEPT_NAME) and
       (trim(MTDT_EXT_SCENARIO.STATUS) = 'P' or trim(MTDT_EXT_SCENARIO.STATUS) = 'D') and
       (MTDT_INTERFACE_SUMMARY.STATUS = 'P' or MTDT_INTERFACE_SUMMARY.STATUS = 'D')
-    ORDER BY MTDT_EXT_SCENARIO.ROWID;
+    ORDER BY MTDT_EXT_SCENARIO.TABLE_TYPE;
   
   CURSOR MTDT_TC_DETAIL (table_name_in IN VARCHAR2, scenario_in IN VARCHAR2)
   IS
@@ -2607,66 +2607,43 @@ begin
                     else
                       /* (20160803) Angel Ruiz. BUG. Me doy cuenta de que si el literal lleva un signo no funciona */
                       /* He de usar el mismo algoritmo que para los importes */
-                      --UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                      if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                        /* Quiere decir que en la longitud aparecen zona de decimales */
-                        /* Preparo la mascara */
-                        v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                        v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                        v_mascara := 'S';
-                        for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                        loop
-                          v_mascara := v_mascara || '0';
-                        end loop;
-                        v_mascara := v_mascara || '.';
-                        for indice in  1..v_long_parte_decimal
-                        loop
-                          v_mascara := v_mascara || '0';
-                        end loop;
-                        UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      /* en caso de que el numero que se hardcodea sea negativo */
+                      if (instr(reg_detail.VALUE, '-') = 0) then
+                      /* Si el numero que se hardcodea es positivo */
+                        UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
                       else
-                        /* Quiere decir que en la longitud no aparece zona de decimales */
-                        v_long_total := to_number (trim(reg_detail.LONGITUD));
-                        v_long_parte_decimal := 0;
-                        v_mascara := 'S';
-                        for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                        loop
-                          v_mascara := v_mascara || '0';
-                        end loop;
-                        UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                        /* Si el numero que se hardcodea es negativo */
+                        if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                          /* Quiere decir que en la longitud aparecen zona de decimales */
+                          /* Preparo la mascara */
+                          v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                          v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                          v_mascara := 'S';
+                          for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                          loop
+                            v_mascara := v_mascara || '0';
+                          end loop;
+                          v_mascara := v_mascara || '.';
+                          for indice in  1..v_long_parte_decimal
+                          loop
+                            v_mascara := v_mascara || '0';
+                          end loop;
+                          UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                        else
+                          /* Quiere decir que en la longitud no aparece zona de decimales */
+                          v_long_total := to_number (trim(reg_detail.LONGITUD));
+                          v_long_parte_decimal := 0;
+                          v_mascara := 'S';
+                          for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                          loop
+                            v_mascara := v_mascara || '0';
+                          end loop;
+                          UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                        end if;
                       end if;
                     end if;
                   else
-                    /* (20160803) Angel Ruiz. BUG: Me doy cuenta que si el numero viene con signo negativo no funcionaria */
-                    /* por lo que tengo que usar el mismo algoritmo que en los campos de tipo Importe */
-                    --UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                    if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                      /* Quiere decir que en la longitud aparecen zona de decimales */
-                      /* Preparo la mascara */
-                      v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                      v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                      v_mascara := 'S';
-                      for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                      loop
-                        v_mascara := v_mascara || '0';
-                      end loop;
-                      v_mascara := v_mascara || '.';
-                      for indice in  1..v_long_parte_decimal
-                      loop
-                        v_mascara := v_mascara || '0';
-                      end loop;
-                      UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                    else
-                      /* Quiere decir que en la longitud no aparece zona de decimales */
-                      v_long_total := to_number (trim(reg_detail.LONGITUD));
-                      v_long_parte_decimal := 0;
-                      v_mascara := 'S';
-                      for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                      loop
-                        v_mascara := v_mascara || '0';
-                      end loop;
-                      UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                    end if;
+                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
                   end if;
                 when reg_detail.TYPE = 'IM' then
                   /*(20160503) Angel Ruiz */
@@ -2773,68 +2750,43 @@ begin
                     else
                       /* (20160803) Angel Ruiz. BUG. Si el campo viene con signo negativo no funciona y he de tratarlo */
                       /* con el mismo algoritmo que los importes */
-                      --UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                      if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                        /* Quiere decir que en la longitud aparecen zona de decimales */
-                        /* Preparo la mascara */
-                        v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                        v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                        v_mascara := 'S';
-                        for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                        loop
-                          v_mascara := v_mascara || '0';
-                        end loop;
-                        v_mascara := v_mascara || '.';
-                        for indice in  1..v_long_parte_decimal
-                        loop
-                          v_mascara := v_mascara || '0';
-                        end loop;
-                        UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      if (instr(reg_detail.VALUE, '-') = 0) then
+                      /* si el valor que vamos a hardcodear no es negativo */
+                        UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
                       else
-                        /* Quiere decir que en la longitud no aparece zona de decimales */
-                        v_long_total := to_number (trim(reg_detail.LONGITUD));
-                        v_long_parte_decimal := 0;
-                        v_mascara := 'S';
-                        for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                        loop
-                          v_mascara := v_mascara || '0';
-                        end loop;
-                        UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                      /* si el valor que vamos a hardcodear es negativo */
+                        if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                          /* Quiere decir que en la longitud aparecen zona de decimales */
+                          /* Preparo la mascara */
+                          v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                          v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                          v_mascara := 'S';
+                          for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                          loop
+                            v_mascara := v_mascara || '0';
+                          end loop;
+                          v_mascara := v_mascara || '.';
+                          for indice in  1..v_long_parte_decimal
+                          loop
+                            v_mascara := v_mascara || '0';
+                          end loop;
+                          UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                        else
+                          /* Quiere decir que en la longitud no aparece zona de decimales */
+                          v_long_total := to_number (trim(reg_detail.LONGITUD));
+                          v_long_parte_decimal := 0;
+                          v_mascara := 'S';
+                          for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                          loop
+                            v_mascara := v_mascara || '0';
+                          end loop;
+                          UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                        end if;
                       end if;
                       /* (20160803) Angel Ruiz. Fin BUG */                      
                     end if;
                   else
-                    /* (20160803) Angel Ruiz. BUG. Si el campo viene con signo negativo no funciona y he de tratarlo */
-                    /* con el mismo algoritmo que los importes */
-                    --UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                    if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                      /* Quiere decir que en la longitud aparecen zona de decimales */
-                      /* Preparo la mascara */
-                      v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                      v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                      v_mascara := 'S';
-                      for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                      loop
-                        v_mascara := v_mascara || '0';
-                      end loop;
-                      v_mascara := v_mascara || '.';
-                      for indice in  1..v_long_parte_decimal
-                      loop
-                        v_mascara := v_mascara || '0';
-                      end loop;
-                      UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                    else
-                      /* Quiere decir que en la longitud no aparece zona de decimales */
-                      v_long_total := to_number (trim(reg_detail.LONGITUD));
-                      v_long_parte_decimal := 0;
-                      v_mascara := 'S';
-                      for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                      loop
-                        v_mascara := v_mascara || '0';
-                      end loop;
-                      UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                    end if;
-                    /* (20160803) Angel Ruiz. Fin del BUG. */
+                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
                   end if;
                 when reg_detail.TYPE = 'IM' then
                   /* Se trata de un valor de tipo importe */
