@@ -15,13 +15,13 @@ SELECT
     , 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
     , 'CICLO_FACTURACION', 'CUENTA', 'ESTATUS_OPERACION'
     , 'FORMA_PAGO', 'SEGMENTO_CLIENTE', 'TIPO_DISTRIBUIDOR'
-    , 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'ESTADO_CANAL', 'CAUSA_BLOQUEO'
+    , 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'CAUSA_BLOQUEO'
     , 'NIR', 'CATEGORIA_CANAL', 'CIUDAD', 'CODIGO_POSTAL', 'COLONIA', 'ESTADO'
     , 'MUNICIPIO', 'TERRITORIO', 'TIPO_BLOQUEO', 'PAIS', 'VENTAS_REGISTRADAS'
-    , 'PLAN_TARIFARIO', 'REL_PLAN_TARIFARIO_CANAL', 'CARACT_PLAN_TARIFARIO', 'SVA', 'REL_SVA_CANAL'
-    , 'CARACT_SVA', 'TIPO_PROPIETARIO_OFERTA', 'ESTATUS_OFERTA', 'MEDIO_FACTURA'
+    , 'PLAN_TARIFARIO', 'REL_PLAN_TARIF_CANAL', 'CARACT_PLAN_TARIFARIO', 'SVA', 'REL_SVA_CANAL'
+    , 'CARACT_SVA', 'TIPO_PROPIETARIO_OFER', 'ESTATUS_OFERTA', 'MEDIO_FACTURA'
     , 'CANAL_OFERTA', 'TARJETA_PAGO', 'OFICINA', 'POSICION_VENDEDOR'
-    , 'CANAL', 'VENDEDOR', 'PUNTO_VENTA', 'BANCO', 'CATEGORIA_CLIENTE', 'PROMOCION', 'USUARIO_SCL'
+    , 'CANAL', 'CANAL_CAMPANA', 'VENDEDOR', 'PUNTO_VENTA', 'BANCO', 'CATEGORIA_CLIENTE', 'PROMOCION', 'USUARIO_SCL'
     , 'PARQUE_SVA', 'CART_VENCIDA', 'CAUSA_PAGO', 'CONCEPTO_FACTURA', 'DOC_CANCELADO'
     , 'FACT_DETALLE', 'FACT_RESUMEN', 'PAGO', 'NODO', 'TIPO_NODO'
     , 'MOVIMIENTO_ABO', 'ESTADO_TAREA', 'FORMA_CONTACTO', 'PRIORIDAD', 'TIPO_TRANSACCION'
@@ -29,7 +29,7 @@ SELECT
     , 'CLIENTES_CONTACTOS'
     , 'MOVIMIENTOS_TT', 'UNIDAD_FUNCIONAL', 'ORIGEN_PAGO', 'PROMOCION_CAMPANA', 'TIPO_OPERACION_TT'
     , 'DICCIONARIO_TT', 'TIPO_CAMPANA', 'MODO_CAMPANA', 'ROL_USUARIO', 'PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
-    , 'USUARIO_GC', 'TRAF_TARIFICADO_VOZ_POST', 'TRAF_TARIFICADO_DATOS_POST'
+    , 'USUARIO_GC', 'TRAF_TARIF_VOZ_POST', 'TRAF_TARIF_DATOS_POST'
     , 'PROVEEDOR_TELCO', 'MEDIO_CONTACTO', 'UNIDAD_FUNCIONAL2', 'UNIDAD_FUNCIONAL1'
     , 'CENTRO_ATENCION', 'ESTADO_CONTACTO', 'CALIDAD_PERCIBIDA', 'TIPO_CUENTA'
     , 'TIPO_CONCEPTO_FACTURA', 'TIPIFICACION_TT', 'ESPECIFICACION_TT', 'ORIGEN_VENTA_COMERCIAL'
@@ -2282,10 +2282,15 @@ begin
     v_fecha_ini_param := false; /* Por defecto cada interfaz no tiene fecha inicial */
     v_fecha_fin_param := false; /* Por defecto cada interfaz no tiene fecha final */
     dbms_output.put_line ('Estoy en el primero LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME);
-    nombre_fich_carga := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh';
     
-    --nombre_fich_exchange := 'load_ex_' || reg_tabla.TABLE_NAME || '.sh';
-    nombre_fich_pkg := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sql';
+    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
+    --nombre_fich_carga := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh';
+    nombre_fich_carga := 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sh';
+    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
+    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
+    --nombre_fich_pkg := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sql';
+    nombre_fich_pkg := 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sql';
+    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
     fich_salida_load := UTL_FILE.FOPEN ('SALIDA',nombre_fich_carga,'W');
     --fich_salida_exchange := UTL_FILE.FOPEN ('SALIDA',nombre_fich_exchange,'W');
     fich_salida_pkg := UTL_FILE.FOPEN ('SALIDA',nombre_fich_pkg,'W');
@@ -3000,7 +3005,10 @@ begin
     UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
     UTL_FILE.put_line(fich_salida_load, '# Telefonica Moviles Mexico SA DE CV                                        #');
     UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
-    UTL_FILE.put_line(fich_salida_load, '# Archivo    :       ' || REQ_NUMBER || '_' ||  reg_tabla.TABLE_NAME || '.sh           #');
+    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
+    --UTL_FILE.put_line(fich_salida_load, '# Archivo    :       ' || REQ_NUMBER || '_' ||  reg_tabla.TABLE_NAME || '.sh           #');
+    UTL_FILE.put_line(fich_salida_load, '# Archivo    :       ' || 'ONIX' || '_' ||  reg_tabla.TABLE_NAME || '.sh           #');
+    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
     UTL_FILE.put_line(fich_salida_load, '#                                                                           #');
     UTL_FILE.put_line(fich_salida_load, '# Autor      : <SYNAPSYS>                                                   #');
     UTL_FILE.put_line(fich_salida_load, '# Proposito  : Realizar la extraccion de ' ||  reg_tabla.TABLE_NAME || ' de '|| NAME_DM || '  #');
@@ -3063,7 +3071,10 @@ begin
     UTL_FILE.put_line(fich_salida_load, '  FROM');
     UTL_FILE.put_line(fich_salida_load, '  ' || OWNER_MTDT || '.MTDT_PROCESO');
     UTL_FILE.put_line(fich_salida_load, '  WHERE');
-    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
+    --UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
     UTL_FILE.put_line(fich_salida_load, '  commit;');
     UTL_FILE.put_line(fich_salida_load, 'end;');
     UTL_FILE.put_line(fich_salida_load, '/');
@@ -3116,7 +3127,10 @@ begin
     UTL_FILE.put_line(fich_salida_load, '  FROM');
     UTL_FILE.put_line(fich_salida_load, '  ' || OWNER_MTDT || '.MTDT_PROCESO');
     UTL_FILE.put_line(fich_salida_load, '  WHERE');
-    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/    
+    --UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
     UTL_FILE.put_line(fich_salida_load, '  commit;');
     UTL_FILE.put_line(fich_salida_load, 'end;');
     UTL_FILE.put_line(fich_salida_load, '/');
@@ -3329,7 +3343,10 @@ begin
       /* a las tablas de STAGING. No es necesario declarar el fichero de salida cuando estamos llevando los datos directamente a las tablas de Staging */
       UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SALIDA="' || nombre_interface_a_cargar || '"');
     end if;
-    UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="${REQ_NUM}_' || reg_tabla.TABLE_NAME || '.sql"');
+    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
+    --UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="${REQ_NUM}_' || reg_tabla.TABLE_NAME || '.sql"');
+    UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="ONIX_' || reg_tabla.TABLE_NAME || '.sql"');
+    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/    
     if (v_tabla_dinamica = true and v_fecha_ini_param = false and v_fecha_fin_param = false) then
       /* (20160414) Angel Ruiz. Si existe tabla dinamica, entonces hay que hacer una llamada al sqlplus con un parametro mas  */
       if (v_type_validation = 'I') then
@@ -3536,10 +3553,10 @@ begin
     UTL_FILE.put_line(fich_salida_load, '#NOMEBRE DE LA INTERFAZ');
     UTL_FILE.put_line(fich_salida_load, 'NOM_INTERFAZ="' || nom_inter_a_cargar_sin_fecha || '"');
     UTL_FILE.put_line(fich_salida_load, 'PATH_REQ="/DWH/requerimientos"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_SQL="${PATH_REQ}/shells/${REQ_NUM}/${INTERFAZ}/sql/"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_SALIDA="${PATH_REQ}/salidasmanual/${REQ_NUM}/${INTERFAZ}/datos/"');
+    UTL_FILE.put_line(fich_salida_load, 'PATH_SQL="${PATH_REQ}/shells/${REQ_NUM}/ONIX_${INTERFAZ}/sql/"');
+    UTL_FILE.put_line(fich_salida_load, 'PATH_SALIDA="${PATH_REQ}/salidasmanual/${REQ_NUM}/ONIX_${INTERFAZ}/datos/"');
     --UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/SAP_INFO/shell/"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/${INTERFAZ}/shell/"');
+    UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/ONIX_${INTERFAZ}/shell/"');
     UTL_FILE.put_line(fich_salida_load, 'B_CONTEO_BD=0');
     UTL_FILE.put_line(fich_salida_load, 'CONTEO_ARCHIVO=0');
     
@@ -3604,10 +3621,12 @@ begin
     UTL_FILE.put_line(fich_salida_load, 'GeneraFlag');
     /* (20160712) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
     /* dado que seran concatenados con otra fuente */
-    if ( reg_tabla.TABLE_NAME in ('CLIENTE', 'CUENTA', 'PARQUE_ABO_POST', 'PARQUE_ABO_PRE', 'SEGMENTO_CLIENTE'
-          , 'CATEGORIA_CLIENTE', 'ESTATUS_OPERACION', 'FORMA_PAGO', 'MOVIMIENTO_ABO', 'PROMOCION'
-          , 'CICLO', 'SVA', 'CANAL_OFERTA', 'PARQUE_SVA', 'MOVIMIENTO_SVA', 'ICC', 'FACTURACION_IMEI', 'CANAL'
-          , 'PUNTO_VENTA', 'TIPO_CUENTA')) then
+    if ( reg_tabla.TABLE_NAME in ('BANCO', 'CANAL', 'CANAL_OFERTA', 'CART_VENCIDA', 'CAUSA_PAGO'
+          , 'CICLO_FACTURACION', 'CLIENTE', 'CONCEPTO_FACTURA', 'CONCEPTO_PAGO', 'CUENTA'
+          , 'DISTRIBUIDOR', 'ESTATUS_OFERTA', 'ESTATUS_OPERACION', 'FACTURACION_IMEI', 'FORMA_PAGO', 'ICC', 'MOVIMIENTO_ABO', 'OFICINA'
+          , 'ORIGEN_PAGO', 'ORIGEN_VENTA_COMERCIAL', 'PARQUE_ABO_POST', 'PARQUE_ABO_PRE', 'PARQUE_SVA', 'PLAN_TARIFARIO', 'PROMOCION'
+          , 'PUNTO_VENTA', 'TARJETA_PAGO', 'TIPO_CONCEPTO_FACTURA', 'TIPO_CUENTA', 'TRAF_TARIFICADO_DATOS_POST', 'TRAF_TARIFICADO_VOZ_POST'
+          , 'VENDEDOR', 'VENTAS_REGISTRADAS')) then
       UTL_FILE.put_line(fich_salida_load, '#EnviaArchivos');
     else
       UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos');
