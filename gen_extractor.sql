@@ -2725,15 +2725,15 @@ begin
                     /* Se trata de un valor literal */
                     /* Comprobamos si es un NA# */
                     if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, '||' || reg_scenario.SEPARATOR || '-1' || '          --' || reg_detail.TABLE_COLUMN);
+                      UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || '-1' || '          --' || reg_detail.TABLE_COLUMN);
                     else
-                      UTL_FILE.put_line(fich_salida_pkg, '||' || reg_scenario.SEPARATOR || columna || '          --' || reg_detail.TABLE_COLUMN);
+                      UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
                     end if;
                   else
-                    UTL_FILE.put_line(fich_salida_pkg, '||' || reg_scenario.SEPARATOR || columna || '          --' || reg_detail.TABLE_COLUMN);
+                    UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
                   end if;
                 else
-                  UTL_FILE.put_line(fich_salida_pkg, '||' || reg_scenario.SEPARATOR || columna || '          --' || reg_detail.TABLE_COLUMN);
+                  UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
               end case;
             else    /* Se trata de un fichero plano por posicion */
               case
