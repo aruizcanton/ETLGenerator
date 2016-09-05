@@ -14,7 +14,9 @@ DECLARE
       TRIM(DELAYED) "DELAYED",
       TRIM(HISTORY) "HISTORY",
       MARCA,
-      HUSO      
+      HUSO,
+      trim(TYPE_VALIDATION) "TYPE_VALIDATION",  
+      trim(FILE_VALIDATION) "FILE_VALIDATION"   /* (20160818) Angel Ruiz. NF. Validar en otro directorio */
     FROM MTDT_INTERFACE_SUMMARY    
     WHERE SOURCE <> 'SA';  -- Este origen es el que se ha considerado para las dimensiones que son de integracion ya que se cargan a partir de otras dimensiones de SA 
     --and CONCEPT_NAME in ('TRAFE_CU_MVNO', 'TRAFD_CU_MVNO', 'TRAFV_CU_MVNO');
@@ -424,26 +426,54 @@ BEGIN
     /******/
     /* INICIO DE LA GENERACION DEL sh de CARGA */
     /******/
-    nombre_interface_a_cargar := reg_summary.INTERFACE_NAME;
-    pos_ini_pais := instr(reg_summary.INTERFACE_NAME, '_XXX_');
-    if (pos_ini_pais > 0) then
-      pos_fin_pais := pos_ini_pais + length ('_XXX_');
-      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_pais -1) || '_' || reg_summary.COUNTRY || '_' || substr(nombre_interface_a_cargar, pos_fin_pais);
+
+    /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+    /* ya que por motivos de validacion se quiere cargar otro fichero */
+    if (reg_summary.FILE_VALIDATION is null) then
+    /* Se lleva a cabo la carga del fichero normal */
+      nombre_interface_a_cargar := reg_summary.INTERFACE_NAME;
+      pos_ini_pais := instr(reg_summary.INTERFACE_NAME, '_XXX_');
+      if (pos_ini_pais > 0) then
+        pos_fin_pais := pos_ini_pais + length ('_XXX_');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_pais -1) || '_' || reg_summary.COUNTRY || '_' || substr(nombre_interface_a_cargar, pos_fin_pais);
+      end if;
+      pos_ini_fecha := instr(reg_summary.INTERFACE_NAME, '_YYYYMMDD');
+      if (pos_ini_fecha > 0) then
+        pos_fin_fecha := pos_ini_fecha + length ('_YYYYMMDD');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '_${FCH_DATOS}' || substr(nombre_interface_a_cargar, pos_fin_fecha);
+      end if;
+      /* (20160225) Angel Ruiz */
+      pos_ini_hora := instr(nombre_interface_a_cargar, 'HH24MISS');
+      if (pos_ini_hora > 0) then
+        pos_fin_hora := pos_ini_hora + length ('HH24MISS');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
+      end if;
+      /*****************************/
+      nombre_flag_a_cargar := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'flag';
+      nombre_fich_descartados := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'bad';
+    else
+    /* Se lleva a cabo la carga del fichero alternativo */
+      nombre_interface_a_cargar := reg_summary.FILE_VALIDATION;
+      pos_ini_pais := instr(reg_summary.FILE_VALIDATION, '_XXX_');
+      if (pos_ini_pais > 0) then
+        pos_fin_pais := pos_ini_pais + length ('_XXX_');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_pais -1) || '_' || reg_summary.COUNTRY || '_' || substr(nombre_interface_a_cargar, pos_fin_pais);
+      end if;
+      pos_ini_fecha := instr(reg_summary.FILE_VALIDATION, '_YYYYMMDD');
+      if (pos_ini_fecha > 0) then
+        pos_fin_fecha := pos_ini_fecha + length ('_YYYYMMDD');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '_${FCH_DATOS}' || substr(nombre_interface_a_cargar, pos_fin_fecha);
+      end if;
+      /* (20160225) Angel Ruiz */
+      pos_ini_hora := instr(nombre_interface_a_cargar, 'HH24MISS');
+      if (pos_ini_hora > 0) then
+        pos_fin_hora := pos_ini_hora + length ('HH24MISS');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
+      end if;
+      /*****************************/
+      nombre_flag_a_cargar := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'flag';
+      nombre_fich_descartados := REGEXP_SUBSTR(substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'bad', '[A-Za-z_0-9$}{]+\.bad$');
     end if;
-    pos_ini_fecha := instr(reg_summary.INTERFACE_NAME, '_YYYYMMDD');
-    if (pos_ini_fecha > 0) then
-      pos_fin_fecha := pos_ini_fecha + length ('_YYYYMMDD');
-      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '_${FCH_DATOS}' || substr(nombre_interface_a_cargar, pos_fin_fecha);
-    end if;
-    /* (20160225) Angel Ruiz */
-    pos_ini_hora := instr(nombre_interface_a_cargar, 'HH24MISS');
-    if (pos_ini_hora > 0) then
-      pos_fin_hora := pos_ini_hora + length ('HH24MISS');
-      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
-    end if;
-    /*****************************/
-    nombre_flag_a_cargar := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'flag';
-    nombre_fich_descartados := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'bad';
     UTL_FILE.put_line(fich_salida_sh, '#!/bin/bash');
     UTL_FILE.put_line(fich_salida_sh, '#############################################################################');
     UTL_FILE.put_line(fich_salida_sh, '#                                                                           #');
@@ -741,20 +771,38 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '  exit 1');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
     UTL_FILE.put_line(fich_salida_sh, '');
+    /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+    /* ya que por motivos de validacion se quiere cargar otro fichero */
+    if (reg_summary.FILE_VALIDATION is null) then
+    /* Se trata de una carga normal */
     /* (20150225) ANGEL RUIZ. Aparecen HH24MISS como parte del nombre en el DM Distribucion */
     /* (20150827) ANGEL RUIZ. He comentado el IF de despues porque no funcionaba cuando el fichero viene sin HHMMSS*/
     --if (pos_ini_hora > 0) then
-      /* (20160712) Angel Ruiz */
+      /* (20160712) Angel Ruiz. CAMBIO TEMPORAL... */
       --UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar ||'`');
-      UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar ||'`');
+      UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 /DWH/requerimientos/salidasmanual/Req96817/ONIX_' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar ||'`');
+      /* (20160712) Angel Ruiz. FIN CAMBIO TEMPORAL... */
       --UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_FLAG=`ls -1 ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar ||'`');
-    --end if;    
+    --end if;
+    else
+    /* Se trata de cargar el fichero alternativo para validacion */
+      --UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar ||'`');
+      --UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar ||'`');
+      UTL_FILE.put_line(fich_salida_sh, 'NOMBRE_FICH_CARGA=`ls -1 ' || nombre_interface_a_cargar ||'`'); /* nombre_interface_a_cargar ya lleva la ruta incluida en este caso */
+    end if;
     /****************************/
     UTL_FILE.put_line(fich_salida_sh, '# Comprobamos que los ficheros a cargar existen');
     UTL_FILE.put_line(fich_salida_sh, 'if [ "${NOMBRE_FICH_CARGA:-SIN_VALOR}" = "SIN_VALOR" ] ; then');
     if (reg_summary.FREQUENCY = 'E') then
       /* Se trata de una carga eventual, por lo que a veces el fichero puede no venir y entonces no debe acabar con error */
-      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen fichero para cargar. El fichero es de carga eventual. No hay error.' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
+      /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+      /* ya que por motivos de validacion se quiere cargar otro fichero */
+      if (reg_summary.FILE_VALIDATION is null) then
+        UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen fichero para cargar. El fichero es de carga eventual. No hay error.' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
+      else
+        UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen fichero para cargar. El fichero es de carga eventual. No hay error.' || nombre_interface_a_cargar || '."');
+      end if;
+      /* (20160818) Angel Ruiz. FIN NF: Puede existir una ruta alternativa para cargar fichero */      
       UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
       UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
       UTL_FILE.put_line(fich_salida_sh, '');
@@ -765,7 +813,15 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '    InsertaFinOK');
       UTL_FILE.put_line(fich_salida_sh, '    exit 0');
     else
-      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen ficheros para cargar. ' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
+      /* Se trata de una carga eventual, por lo que a veces el fichero puede no venir y entonces no debe acabar con error */
+      /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+      /* ya que por motivos de validacion se quiere cargar otro fichero */
+      if (reg_summary.FILE_VALIDATION is null) then
+        UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen ficheros para cargar. ' || '${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || '."');
+      else
+        UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${INTERFAZ}: No existen ficheros para cargar. ' || nombre_interface_a_cargar || '."');
+      end if;
+      /* (20160818) Angel Ruiz. FIN NF: Puede existir una ruta alternativa para cargar fichero */
       UTL_FILE.put_line(fich_salida_sh, '    ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
       UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
       UTL_FILE.put_line(fich_salida_sh, '    echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
@@ -801,12 +857,26 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_DATOS_T=`echo ${NOMBRE_FICH_DATOS} | sed -e ''s/\.[Dd][Aa][Tt]/_/''`');
       --UTL_FILE.put_line(fich_salida_sh, '  cat ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl | sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/g" > ' || '${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
       UTL_FILE.put_line(fich_salida_sh, '  sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/" ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl > '  || '${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
-      UTL_FILE.put_line(fich_salida_sh, '  # Llamada a sqlldr');
-      UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS} \'); 
-      UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL} \' );
-      --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS%.*}_${FECHA_HORA}' || '.log \');
-      UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log \');
-      UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+      /* ya que por motivos de validacion se quiere cargar otro fichero */
+      if (reg_summary.FILE_VALIDATION is null) then
+      /* Se carga el fichero normal */
+        UTL_FILE.put_line(fich_salida_sh, '  # Llamada a sqlldr');
+        UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS} \'); 
+        UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL} \' );
+        --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS%.*}_${FECHA_HORA}' || '.log \');
+        UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log \');
+        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      else
+      /* Se carga el fichero alternativo para validacion */
+        UTL_FILE.put_line(fich_salida_sh, '  # Llamada a sqlldr');
+        UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${NOMBRE_FICH_DATOS} \'); 
+        UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL} \' );
+        --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS%.*}_${FECHA_HORA}' || '.log \');
+        --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log \');
+        UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_' || substr(REGEXP_SUBSTR(REGEXP_SUBSTR(reg_summary.FILE_VALIDATION, '/[A-Za-z_0-9]+\.[A-Za-z_0-9]+$'), '/[A-Za-z_0-9]+'), 2) || '_${FECHA_HORA}' || '.log \');
+        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      end if;
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, '  err_salida=$?');
       UTL_FILE.put_line(fich_salida_sh, '');
@@ -839,14 +909,31 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, 'TOT_INSERTADOS=0');
       UTL_FILE.put_line(fich_salida_sh, 'TOT_RECHAZADOS=0');
       UTL_FILE.put_line(fich_salida_sh, '# Llamada a sqlldr');
-      /*(20160712) Angel Ruiz */
-      --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
-      UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=/DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar || ' \'); 
-      --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${NOMBRE_FICH_CARGA}' || ' \'); 
-      UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
-      UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
-      --UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
-      UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || nombre_fich_descartados ||  ' >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+      /* ya que por motivos de validacion se quiere cargar otro fichero */
+      if (reg_summary.FILE_VALIDATION is null) then
+      /* Se carga el fichero normal */
+        /*(20160712) Angel Ruiz. Cambio TEMPORAL */
+        --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
+        UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=/DWH/requerimientos/salidasmanual/Req96817/ONIX_' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar || ' \'); 
+        /* (20160712) FIN CAMBIO TEMPORAL */
+        --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${NOMBRE_FICH_CARGA}' || ' \'); 
+        UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
+        UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
+        --UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || nombre_fich_descartados ||  ' >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      else
+      /* Se carga el fichero alternativo para validacion */
+        /*(20160712) Angel Ruiz */
+        --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' \'); 
+        UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=' || nombre_interface_a_cargar || ' \'); 
+        /* (20160712) FIN CAMBIO TEMPORAL */
+        --UTL_FILE.put_line(fich_salida_sh, '  sqlldr ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} DATA=${NOMBRE_FICH_CARGA}' || ' \'); 
+        UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl \' );
+        UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log \');
+        --UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.bad ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/' || nombre_fich_descartados ||  ' >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+      end if;
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, 'err_salida=$?');
       UTL_FILE.put_line(fich_salida_sh, '');
@@ -919,11 +1006,23 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'if [ ! -d ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} ] ; then');
     UTL_FILE.put_line(fich_salida_sh, '  mkdir ${' || NAME_DM || '_DESTINO}/${FCH_CARGA}');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
-    /* (20160712) Angel Ruiz */
-    --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    UTL_FILE.put_line(fich_salida_sh, 'mv /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
-    UTL_FILE.put_line(fich_salida_sh, 'mv /DWH/requerimientos/salidasmanual/Req96817/' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+    /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
+    /* ya que por motivos de validacion se quiere cargar otro fichero */
+    if (reg_summary.FILE_VALIDATION is null) then
+      /* (20160712) Angel Ruiz. CAMBIO TEMPORAL ... */
+      --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      UTL_FILE.put_line(fich_salida_sh, 'mv /DWH/requerimientos/salidasmanual/Req96817/ONIX_' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      UTL_FILE.put_line(fich_salida_sh, 'mv /DWH/requerimientos/salidasmanual/Req96817/ONIX_' || reg_summary.CONCEPT_NAME || '/datos/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      /* (20160712) Angel Ruiz. FIN CAMBIO TEMPORAL*/
+    else
+      /* (20160712) Angel Ruiz. CAMBIO TEMPORAL ... */
+      --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      UTL_FILE.put_line(fich_salida_sh, 'mv ' || nombre_interface_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      --UTL_FILE.put_line(fich_salida_sh, 'mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      UTL_FILE.put_line(fich_salida_sh, 'mv ' || nombre_flag_a_cargar || ' ${' || NAME_DM || '_DESTINO}/${FCH_CARGA} >> ${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');    
+      /* (20160712) Angel Ruiz. FIN CAMBIO TEMPORAL*/
+    end if;
     UTL_FILE.put_line(fich_salida_sh, 'exit 0');    
     /******/
     /* FIN DE LA GENERACION DEL sh de CARGA */
