@@ -25,7 +25,7 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ALTAS_POSTPAGO', 'BSF_ALTAS_PREPAGO');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_CLASE_VALORACION');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_CLASE_VALORACION');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
     
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -500,6 +500,25 @@ SELECT
         --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
         --pos := pos_ant;
       end loop;
+      /* Busco LA COMILLA */
+      pos := 0;
+      posicion_ant := 0;
+      sustituto := '''''';
+      loop
+        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+        pos := instr(cadena_resul, '''', pos+1);
+        exit when pos = 0;
+        dbms_output.put_line ('Pos es mayor que 0');
+        dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        dbms_output.put_line ('La cabeza es: ' || cabeza);
+        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        cola := substr(cadena_resul, pos + length (''''));
+        dbms_output.put_line ('La cola es: ' || cola);
+        cadena_resul := cabeza || sustituto || cola;
+        pos_ant := pos + length ('''''');
+        pos := pos_ant;
+      end loop;
     end if;  
     return cadena_resul;
   end;
@@ -858,6 +877,7 @@ SELECT
         /* Se trata de hacer el LOOK UP con la tabla dimension */
         /* (20150126) Angel Ruiz. Primero recojo la tabla del modelo con la que se hace LookUp. NO puede ser tablas T_* sino su equivalesnte del modelo */
         dbms_output.put_line('ESTOY EN EL LOOKUP. Al principio');
+        dbms_output.put_line('El campo es: ' || reg_detalle_in.TABLE_COLUMN);
         l_FROM.extend;
         /* (20150130) Angel Ruiz */
         /* Nueva incidencia. */
@@ -868,10 +888,12 @@ SELECT
             v_alias := trim(substr(REGEXP_SUBSTR (reg_detalle_in.TABLE_LKUP, '\) *[a-zA-Z_0-9]+$'), 2));
             mitabla_look_up := reg_detalle_in.TABLE_LKUP;
             v_alias_incluido := 1;
+            dbms_output.put_line('EXISTE ALIAS EN LA QUERY TABLE_LKUP');
           else
             v_alias := 'LKUP_' || l_FROM.count;
             mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
             v_alias_incluido := 0;
+            dbms_output.put_line('NO EXISTE ALIAS EN LA QUERY TABLE_LKUP');
           end if;
           l_FROM (l_FROM.last) := ', ' || mitabla_look_up;
         else
@@ -989,14 +1011,14 @@ SELECT
             if (l_registro1.DATA_TYPE = 'NUMBER') then
               if (v_alias_incluido = 1) then
               /* (20160629) Angel Ruiz. NF: Se incluye la posibilidad de incluir el ALIAS en tablas de LKUP que sean SELECT */
-                valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || reg_detalle_in.VALUE || ', -2) END';
+                valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || sustituye_comillas_dinam(reg_detalle_in.VALUE) || ', -2) END';
               else
                 valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) END';
               end if;
             else
               if (v_alias_incluido = 1) then
               /* (20160629) Angel Ruiz. NF: Se incluye la posibilidad de incluir el ALIAS en tablas de LKUP que sean SELECT */
-                valor_retorno := valor_retorno || ') THEN ''''NO INFORMADO'''' ELSE ' || 'NVL(' || reg_detalle_in.VALUE || ', ''''GENERICO'''') END';
+                valor_retorno := valor_retorno || ') THEN ''''NO INFORMADO'''' ELSE ' || 'NVL(' || sustituye_comillas_dinam(reg_detalle_in.VALUE) || ', ''''GENERICO'''') END';
               else
                 valor_retorno := valor_retorno || ') THEN ''''NO INFORMADO'''' ELSE ' || 'NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', ''''GENERICO'''') END';
               end if;
@@ -1009,13 +1031,13 @@ SELECT
             COLUMN_NAME = reg_detalle_in.TABLE_COLUMN;
             if (l_registro1.DATA_TYPE = 'NUMBER') then
               if (v_alias_incluido = 1) then
-                valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', -2)';
+                valor_retorno :=  '    NVL(' || sustituye_comillas_dinam(reg_detalle_in.VALUE) || ', -2)';
               else
                 valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
               end if;
             else
               if (v_alias_incluido = 1) then
-                valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', ''''GENERICO'''')';
+                valor_retorno :=  '    NVL(' || sustituye_comillas_dinam(reg_detalle_in.VALUE) || ', ''''GENERICO'''')';
               else
                 valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', ''''GENERICO'''')';
               end if;
