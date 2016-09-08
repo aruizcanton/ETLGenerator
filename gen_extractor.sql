@@ -52,7 +52,7 @@ SELECT
       TRIM(MTDT_EXT_SCENARIO.OVER_PARTION) "OVER_PARTION",
       TRIM(MTDT_EXT_SCENARIO.DISTINCT_COL) "DISTINCT_COL",
       TRIM(MTDT_EXT_SCENARIO."SELECT") "SELECT",
-      TRIM (MTDT_EXT_SCENARIO."GROUP") "GROUP",
+      TRIM (MTDT_EXT_SCENARIO."GROUP") "COLUMNA_GROUP",
       TRIM(MTDT_EXT_SCENARIO.FILTER) "FILTER",
       TRIM(MTDT_EXT_SCENARIO.INTERFACE_COLUMNS) "INTERFACE_COLUMNS",
       TRIM(MTDT_EXT_SCENARIO.SCENARIO) "SCENARIO",
@@ -2682,6 +2682,8 @@ begin
                   end if;
                 when reg_detail.TYPE = 'FE' then
                   /* Se trata de un valor de tipo fecha */
+                  /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
+                  columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
                   if (reg_detail.LONGITUD = 8) then
                     --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
                     UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
@@ -2834,6 +2836,8 @@ begin
                   end if;
                 when reg_detail.TYPE = 'FE' then
                   /* Se trata de un valor de tipo fecha */
+                  /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
+                  columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
                   if (reg_detail.LONGITUD = 8) then
                     --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
                     UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
@@ -2927,6 +2931,11 @@ begin
         if (reg_scenario.OVER_PARTION is not null) then
           UTL_FILE.put_line(fich_salida_pkg, ')');
           UTL_FILE.put_line(fich_salida_pkg, 'WHERE RN = 1');
+        end if;
+        if (reg_scenario.COLUMNA_GROUP is not null) then
+        /* (20160907) Angel Ruiz. Implementacion del GROUP BY */
+          UTL_FILE.put_line(fich_salida_pkg, 'GROUP BY');
+          UTL_FILE.put_line(fich_salida_pkg, reg_scenario.COLUMNA_GROUP);
         end if;
       end if;
       /**************/
