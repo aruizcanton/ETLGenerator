@@ -157,7 +157,7 @@ SELECT
   
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(400);
-  type lista_tablas_from is table of varchar(4000); /* [URC] se cambia longitud de 2000 a 4000 */
+  type lista_tablas_from is table of varchar(20000); /* [URC] se cambia longitud de 2000 a 4000 */
   type lista_condi_where is table of varchar(4000); /* [URC] se cambia longitud de 1000 a 4000 */
 
   
@@ -179,7 +179,7 @@ SELECT
   lista_scenarios_presentes                                    list_strings := list_strings();
   v_lista_elementos_scenario        list_strings := list_strings();     
 
-  campo_filter                                VARCHAR2(2000);
+  campo_filter                                VARCHAR2(10000);
   nombre_proceso                        VARCHAR2(30);
   nombre_tabla_reducido           VARCHAR2(30);
   nombre_tabla_T                        VARCHAR2(30);
@@ -844,7 +844,7 @@ SELECT
     pos                   PLS_integer;
     pos_ant           PLS_integer;
     posicion_ant           PLS_integer;
-    cadena_resul varchar(2000);
+    cadena_resul varchar(20000);
     begin
       lon_cadena := length (cadena_in);
       pos := 0;
@@ -1288,7 +1288,7 @@ SELECT
     table_columns_lkup  list_strings := list_strings();
     ie_column_lkup    list_strings := list_strings();
     tipo_columna  VARCHAR2(30);
-    mitabla_look_up VARCHAR2(2000);
+    mitabla_look_up VARCHAR2(20000);
     l_registro          ALL_TAB_COLUMNS%rowtype;
     v_value VARCHAR(200);
     nombre_campo  VARCHAR2(30);
@@ -1763,7 +1763,15 @@ SELECT
                 if (reg_detalle_in."OUTER" = 'Y') then
                   /* (20160630) Angel Ruiz. BUG. Ocurre que si los campos IE_COLUMN_LKUP o TABLE_COLUMN_LKUP ya estan calificados no hay que hacerlo */
                   if (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
-                    l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    /* (20161004) Angel Ruiz. BUG.Ocurre que puede ponersele al campo IE_COLUMN_LKUP un ALIAS. */
+                    /* pero este ALIAS no corresponde con el ALIAS de la tabla TABLE_BASE_NAME, sino de otra tabla LOOKUP */
+                    /* por lo que dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                    if instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 then
+                      /* (20161004) Angel Ruiz. Dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                      l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    else                  
+                      l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   else
@@ -1772,7 +1780,15 @@ SELECT
                 else
                   /* (20160630) Angel Ruiz. BUG. Ocurre que si los campos IE_COLUMN_LKUP o TABLE_COLUMN_LKUP ya estan calificados no hay que hacerlo */
                   if (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
-                    l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                    /* (20161004) Angel Ruiz. BUG.Ocurre que puede ponersele al campo IE_COLUMN_LKUP un ALIAS. */
+                    /* pero este ALIAS no corresponde con el ALIAS de la tabla TABLE_BASE_NAME, sino de otra tabla LOOKUP */
+                    /* por lo que dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                    if instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 then
+                      /* (20161004) Angel Ruiz. Dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                      l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                    else                  
+                      l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                    end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP;
                   else
@@ -1805,7 +1821,15 @@ SELECT
                 if (reg_detalle_in."OUTER" = 'Y') then
                   /* (20160630) Angel Ruiz. BUG. Ocurre que si los campos IE_COLUMN_LKUP o TABLE_COLUMN_LKUP ya estan calificados no hay que hacerlo */
                   if (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
-                    l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    /* (20161004) Angel Ruiz. BUG.Ocurre que puede ponersele al campo IE_COLUMN_LKUP un ALIAS. */
+                    /* pero este ALIAS no corresponde con el ALIAS de la tabla TABLE_BASE_NAME, sino de otra tabla LOOKUP */
+                    /* por lo que dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                    if instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 then
+                      /* (20161004) Angel Ruiz. Dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    else
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   else
@@ -1814,7 +1838,15 @@ SELECT
                 else
                   /* (20160630) Angel Ruiz. BUG. Ocurre que si los campos IE_COLUMN_LKUP o TABLE_COLUMN_LKUP ya estan calificados no hay que hacerlo */
                   if (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
-                    l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                    /* (20161004) Angel Ruiz. Ocurre que puede ponersele al campo IE_COLUMN_LKUP un ALIAS. */
+                    /* pero este ALIAS no corresponde con el ALIAS de la tabla TABLE_BASE_NAME, sino de otra tabla LOOKUP */
+                    /* por lo que dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                    if instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 then
+                      /* (20161004) Angel Ruiz. Dejamos el campo IE_COLUMN_LKUP con el alias que trae */
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                    else
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                    end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP;
                   else
@@ -3526,7 +3558,17 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos()');
     UTL_FILE.put_line(fich_salida_load, '{');
-    UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
+    /* (20161004) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
+    /* dado que seran concatenados con otra fuente */
+    if ( reg_tabla.TABLE_NAME in ('CALIDAD_PERCIBIDA', 'DICCIONARIO_TT', 'ESPECIFICACION_TT', 'ESTADO_TAREA', 'FORMA_CONTACTO'
+      , 'MOTIVO_OPERACION_TT', 'MOVIMIENTOS_TT', 'NODO', 'PROVEEDOR_TELCO', 'TIPIFICACION_TT'
+      , 'TIPO_NODO', 'TIPO_OPERACION_TT', 'UNIDAD_FUNCIONAL1', 'UNIDAD_FUNCIONAL2')) then
+      UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/DWH/dwhprod/DWH/MEX/Fuente"');
+      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}/${FECHA}');
+    else
+      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
+    end if;
+    /* (20161004) Angel Ruiz. Fin cambio Temporal*/
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  Surgio un error en el envio del archivo."');
     UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al enviar el archivo ${ARCHIVO_SALIDA} al servidor ${DESTINO_IP}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
@@ -3534,7 +3576,15 @@ begin
     UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '    exit 1');
     UTL_FILE.put_line(fich_salida_load, '  fi');
-    UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
+    /* (20161004) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
+    /* dado que seran concatenados con otra fuente */
+    if ( reg_tabla.TABLE_NAME in ('CALIDAD_PERCIBIDA', 'DICCIONARIO_TT', 'ESPECIFICACION_TT', 'ESTADO_TAREA', 'FORMA_CONTACTO'
+      , 'MOTIVO_OPERACION_TT', 'MOVIMIENTOS_TT', 'NODO', 'PROVEEDOR_TELCO', 'TIPIFICACION_TT'
+      , 'TIPO_NODO', 'TIPO_OPERACION_TT', 'UNIDAD_FUNCIONAL1', 'UNIDAD_FUNCIONAL2')) then
+      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}/${FECHA}');
+    else
+      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
+    end if;
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  Surgio un error en el envio del archivo."');
     UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al enviar el archivo ${NAME_FLAG} al servidor ${DESTINO_IP}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
@@ -3634,7 +3684,7 @@ begin
           , 'CICLO_FACTURACION', 'CLIENTE', 'CONCEPTO_FACTURA', 'CONCEPTO_PAGO', 'CUENTA'
           , 'DISTRIBUIDOR', 'ESTATUS_OFERTA', 'ESTATUS_OPERACION', 'FACTURACION_IMEI', 'FORMA_PAGO', 'ICC', 'MOVIMIENTO_ABO', 'OFICINA'
           , 'ORIGEN_PAGO', 'ORIGEN_VENTA_COMERCIAL', 'PARQUE_ABO_POST', 'PARQUE_ABO_PRE', 'PARQUE_SVA', 'PLAN_TARIFARIO', 'PROMOCION'
-          , 'PUNTO_VENTA', 'TARJETA_PAGO', 'TIPO_CONCEPTO_FACTURA', 'TIPO_CUENTA', 'TRAF_TARIFICADO_DATOS_POST', 'TRAF_TARIFICADO_VOZ_POST'
+          , 'PUNTO_VENTA', 'TARJETA_PAGO', 'TIPO_CONCEPTO_FACTURA', 'TIPO_CUENTA', 'TRAF_TARIF_DATOS_POST', 'TRAF_TARIF_VOZ_POST'
           , 'VENDEDOR', 'VENTAS_REGISTRADAS')) then
       UTL_FILE.put_line(fich_salida_load, '#EnviaArchivos');
     else
