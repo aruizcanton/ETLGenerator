@@ -2715,7 +2715,10 @@ begin
                 when reg_detail.TYPE = 'FE' then
                   /* Se trata de un valor de tipo fecha */
                   /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
-                  columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
+                  if (reg_detail.RUL <> 'VAR_FCH_INICIO' and (instr(upper(reg_detail.VALUE), 'SYSDATE') = 0)) then
+                    /* (20161006) Angel Ruiz. BUG. A los sysdate no se les puede hacer el CAST */
+                    columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
+                  end if;
                   if (reg_detail.LONGITUD = 8) then
                     --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
                     UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
@@ -2869,7 +2872,10 @@ begin
                 when reg_detail.TYPE = 'FE' then
                   /* Se trata de un valor de tipo fecha */
                   /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
-                  columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
+                  if (reg_detail.RUL <> 'VAR_FCH_INICIO' and (instr(upper(reg_detail.VALUE), 'SYSDATE') = 0)) then
+                    /* (20161006) Angel Ruiz. BUG. A los sysdate no se les puede hacer el CAST */
+                    columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
+                  end if;
                   if (reg_detail.LONGITUD = 8) then
                     --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
                     UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
