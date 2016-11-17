@@ -26,7 +26,7 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('BSF_ITX_TRAFICO', 'BSF_ITX_IMPORTES');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_CLASE_VALORACION');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_REEMBOLSO_ITSON', 'DWF_PQ_SUSCRPCN_ITSON', 'DWF_AJUSTE_ITSON');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_REEMBOLSO_ITSON', 'DWF_PQ_SUSCRPCN_ITSON');
     
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -155,6 +155,54 @@ SELECT
 
 /************/
 /*************/
+
+/* (20161117) Angel Ruiz. */
+  function extrae_campo (cadena_in in varchar2) return varchar2
+  is
+    v_cadena_result varchar2(200);
+  begin
+    /* Detecto si existen funciones SQL en el campo */
+    if (regexp_instr(cadena_in, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
+      if (regexp_instr(cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,') > 0) then
+        /* Se trata de un decode normal y corriente */
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,'); 
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Nn][Vv][Ll]') > 0) then
+      /* Se trata de que el campo de join posee la funcion NVL */
+      if (regexp_instr(cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+      /* Se trata de que el campo de join posee la funcion UPPER */
+      if (regexp_instr(cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+      /* Se trata de que el campo de join posee la funcion REPLACE */
+      if (regexp_instr(cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *\)') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *,');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    else
+      v_cadena_result := cadena_in;
+    end if;
+    return v_cadena_result;
+  end;
 /* (20150918) Angel Ruiz. NUEVA FUNCION */
   function sustituye_comillas_dinam (cadena_in in varchar2) return varchar2
   is
@@ -606,24 +654,47 @@ SELECT
     posicion_ant := 0;
     cadena_resul:= cadena_in;
     if lon_cadena > 0 then
-      /* Busco el signo = */
-      sustituto := ' (+)= ';
-      loop
-        dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
-        pos := instr(cadena_resul, '=', pos+1);
-        exit when pos = 0;
-        dbms_output.put_line ('Pos es mayor que 0');
-        dbms_output.put_line ('Primer valor de Pos: ' || pos);
-        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-        dbms_output.put_line ('La cabeza es: ' || cabeza);
-        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-        cola := substr(cadena_resul, pos + length ('='));
-        dbms_output.put_line ('La cola es: ' || cola);
-        cadena_resul := cabeza || sustituto || cola;
-        pos_ant := pos + (length (' (+)= '));
-        dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
-        pos := pos_ant;
-      end loop;
+      /* Busco el signo = o el simbolo != */
+      if (instr(cadena_resul, '!=') > 0) then
+        /* Busco el signo != */
+        sustituto := ' (+)!= ';
+        loop
+          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '!=', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('!='));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          pos_ant := pos + (length (' (+)!= '));
+          dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
+          pos := pos_ant;
+        end loop;
+      else
+        if (instr(cadena_resul, '=') > 0) then
+          sustituto := ' (+)= ';
+          loop
+            dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+            pos := instr(cadena_resul, '=', pos+1);
+            exit when pos = 0;
+            dbms_output.put_line ('Pos es mayor que 0');
+            dbms_output.put_line ('Primer valor de Pos: ' || pos);
+            cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+            dbms_output.put_line ('La cabeza es: ' || cabeza);
+            dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+            cola := substr(cadena_resul, pos + length ('='));
+            dbms_output.put_line ('La cola es: ' || cola);
+            cadena_resul := cabeza || sustituto || cola;
+            pos_ant := pos + (length (' (+)= '));
+            dbms_output.put_line ('La posicion anterior es: ' || pos_ant);
+            pos := pos_ant;
+          end loop;
+        end if;
+      end if;
       /* Busco LA COMILLA */
       pos := 0;
       posicion_ant := 0;
@@ -1253,8 +1324,15 @@ SELECT
             FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
             LOOP
               /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-              if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
-                nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+              if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
+              (regexp_instr(cadena_in, '[Nn][Vv][Ll]')) or
+              (regexp_instr(cadena_in, '[Uu][Pp][Pp][Ee][Rr]') > 0) or
+              (regexp_instr(cadena_in, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+              then
+                --nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+                /* (20161117) Angel Ruiz. NF: Pueden venir funciones en los campos de join como */
+                /* UPPER, NVL, DECODE, ... */
+                nombre_campo := extrae_campo (ie_column_lkup(indx));
                 SELECT * INTO l_registro
                 FROM ALL_TAB_COLUMNS
                 WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -1360,10 +1438,21 @@ SELECT
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
             dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
-            
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
-            if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
-              nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+            /************************/
+            /* (20161117) Angel Ruiz NF: Pueden venir funciones en los campos de JOIN */
+            if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
+            (regexp_instr(cadena_in, '[Nn][Vv][Ll]')) or
+            (regexp_instr(cadena_in, '[Uu][Pp][Pp][Ee][Rr]') > 0) or
+            (regexp_instr(cadena_in, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+            then
+              --nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+              /* (20161117) Angel Ruiz. NF: Pueden venir funciones en los campos de join como */
+              /* UPPER, NVL, DECODE, ... */
+              nombre_campo := extrae_campo (ie_column_lkup(indx));
+            /************************/
+            --if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+              --nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
               SELECT * INTO l_registro
               FROM ALL_TAB_COLUMNS
               WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
