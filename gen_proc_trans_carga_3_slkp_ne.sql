@@ -27,7 +27,8 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_CLASE_VALORACION');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_REEMBOLSO_ITSON', 'DWF_PQ_SUSCRPCN_ITSON', 'DWF_COMPRA_ITSON');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_COMPRA_ITSON');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_COMPRA_ITSON', 'DWF_AJUSTE_ITSON');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_CONSUMO_DETALLE_ITSON');
     
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
@@ -409,6 +410,76 @@ SELECT
 --    end if;
 --    return decode_out;
 --  end transformo_decode;
+--  function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+--  is
+--    parte_1 varchar2(100);
+--    parte_2 varchar2(100);
+--    parte_3 varchar2(100);
+--    parte_4 varchar2(100);
+--    decode_out varchar2(500);
+--    lista_elementos list_strings := list_strings ();
+  
+--  begin
+    /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
+--    lista_elementos := split_string_coma(cadena_in);
+--    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
+--    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
+--    parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
+--    parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
+--    if (instr(parte_1, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+--      if (outer_in = 1) then
+--        parte_1 := alias_in || '.' || parte_1 || '(+)';
+--      else
+--        parte_1 := alias_in || '.' || parte_1;
+--      end if;
+--    end if;
+--    if (instr(parte_2, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+--      if (outer_in = 1) then
+--        parte_2 := alias_in || '.' || parte_2 || '(+)';
+--      else
+--        parte_2 := alias_in || '.' || parte_2;
+--      end if;
+--    end if;
+--    if (instr(parte_3, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+--      if (outer_in = 1) then
+--        parte_3 := alias_in || '.' || parte_3 || '(+)';
+--      else
+--        parte_3 := alias_in || '.' || parte_3;
+--      end if;
+--    end if;
+--    if (instr(parte_4, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+--      if (outer_in = 1) then
+--        parte_4 := alias_in || '.' || parte_4 || '(+)';
+--      else
+--        parte_4 := alias_in || '.' || parte_4;
+--      end if;
+--    end if;
+    /* Puede ocurrir que alguna parte del decode tanga el signo ' como seria el caso de los campos literales */
+    /* como estamos generando querys dinamicas, tenemos que escapar las comillas */
+--    if (instr(parte_1, '''') > 0) then
+--      parte_1 := sustituye_comillas_dinam(parte_1);
+--    end if;
+--    if (instr(parte_2, '''') > 0) then
+--      parte_2 := sustituye_comillas_dinam(parte_2);
+--    end if;
+--    if (instr(parte_3, '''') > 0) then
+--      parte_3 := sustituye_comillas_dinam(parte_3);
+--    end if;
+--    if (instr(parte_4, '''') > 0) then
+--      parte_4 := sustituye_comillas_dinam(parte_4);
+--    end if;
+--    decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
+--    return decode_out;
+--  end transformo_decode;
+  /* (20161118) Angel Ruiz. Nueva version de la funcion que transforma los decodes*/
   function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
   is
     parte_1 varchar2(100);
@@ -417,67 +488,66 @@ SELECT
     parte_4 varchar2(100);
     decode_out varchar2(500);
     lista_elementos list_strings := list_strings ();
-  
+    v_cadena_temp VARCHAR2(500):='';
+
   begin
     /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
-    lista_elementos := split_string_coma(cadena_in);
-    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
-    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
-    parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
-    parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
-    if (instr(parte_1, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+    if (regexp_instr(cadena_in, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
+      lista_elementos := split_string_coma(cadena_in);
+      if (lista_elementos.COUNT > 0) then
+        FOR indx IN lista_elementos.FIRST .. lista_elementos.LAST
+        LOOP
+          if (indx = 1) then
+            /* Se trata del primer elemento: DECODE (ID_FUENTE */
+            v_cadena_temp := trim(regexp_substr(lista_elementos(indx), ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\('));  /* Me quedo con DECODE ( */
+            parte_1 := trim(substr(lista_elementos(indx), instr(lista_elementos(indx), '(') +1)); /* DETECTO EL ( */
+            if (outer_in = 1) then
+              v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1' || ' (+)'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+            else
+              v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+            end if;
+            v_cadena_temp := v_cadena_temp || ', '; /* Tengo LA CADENA: "DECODE (alias_in.ID_FUENTE (+), " */
+          elsif (indx = lista_elementos.LAST) then
+            /* Se trata del ultimo elemento '1') */
+            if (instr(lista_elementos(indx), '''') = 0) then
+              /* Se trata de un elemnto tipo ID_CANAL pero situado al final del DECODE */
+              if (outer_in = 1) then
+                v_cadena_temp := v_cadena_temp || regexp_replace(lista_elementos(indx), ' *([A-Za-z_]+) *\)', alias_in || '.\1' || ' (+) )'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+              else
+                v_cadena_temp := v_cadena_temp || regexp_replace(lista_elementos(indx), ' *([A-Za-z_]+) *\)', alias_in || '.\1'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+              end if;
+            else
+              /* Se trata de un elemento literal situado como ultimo elemento del decode, tipo '1' */
+              /* Le ponemos doble comillas ya que estamos generando una query deinamica */
+              v_cadena_temp := v_cadena_temp || sustituye_comillas_dinam(lista_elementos(indx));
+            end if;
+          else
+            /* Se trata del resto de elmentos 'SER', ID_CANAL*/
+            if (instr(lista_elementos(indx), '''') = 0) then
+              /* Se trata de un elemento que no es un literal, tipo ID_CANAL */
+              if (outer_in = 1) then
+                v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1' || ' (+)');
+              else
+                v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1');
+              end if;
+              v_cadena_temp := v_cadena_temp || ', '; /* Tengo LA CADENA: "DECODE (alias_in.ID_FUENTE (+), ..., alias_in.ID_CANAL, ... "*/
+            else
+              /* Se trata de un elemento que es un literal, tipo 'SER' */
+              /* Le ponemos doble comillas ya que estamos generando una query deinamica */
+              v_cadena_temp := v_cadena_temp || sustituye_comillas_dinam(lista_elementos(indx)) || ', ';
+            end if; 
+          end if;
+        END LOOP;
+      end if;
+    else
       if (outer_in = 1) then
-        parte_1 := alias_in || '.' || parte_1 || '(+)';
+        v_cadena_temp := alias_in || '.' || cadena_in || ' (+)';
       else
-        parte_1 := alias_in || '.' || parte_1;
+        v_cadena_temp := alias_in || '.' || cadena_in;
       end if;
     end if;
-    if (instr(parte_2, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_2 := alias_in || '.' || parte_2 || '(+)';
-      else
-        parte_2 := alias_in || '.' || parte_2;
-      end if;
-    end if;
-    if (instr(parte_3, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_3 := alias_in || '.' || parte_3 || '(+)';
-      else
-        parte_3 := alias_in || '.' || parte_3;
-      end if;
-    end if;
-    if (instr(parte_4, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_4 := alias_in || '.' || parte_4 || '(+)';
-      else
-        parte_4 := alias_in || '.' || parte_4;
-      end if;
-    end if;
-    /* Puede ocurrir que alguna parte del decode tanga el signo ' como seria el caso de los campos literales */
-    /* como estamos generando querys dinamicas, tenemos que escapar las comillas */
-    if (instr(parte_1, '''') > 0) then
-      parte_1 := sustituye_comillas_dinam(parte_1);
-    end if;
-    if (instr(parte_2, '''') > 0) then
-      parte_2 := sustituye_comillas_dinam(parte_2);
-    end if;
-    if (instr(parte_3, '''') > 0) then
-      parte_3 := sustituye_comillas_dinam(parte_3);
-    end if;
-    if (instr(parte_4, '''') > 0) then
-      parte_4 := sustituye_comillas_dinam(parte_4);
-    end if;
-    decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
-    return decode_out;
-  end transformo_decode;
+    return v_cadena_temp;
+  end;
   
   function proceso_campo_value (cadena_in in varchar2, alias_in in varchar) return varchar2
   is
@@ -744,6 +814,170 @@ SELECT
     
     return cadena_resul;
   end;
+  
+/************/
+/*************/
+  function procesa_campo_filter_dinam (cadena_in in varchar2) return varchar2
+  is
+    lon_cadena integer;
+    cabeza                varchar2 (2000);
+    sustituto              varchar2(100);
+    cola                      varchar2(2000);    
+    pos                   PLS_integer;
+    pos_ant           PLS_integer;
+    posicion_ant           PLS_integer;
+    cadena_resul varchar(2000);
+    begin
+      lon_cadena := length (cadena_in);
+      pos := 0;
+      posicion_ant := 0;
+      cadena_resul:= cadena_in;
+      if lon_cadena > 0 then
+        /* Busco VAR_FCH_CARGA */
+        sustituto := ' to_date ('''' ||  fch_datos_in || '''', ''yyyymmdd'') ';
+        loop
+          dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
+          pos := instr(cadena_resul, 'VAR_FCH_CARGA', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('VAR_FCH_CARGA'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
+          --pos := pos_ant;
+        end loop;
+        /* Busco VAR_FCH_INICIO */
+        sustituto := ' to_date ('''' ||  fch_registro_in || '''', ''yyyymmdd'') ';
+        loop
+          dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
+          pos := instr(cadena_resul, 'VAR_FCH_INICIO', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('VAR_FCH_INICIO'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+          --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
+          --pos := pos_ant;
+        end loop;
+        /* Busco VAR_PROFUNDIDAD_BAJAS */
+        sustituto := ' 90 ';  /* Temporalmente pongo 90 dias */
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de VAR_PROFUNDIDAD_BAJAS. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, 'VAR_PROFUNDIDAD_BAJAS', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('VAR_PROFUNDIDAD_BAJAS'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_DM */
+        sustituto := OWNER_DM;
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_DM#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_DM#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_SA */
+        sustituto := OWNER_SA; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_SA#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_SA#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_T */
+        sustituto := OWNER_T; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_T#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_T#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* Busco OWNER_MTDT */
+        sustituto := OWNER_MTDT; 
+        pos := 0;
+        loop
+          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          pos := instr(cadena_resul, '#OWNER_MTDT#', pos+1);
+          exit when pos = 0;
+          dbms_output.put_line ('Pos es mayor que 0');
+          dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          dbms_output.put_line ('La cabeza es: ' || cabeza);
+          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          cola := substr(cadena_resul, pos + length ('#OWNER_MTDT#'));
+          dbms_output.put_line ('La cola es: ' || cola);
+          cadena_resul := cabeza || sustituto || cola;
+        end loop;
+        /* (20150914) Angel Ruiz. BUG. Cuando se incluye un FILTER en la tabla con una condicion */
+        /* que tenia comillas, las comillas aparecian como simple y no funcionaba */
+        /* Busco LA COMILLA para poner comillas dobles */
+        /*(20161118) Angel Ruiz. Modifico la forma de cambiar la ' por '' usando regexp_replace */
+        cadena_resul := regexp_replace(cadena_resul, '''', '''''');
+        --pos := 0;
+        --posicion_ant := 0;
+        --sustituto := '''''';
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, '''', pos);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length (''''));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+          --pos_ant := pos + length ('''''');
+          --pos := pos_ant;
+        --end loop;
+        /* (20150914) Angel Ruiz. FIN BUG. Cuando se incluye un FILTER en la tabla con una condicion */
+        /* que tenia comillas, las comillas aparecian como simple y no funcionaba */
+      end if;
+      return cadena_resul;
+    end;
+
+/************/
+  
 
   function procesa_campo_filter (cadena_in in varchar2) return varchar2
   is
@@ -863,7 +1097,7 @@ SELECT
     end;
 
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (1000);
+    valor_retorno VARCHAR (2000);
     posicion          PLS_INTEGER;
     cad_pri           VARCHAR(500);
     cad_seg         VARCHAR(500);
@@ -877,11 +1111,11 @@ SELECT
     constante         VARCHAR2(100);
     posicion_ant    PLS_integer;
     pos                    PLS_integer;
-    cadena_resul  VARCHAR(500);
+    cadena_resul  VARCHAR(2000);
     sustituto           VARCHAR(30);
     lon_cadena     PLS_integer;
-    cabeza             VARCHAR2(500);
-    cola                   VARCHAR2(500);
+    cabeza             VARCHAR2(2000);
+    cola                   VARCHAR2(2000);
     pos_ant            PLS_integer;
     v_encontrado  VARCHAR2(1);
     v_alias             VARCHAR2(40);
@@ -1171,12 +1405,14 @@ SELECT
           if (REGEXP_LIKE(reg_detalle_in.TABLE_LKUP, '\) *[a-zA-Z_0-9]+$')) then
           /* (20160629) Angel Ruiz. NF: Se aceptan tablas de LKUP que son SELECT que ademas tienen un ALIAS */
             v_alias := trim(substr(REGEXP_SUBSTR (reg_detalle_in.TABLE_LKUP, '\) *[a-zA-Z_0-9]+$'), 2));
-            mitabla_look_up := reg_detalle_in.TABLE_LKUP;
+            --mitabla_look_up := reg_detalle_in.TABLE_LKUP;
+            mitabla_look_up := procesa_campo_filter_dinam(reg_detalle_in.TABLE_LKUP);
             v_alias_incluido := 1;
             dbms_output.put_line('EXISTE ALIAS EN LA QUERY TABLE_LKUP');
           else
             v_alias := 'LKUP_' || l_FROM.count;
-            mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
+            mitabla_look_up := '(' || procesa_campo_filter_dinam(reg_detalle_in.TABLE_LKUP) || ') "LKUP_' || l_FROM.count || '"';
+            --mitabla_look_up := '(' || reg_detalle_in.TABLE_LKUP || ') "LKUP_' || l_FROM.count || '"';
             v_alias_incluido := 0;
             dbms_output.put_line('NO EXISTE ALIAS EN LA QUERY TABLE_LKUP');
           end if;
@@ -1186,7 +1422,7 @@ SELECT
           /* (20161111) Angel Ruiz. NF. Puede haber ALIAS EN LA TABLA DE LOOUP */
           dbms_output.put_line('Dentro del ELSE del SELECT');
           /* (20160401) Detectamos si la tabla de LookUp posee Alias */
-          v_reg_table_lkup := procesa_campo_filter(reg_detalle_in.TABLE_LKUP);
+          v_reg_table_lkup := procesa_campo_filter_dinam(reg_detalle_in.TABLE_LKUP);
           if (REGEXP_LIKE(trim(v_reg_table_lkup), '^[a-zA-Z_0-9#\.&]+ +[a-zA-Z_0-9]+$') = true) then
             /* La tabla de LKUP posee Alias */
             v_alias_incluido := 1;
@@ -1639,39 +1875,40 @@ SELECT
         cadena_resul:= trim(reg_detalle_in.VALUE);
         lon_cadena := length (cadena_resul);
         if lon_cadena > 0 then
+          valor_retorno := procesa_campo_filter_dinam (cadena_resul);
           /* Busco LA COMILLA */
-          sustituto := '''''';
-          loop
-            dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
-            pos := instr(cadena_resul, '''', pos+1);
-            exit when pos = 0;
-            dbms_output.put_line ('Pos es mayor que 0');
-            dbms_output.put_line ('Primer valor de Pos: ' || pos);
-            cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-            dbms_output.put_line ('La cabeza es: ' || cabeza);
-            dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-            cola := substr(cadena_resul, pos + length (''''));
-            dbms_output.put_line ('La cola es: ' || cola);
-            cadena_resul := cabeza || sustituto || cola;
-            pos_ant := pos + length ('''''');
-            pos := pos_ant;
-          end loop;
+          --sustituto := '''''';
+          --loop
+            --dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
+            --pos := instr(cadena_resul, '''', pos+1);
+            --exit when pos = 0;
+            --dbms_output.put_line ('Pos es mayor que 0');
+            --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+            --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+            --dbms_output.put_line ('La cabeza es: ' || cabeza);
+            --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+            --cola := substr(cadena_resul, pos + length (''''));
+            --dbms_output.put_line ('La cola es: ' || cola);
+            --cadena_resul := cabeza || sustituto || cola;
+            --pos_ant := pos + length ('''''');
+            --pos := pos_ant;
+          --end loop;
         end if;
           /************/
         --valor_retorno := '    ' || trim(reg_detalle_in.VALUE);
-        valor_retorno := cadena_resul;
-        posicion := instr(valor_retorno, 'VAR_IVA');
-        if (posicion >0) then
-          cad_pri := substr(valor_retorno, 1, posicion-1);
-          cad_seg := substr(valor_retorno, posicion + length('VAR_IVA'));
-          valor_retorno :=  cad_pri || '21' || cad_seg;
-        end if;
-        posicion := instr(valor_retorno, 'VAR_FCH_CARGA');
-        if (posicion >0) then
-          cad_pri := substr(valor_retorno, 1, posicion-1);
-          cad_seg := substr(valor_retorno, posicion + length('VAR_FCH_CARGA'));
-          valor_retorno :=  cad_pri || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''' || cad_seg;
-        end if;
+        --valor_retorno := cadena_resul;
+        --posicion := instr(valor_retorno, 'VAR_IVA');
+        --if (posicion >0) then
+          --cad_pri := substr(valor_retorno, 1, posicion-1);
+          --cad_seg := substr(valor_retorno, posicion + length('VAR_IVA'));
+          --valor_retorno :=  cad_pri || '21' || cad_seg;
+        --end if;
+        --posicion := instr(valor_retorno, 'VAR_FCH_CARGA');
+        --if (posicion >0) then
+          --cad_pri := substr(valor_retorno, 1, posicion-1);
+          --cad_seg := substr(valor_retorno, posicion + length('VAR_FCH_CARGA'));
+          --valor_retorno :=  cad_pri || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''' || cad_seg;
+        --end if;
       when 'HARDC' then
         valor_retorno :=  '    ' || sustituye_comillas_dinam(reg_detalle_in.VALUE);
       when 'SEQ' then
@@ -1979,9 +2216,9 @@ SELECT
             condicion := substr(cadena,pos_del_si+length('SI'), pos_del_then-(pos_del_si+length('SI')));
             condicion_pro := procesa_COM_RULE_lookup(condicion);
             constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
-            valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || reg_detalle_in.VALUE || ', '' '') ELSE ' || trim(constante) || ' END';
+            valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || procesa_campo_filter_dinam(reg_detalle_in.VALUE) || ', '' '') ELSE ' || trim(constante) || ' END';
           else
-            valor_retorno := reg_detalle_in.VALUE;
+            valor_retorno := procesa_campo_filter_dinam(reg_detalle_in.VALUE);
           end if;
       end case;
     return valor_retorno;
@@ -2121,149 +2358,6 @@ SELECT
  
   end genera_cuerpo_funcion_pkg;
 
-/************/
-/*************/
-  function procesa_campo_filter_dinam (cadena_in in varchar2) return varchar2
-  is
-    lon_cadena integer;
-    cabeza                varchar2 (1000);
-    sustituto              varchar2(100);
-    cola                      varchar2(1000);    
-    pos                   PLS_integer;
-    pos_ant           PLS_integer;
-    posicion_ant           PLS_integer;
-    cadena_resul varchar(1000);
-    begin
-      lon_cadena := length (cadena_in);
-      pos := 0;
-      posicion_ant := 0;
-      cadena_resul:= cadena_in;
-      if lon_cadena > 0 then
-        /* Busco VAR_FCH_CARGA */
-        sustituto := ' to_date ('''' ||  fch_datos_in || '''', ''yyyymmdd'') ';
-        loop
-          dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
-          pos := instr(cadena_resul, 'VAR_FCH_CARGA', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('VAR_FCH_CARGA'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-          --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
-          --pos := pos_ant;
-        end loop;
-        /* Busco VAR_PROFUNDIDAD_BAJAS */
-        sustituto := ' 90 ';  /* Temporalmente pongo 90 dias */
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de VAR_PROFUNDIDAD_BAJAS. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, 'VAR_PROFUNDIDAD_BAJAS', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('VAR_PROFUNDIDAD_BAJAS'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
-        /* Busco OWNER_DM */
-        sustituto := OWNER_DM;
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_DM#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_DM#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
-        /* Busco OWNER_SA */
-        sustituto := OWNER_SA; 
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_SA#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_SA#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
-        /* Busco OWNER_T */
-        sustituto := OWNER_T; 
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_T#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_T#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
-        /* Busco OWNER_MTDT */
-        sustituto := OWNER_MTDT; 
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_MTDT#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_MTDT#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
-        /* (20150914) Angel Ruiz. BUG. Cuando se incluye un FILTER en la tabla con una condicion */
-        /* que tenia comillas, las comillas aparecian como simple y no funcionaba */
-        /* Busco LA COMILLA */
-        pos := 0;
-        posicion_ant := 0;
-        sustituto := '''''';
-        loop
-          dbms_output.put_line ('Entro en el LOOP de procesa_condicion_lookup. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '''', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length (''''));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-          pos_ant := pos + length ('''''');
-          pos := pos_ant;
-        end loop;
-        /* (20150914) Angel Ruiz. FIN BUG. Cuando se incluye un FILTER en la tabla con una condicion */
-        /* que tenia comillas, las comillas aparecian como simple y no funcionaba */
-      end if;
-      return cadena_resul;
-    end;
-
-/************/
 
 
 begin
