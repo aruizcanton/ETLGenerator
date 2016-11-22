@@ -530,6 +530,99 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     end if;
     return lista_elementos;
   end split_string_coma;
+
+  /* (20161122) Angel Ruiz. Transforma el campo de la funcion poniendole el alias*/
+  function transformo_funcion (cadena_in in varchar2, alias_in in varchar2) return varchar2
+  is
+    v_campo varchar2(200);
+    v_cadena_temp varchar2(200);
+    v_cadena_result varchar2(200);
+  begin
+    /* Detecto si existen funciones SQL en el campo */
+    if (regexp_instr(cadena_in, '[Nn][Vv][Ll]') > 0) then
+      /* Se trata de que el campo de join posee la funcion NVL */
+      if (regexp_instr(cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,') > 0) then
+        /* trasformamos el primer operador del NVL */
+        v_cadena_temp := regexp_replace (cadena_in, ' *([Nn][Vv][Ll]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2' || ',');
+        /* trasformamos el segundo operador del NVL, en caso de que sea un campo y no un literal */
+        v_cadena_temp := regexp_replace (v_cadena_temp, ', *([A-Za-z_]+) *\)', ', ' || alias_in || '.' || '\1' || ')');
+        v_cadena_result := v_cadena_temp; /* retorno el resultado */
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+      /* Se trata de que el campo de join posee la funcion UPPER */
+      if (regexp_instr(cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)') > 0) then
+        v_cadena_temp := regexp_replace (cadena_in, ' *([Uu][Pp][Pp][Ee][Rr]) *\( *([A-Za-z_]+) *\)', '\1(' || alias_in || '.' || '\2' || ')');
+        v_cadena_result := v_cadena_temp;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+      /* Se trata de que el campo de join posee la funcion REPLACE */
+      if (regexp_instr(cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *') > 0) then
+        v_cadena_temp := regexp_replace (cadena_in, ' *([Rr][Ee][Pp][Ll][Aa][Cc][Ee]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2,');
+        v_cadena_result := v_cadena_temp;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    else
+      v_cadena_result := alias_in || '.' || cadena_in;
+    end if;
+    return v_cadena_result;
+  end;
+
+
+
+/* (20161117) Angel Ruiz. Extrae el campo de una cedena donde hay funciones*/
+  function extrae_campo (cadena_in in varchar2) return varchar2
+  is
+    v_campo varchar2(200);
+    v_cadena_temp varchar2(200);
+    v_cadena_result varchar2(200);
+  begin
+    /* Detecto si existen funciones SQL en el campo */
+    if (regexp_instr(cadena_in, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
+      if (regexp_instr(cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,') > 0) then
+        /* Se trata de un decode normal y corriente */
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,'); 
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Nn][Vv][Ll]') > 0) then
+      /* Se trata de que el campo de join posee la funcion NVL */
+      if (regexp_instr(cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+      /* Se trata de que el campo de join posee la funcion UPPER */
+      if (regexp_instr(cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    elsif (regexp_instr(cadena_in, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+      /* Se trata de que el campo de join posee la funcion REPLACE */
+      if (regexp_instr(cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *,');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    else
+      v_cadena_result := cadena_in;
+    end if;
+    return v_cadena_result;
+  end;
   
   function extrae_campo_decode (cadena_in in varchar2) return varchar2
   is
@@ -554,6 +647,63 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     end if;
   end extrae_campo_decode_sin_tabla;
 
+  --function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+  --is
+    --parte_1 varchar2(100);
+    --parte_2 varchar2(100);
+    --parte_3 varchar2(100);
+    --parte_4 varchar2(100);
+    --decode_out varchar2(500);
+    --lista_elementos list_strings := list_strings ();
+  
+  --begin
+    /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
+    --lista_elementos := split_string_coma(cadena_in);
+    --parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
+    --parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
+    --parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
+    --parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
+    --if (instr(parte_1, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      --if (outer_in = 1) then
+        --parte_1 := alias_in || '.' || parte_1 || '(+)';
+      --else
+        --parte_1 := alias_in || '.' || parte_1;
+      --end if;
+    --end if;
+    --if (instr(parte_2, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      --if (outer_in = 1) then
+        --parte_2 := alias_in || '.' || parte_2 || '(+)';
+      --else
+        --parte_2 := alias_in || '.' || parte_2;
+      --end if;
+    --end if;
+    --if (instr(parte_3, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      --if (outer_in = 1) then
+        --parte_3 := alias_in || '.' || parte_3 || '(+)';
+      --else
+        --parte_3 := alias_in || '.' || parte_3;
+      --end if;
+    --end if;
+    --if (instr(parte_4, '''') = 0) then
+      /* Esta parte del DECODE no es un literal */
+      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+      --if (outer_in = 1) then
+        --parte_4 := alias_in || '.' || parte_4 || '(+)';
+      --else
+        --parte_4 := alias_in || '.' || parte_4;
+      --end if;
+    --end if;
+    --decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
+    --return decode_out;
+  --end transformo_decode;
+  
+  /* (20161118) Angel Ruiz. Nueva version de la funcion que transforma los decodes*/
   function transformo_decode(cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
   is
     parte_1 varchar2(100);
@@ -562,53 +712,67 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     parte_4 varchar2(100);
     decode_out varchar2(500);
     lista_elementos list_strings := list_strings ();
-  
+    v_cadena_temp VARCHAR2(500):='';
+
   begin
     /* Ejemplo de Decode que analizo DECODE (ID_FUENTE,'SER', ID_CANAL,'1') */
-    lista_elementos := split_string_coma(cadena_in);
-    parte_1 := trim(substr(lista_elementos(1), instr(lista_elementos(1), '(') + 1)); /* Me quedo con ID_FUENTE*/
-    parte_2 := lista_elementos(2);  /* Me quedo con 'SER' */
-    parte_3 := trim(lista_elementos(3));  /* Me quedo con ID_CANAL */
-    parte_4 := trim(substr(lista_elementos(4), 1, instr(lista_elementos(4), ')') - 1));  /* Me quedo con '1' */
-    if (instr(parte_1, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
+    if (regexp_instr(cadena_in, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
+      lista_elementos := split_string_coma(cadena_in);
+      if (lista_elementos.COUNT > 0) then
+        FOR indx IN lista_elementos.FIRST .. lista_elementos.LAST
+        LOOP
+          if (indx = 1) then
+            /* Se trata del primer elemento: DECODE (ID_FUENTE */
+            v_cadena_temp := trim(regexp_substr(lista_elementos(indx), ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\('));  /* Me quedo con DECODE ( */
+            parte_1 := trim(substr(lista_elementos(indx), instr(lista_elementos(indx), '(') +1)); /* DETECTO EL ( */
+            if (outer_in = 1) then
+              v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1' || ' (+)'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+            else
+              v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+            end if;
+            v_cadena_temp := v_cadena_temp || ', '; /* Tengo LA CADENA: "DECODE (alias_in.ID_FUENTE (+), " */
+          elsif (indx = lista_elementos.LAST) then
+            /* Se trata del ultimo elemento '1') */
+            if (instr(lista_elementos(indx), '''') = 0) then
+              /* Se trata de un elemnto tipo ID_CANAL pero situado al final del DECODE */
+              if (outer_in = 1) then
+                v_cadena_temp := v_cadena_temp || regexp_replace(lista_elementos(indx), ' *([A-Za-z_]+) *\)', alias_in || '.\1' || ' (+) )'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+              else
+                v_cadena_temp := v_cadena_temp || regexp_replace(lista_elementos(indx), ' *([A-Za-z_]+) *\)', alias_in || '.\1'); /* cambio ID_FUENTE por ALIAS.ID_FUENTE */
+              end if;
+            else
+              /* Se trata de un elemento literal situado como ultimo elemento del decode, tipo '1' */
+              /* Le ponemos doble comillas ya que estamos generando una query deinamica */
+              v_cadena_temp := v_cadena_temp || lista_elementos(indx);
+            end if;
+          else
+            /* Se trata del resto de elmentos 'SER', ID_CANAL*/
+            if (instr(lista_elementos(indx), '''') = 0) then
+              /* Se trata de un elemento que no es un literal, tipo ID_CANAL */
+              if (outer_in = 1) then
+                v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1' || ' (+)');
+              else
+                v_cadena_temp := v_cadena_temp || regexp_replace(parte_1, ' *([A-Za-z_]+) *', alias_in || '.\1');
+              end if;
+              v_cadena_temp := v_cadena_temp || ', '; /* Tengo LA CADENA: "DECODE (alias_in.ID_FUENTE (+), ..., alias_in.ID_CANAL, ... "*/
+            else
+              /* Se trata de un elemento que es un literal, tipo 'SER' */
+              /* Le ponemos doble comillas ya que estamos generando una query deinamica */
+              v_cadena_temp := v_cadena_temp || lista_elementos(indx) || ', ';
+            end if; 
+          end if;
+        END LOOP;
+      end if;
+    else
       if (outer_in = 1) then
-        parte_1 := alias_in || '.' || parte_1 || '(+)';
+        v_cadena_temp := alias_in || '.' || cadena_in || ' (+)';
       else
-        parte_1 := alias_in || '.' || parte_1;
+        v_cadena_temp := alias_in || '.' || cadena_in;
       end if;
     end if;
-    if (instr(parte_2, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_2 := alias_in || '.' || parte_2 || '(+)';
-      else
-        parte_2 := alias_in || '.' || parte_2;
-      end if;
-    end if;
-    if (instr(parte_3, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_3 := alias_in || '.' || parte_3 || '(+)';
-      else
-        parte_3 := alias_in || '.' || parte_3;
-      end if;
-    end if;
-    if (instr(parte_4, '''') = 0) then
-      /* Esta parte del DECODE no es un literal */
-      /* Lo que quiere decir que podemos calificarlo con el nombre de la tabla */
-      if (outer_in = 1) then
-        parte_4 := alias_in || '.' || parte_4 || '(+)';
-      else
-        parte_4 := alias_in || '.' || parte_4;
-      end if;
-    end if;
-    decode_out := 'DECODE(' || parte_1 || ', ' || parte_2 || ', ' || parte_3 || ', ' || parte_4 || ')';
-    return decode_out;
-  end transformo_decode;
+    return v_cadena_temp;
+  end;
+  
   
   function proc_campo_value_condicion (cadena_in in varchar2, nombre_funcion_lookup in varchar2) return varchar2
   is
@@ -1214,7 +1378,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         l_FROM.extend;
         /* (20150130) Angel Ruiz */
         /* Nueva incidencia. */
-        if (instr (reg_detalle_in.TABLE_LKUP,'SELECT ') > 0 or instr (reg_detalle_in.TABLE_LKUP,'select') > 0) then
+        if (regexp_instr (reg_detalle_in.TABLE_LKUP,'[Ss][Ee][Ll][Ee][Cc][Tt] ') > 0) then
           /* Aparecen queries en lugar de tablas en la columna de nombre de tabla para LookUp */
           if (REGEXP_LIKE(reg_detalle_in.TABLE_LKUP, '\) *[a-zA-Z_0-9]+$')) then
           /* (20160629) Angel Ruiz. NF: Se aceptan tablas de LKUP que son SELECT que ademas tienen un ALIAS */
@@ -1374,8 +1538,13 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
             LOOP
               /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-              if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
-                nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+              --if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+              if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
+              (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0) or
+              (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0) or
+              (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+              then
+                nombre_campo := extrae_campo (ie_column_lkup(indx));
                 SELECT * INTO l_registro
                 FROM ALL_TAB_COLUMNS
                 WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -1483,8 +1652,16 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
             
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
-            if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
-              nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+            /* (20161117) Angel Ruiz NF: Pueden venir funciones en los campos de JOIN */
+            --if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+            if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
+            (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0) or
+            (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0) or
+            (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+            then
+            
+              --nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
+              nombre_campo := extrae_campo (ie_column_lkup(indx));
               SELECT * INTO l_registro
               FROM ALL_TAB_COLUMNS
               WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -1567,8 +1744,16 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
-            if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
-              nombre_campo := extrae_campo_decode (reg_detalle_in.IE_COLUMN_LKUP);
+            /* (20161117) Angel Ruiz NF: Pueden venir funciones en los campos de JOIN */
+            --if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+            if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
+            (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) or
+            (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) or
+            (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+            then
+              --nombre_campo := extrae_campo_decode (reg_detalle_in.IE_COLUMN_LKUP);
+              nombre_campo := extrae_campo (reg_detalle_in.IE_COLUMN_LKUP);
+              dbms_output.put_line('Estoy dentro del if DE FUNCIONES. el valor de nombre_campo es: $' || nombre_campo || '$');
               SELECT * INTO l_registro
               FROM ALL_TAB_COLUMNS
               WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
@@ -1582,22 +1767,40 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
-                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                  if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) := 'NVL(' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
+                    l_WHERE(l_WHERE.last) := 'NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                    l_WHERE(l_WHERE.last) := 'NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                    l_WHERE(l_WHERE.last) := 'NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''NI#'')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
                 else
-                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                  if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) := transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
+                    l_WHERE(l_WHERE.last) := transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                    l_WHERE(l_WHERE.last) := transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                    l_WHERE(l_WHERE.last) := transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
                 end if;
               else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
-                if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                   l_WHERE(l_WHERE.last) :=  transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                 end if;
@@ -1605,22 +1808,40 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             else  /* sino es el primer campo del Where  */
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
-                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                  if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''NI#'')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
                 else
-                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                  if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
                 end if;
               else     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', -3)' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
-                if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
+                if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[D][E][C][O][D][E]') > 0 ) then
                   l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                 end if;
