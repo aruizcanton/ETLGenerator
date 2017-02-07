@@ -24,7 +24,7 @@ DECLARE
       TRIM(INDICE) "INDICE"
     FROM MTDT_MODELO_DETAIL
     WHERE
-      TABLE_NAME = table_name_in;
+      trim(TABLE_NAME) = table_name_in;
   /* (20150907) Angel Ruiz . FIN NF: Se crea una tabla de metadato MTDT_MODELO_SUMMARY y otra MTDT_MODELO_DETAIL */
 
   r_mtdt_modelo_logico_TABLA                                          c_mtdt_modelo_logico_TABLA%rowtype;
