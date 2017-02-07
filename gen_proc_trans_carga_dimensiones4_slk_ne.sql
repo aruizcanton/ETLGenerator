@@ -19,7 +19,14 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1', 'SA_PARQUE_SERIADOS1')
     --and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
     --and TABLE_NAME in ('SA_CLIENTE_DIST1', 'DWD_CLIENTE_DISTRIBUIDOR')
-    and TABLE_NAME in ('DWD_SUSCRIPTOR_ITSON')
+    --and TABLE_NAME in ('DWD_SUSCRIPTOR_ITSON')
+    --and TABLE_NAME in ('SA_PARQUE_SERIADOS1', 'DMD_MATERIAL', 'DMD_ADUANA', 'DMD_CANAL_DISTRIBUCION', 'DMD_CLASE_ENTREGA'
+    --, 'DMD_TIPO_PEDIDO', 'DMD_GAMA', 'DMD_GRUPO_IMPUTACION', 'DMD_MARCA', 'DMD_ZONA_VENTA', 'DMD_SECTOR', 'DMD_ZONA_TRANSPORTE'
+    --, 'DMD_GRUPO_ARTICULO', 'DMD_ALMACEN', 'DMD_ESTATUS_ENTREGAS'
+    --, 'DMD_TIPO_PEDIDO', 'DMD_GAMA','DMD_GRUPO_IMPUTACION', 'DMD_MARCA', 'DMD_ZONA_VENTA', 'DMD_SECTOR', 'DMD_ZONA_TRANSPORTE'
+    --, 'DMD_GRUPO_ARTICULO','DMD_ALMACEN', 'DMD_ESTATUS_ENTREGAS')
+    --and TABLE_NAME in ('DMD_SERIADO', 'DMD_CLASE_MOV', 'DMD_ESTADO_CLIENTE_DIST')
+    and TABLE_NAME in ('DMD_ESTADO_CLIENTE_DIST')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -1092,7 +1099,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     l_registro          ALL_TAB_COLUMNS%rowtype;
     l_registro1         ALL_TAB_COLUMNS%rowtype;
     v_value VARCHAR(200);
-    nombre_campo  VARCHAR2(30);
+    nombre_campo  VARCHAR2(300);
     v_alias_incluido PLS_Integer:=0;
     
     constante         VARCHAR2(500);
@@ -1676,15 +1683,27 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
                   /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                  if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
                     l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   end if;
                 else
                   /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                  if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
                     l_WHERE(l_WHERE.last) :=  transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   end if;
@@ -1692,8 +1711,14 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||', -3)' ||' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                 /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-                if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                   l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                elsif (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0) then
+                  l_WHERE(l_WHERE.last) := transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                elsif (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0) then
+                  l_WHERE(l_WHERE.last) := transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
+                  l_WHERE(l_WHERE.last) := transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                 end if;
@@ -1702,15 +1727,27 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                 if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
                   /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                  if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
                     l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   end if;
                 else
                   /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
-                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                  if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   end if;
@@ -1718,8 +1755,14 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               else /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
                 --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', -3)' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */                
-                  if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
+                  if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 ) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                   else
                     l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   end if;
@@ -1884,8 +1927,19 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           valor_retorno :=  '    ' || cad_pri || ' to_date(fch_datos_in, ''yyyymmdd'') ' || cad_seg;
         end if;
       when 'HARDC' then
-        valor_retorno := '    ' || reg_detalle_in.VALUE;
-        
+        /* (20170201) Angel Ruiz. BUG*/
+        if reg_detalle_in.VALUE <> 'NULL' then
+          select * into l_registro FROM ALL_TAB_COLUMNS
+          where TABLE_NAME = UPPER(reg_detalle_in.TABLE_NAME)
+          and COLUMN_NAME = UPPER(reg_detalle_in.TABLE_COLUMN);
+          if (l_registro.DATA_TYPE <> 'NUMBER') then
+            valor_retorno := '    ' || '''' || reg_detalle_in.VALUE || '''';
+          else
+            valor_retorno := '    ' || reg_detalle_in.VALUE;
+          end if;
+        else
+            valor_retorno := '    ' || reg_detalle_in.VALUE;
+        end if;
       when 'SEQ' then
         valor_retorno := '    ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL';
         --if (instr(reg_detalle_in.VALUE, '.NEXTVAL') > 0) then
