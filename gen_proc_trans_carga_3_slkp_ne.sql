@@ -202,6 +202,16 @@ SELECT
       else
         v_cadena_result := cadena_in;
       end if;
+    elsif (regexp_instr(cadena_in, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+      /* Se trata de que el campo de join posee la funcion LTRIM */
+      if (regexp_instr(cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z_]+ *,') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z_]+ *,');
+        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+        v_cadena_result := v_campo;
+      else
+        v_cadena_result := cadena_in;
+      end if;
+      
     else
       v_cadena_result := cadena_in;
     end if;
@@ -361,6 +371,30 @@ SELECT
     end if;
     return lista_elementos;
   end split_string_coma;
+  /* (20170302) Angel Ruiz */
+  function transformo_funcion_outer (cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+  is
+    v_campo varchar2(200);
+    v_cadena_temp varchar2(200);
+    v_cadena_result varchar2(200);
+  begin
+    if (regexp_instr(cadena_in, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+        /* trasformamos el primer operador del LTRIM */
+      if (regexp_instr(cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z_]+ *,') > 0) then
+        if outer_in = 1 then
+          v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2' || ' (+),');
+        else
+          v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2' || ' ,');
+        end if;
+        v_cadena_result := v_cadena_temp; /* retorno el resultado */
+      else
+        v_cadena_result := cadena_in;
+      end if;
+    else
+      v_cadena_result := alias_in || '.' || cadena_in;
+    end if;
+    return v_cadena_result;
+  end;
   
   /* (20161122) Angel Ruiz. Transforma el campo de la funcion poniendole el alias*/
   function transformo_funcion (cadena_in in varchar2, alias_in in varchar2) return varchar2
@@ -1783,7 +1817,9 @@ SELECT
               if (v_alias_incluido = 1) then
                 valor_retorno :=  '    NVL(' || sustituye_comillas_dinam(reg_detalle_in.VALUE) || ', -2)';
               else
-                if (instr(reg_detalle_in.VALUE, '.') = 0) then
+                if (regexp_instr(reg_detalle_in.VALUE, '[Cc][Aa][Ss][Ee]') > 0) then
+                  valor_retorno :=  '    NVL(' || sustituye_comillas_dinam (reg_detalle_in.VALUE) || ', -2)';
+                elsif (instr(reg_detalle_in.VALUE, '.') = 0) then
                   valor_retorno :=  '    NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2)';
                 else
                   valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', -2)';
@@ -1822,7 +1858,8 @@ SELECT
             if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
             (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0) or
             (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0) or
-            (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+            (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) or
+            (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0)
             then
               --nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
               /* (20161117) Angel Ruiz. NF: Pueden venir funciones en los campos de join como */
@@ -1872,6 +1909,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                     elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                    elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                     end if;
@@ -1885,6 +1924,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                     elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                    elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                     end if;
@@ -1900,6 +1941,8 @@ SELECT
                     l_WHERE(l_WHERE.last) := transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                   elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) := transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                  elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                    l_WHERE(l_WHERE.last) := transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                   else
                     l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                   end if;
@@ -1907,7 +1950,7 @@ SELECT
               else /* if (v_existe_valor = true) then */
                 l_WHERE(l_WHERE.last) :=  sustituye_comillas_dinam(ie_column_lkup(indx)) || ' = ' || sustituye_comillas_dinam(table_columns_lkup(indx)) || ' (+)';
               end if; /* if (v_existe_valor = true) then */
-            else
+            else /* if (l_WHERE.count = 1) then */
               if (v_existe_valor = true) then /* (20170207) Angel Ruiz. BUG. Pueden venir campos que no esten en el diccionario */
                 if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
                   if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
@@ -1920,6 +1963,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                     elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                    elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                     end if;
@@ -1933,6 +1978,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                     elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                    elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1) || ' (+)';
                     else
                       l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                     end if;
@@ -1948,6 +1995,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                     elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
+                    elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                     end if;
@@ -1979,7 +2028,8 @@ SELECT
             if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
             (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) or
             (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Uu][Pp][Pp][Ee][Rr]') > 0) or
-            (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+            (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) or
+            (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0)
             then
             --if (instr(reg_detalle_in.IE_COLUMN_LKUP, 'DECODE') > 0 or instr(reg_detalle_in.IE_COLUMN_LKUP, 'decode') > 0) then
               --nombre_campo := extrae_campo_decode (reg_detalle_in.IE_COLUMN_LKUP);
@@ -2024,6 +2074,8 @@ SELECT
                       l_WHERE(l_WHERE.last) := 'NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                     elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) := 'NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                    elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) := 'NVL(' || transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' ||  ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                     end if;
@@ -2036,6 +2088,8 @@ SELECT
                       l_WHERE(l_WHERE.last) := transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                     elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) := transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                    elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) := transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                     end if;
@@ -2050,6 +2104,8 @@ SELECT
                     l_WHERE(l_WHERE.last) :=  transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                   elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) :=  transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) ||  ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                   else
                     l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
@@ -2069,6 +2125,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                     elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ', ''NI#'')' || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                    elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                     end if;
@@ -2081,6 +2139,8 @@ SELECT
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                     elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                    elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                     end if;
@@ -2095,6 +2155,8 @@ SELECT
                     l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
                   elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias) || ' (+)';
+                  elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                   else
                     l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
@@ -3993,7 +4055,7 @@ begin
       then
         UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_' || lista_scenarios_presentes (indx) || ' := ' || 'pkg_' || nombre_proceso || '.' || 'new_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_' || lista_scenarios_presentes (indx) || ';');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_' || lista_scenarios_presentes (indx) || '''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_' || lista_scenarios_presentes (indx) || ' || ''.'');');
       end if;
     END LOOP;
     /* Generamos la llamada para cargar los registros OPE */
@@ -4044,7 +4106,7 @@ begin
       then
         UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_' || lista_scenarios_presentes (indx) || ' := ' || 'pkg_' || nombre_proceso || '.' || lista_scenarios_presentes (indx) || '_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
         UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_' || lista_scenarios_presentes (indx) || ';');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ' || lista_scenarios_presentes (indx) || ' es: '' || numero_reg_' || lista_scenarios_presentes (indx) || '''.'');');
+        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ' || lista_scenarios_presentes (indx) || ' es: '' || numero_reg_' || lista_scenarios_presentes (indx) || ' || ''.'');');
       end if;
     END LOOP;
     /* (20161117) Angel Ruiz. FIN NF: Pueden venir cualquier tipo de escenario */
