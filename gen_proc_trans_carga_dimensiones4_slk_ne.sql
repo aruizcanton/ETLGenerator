@@ -540,7 +540,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   end split_string_coma;
 
   /* (20170213) Angel Ruiz. Transforma el campo de la funcion poniendole el alias*/
-  function transformo_funcion_where (cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
+  function transformo_funcion_outer (cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
   is
     v_campo varchar2(200);
     v_cadena_temp varchar2(200);
@@ -1595,8 +1595,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               loop
                 v_existe_valor:=true;
               end loop;
-              if (v_existe_valor=true) then
-                v_no_se_generara_case:=false;
+              if (v_existe_valor=false) then
+                v_no_se_generara_case:=true;
               end if;
             end if;
           END LOOP;
@@ -3124,7 +3124,7 @@ begin
                     if (regexp_instr(where_table_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(where_interface_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                       UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode(where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(where_table_columns(indx), reg_scenario.TABLE_NAME, 1) || ' AND');
                     elsif (regexp_instr(where_table_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(where_interface_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
-                      UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_where (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_where (where_table_columns(indx), reg_scenario.TABLE_NAME, 1) || ' AND');
+                      UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_outer (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer (where_table_columns(indx), reg_scenario.TABLE_NAME, 1) || ' AND');
                     else
                       UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || '(+) AND');
                     end if;
@@ -3287,7 +3287,7 @@ begin
                       if (regexp_instr(where_table_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or instr(where_interface_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0));
                       elsif (regexp_instr(where_table_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(where_interface_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
-                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_where (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_where (where_table_columns(indx), reg_scenario.TABLE_NAME, 0));
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_outer (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer (where_table_columns(indx), reg_scenario.TABLE_NAME, 0));
                       else
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx));
                       end if;
@@ -3296,7 +3296,7 @@ begin
                       if (regexp_instr(where_table_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or instr(where_interface_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0)  || ' = ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' and');
                       elsif (regexp_instr(where_table_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(where_interface_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
-                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_where (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_where (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' and');
+                        UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_outer (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' and');
                       else
                         UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' = ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' and');
                       end if;
@@ -3456,7 +3456,7 @@ begin
                     if (regexp_instr(where_table_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(where_interface_columns(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                       UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_decode (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' = ' || transformo_decode (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 1) || ' AND');
                     elsif (regexp_instr(where_table_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(where_interface_columns(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
-                      UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_where (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' = ' || transformo_funcion_where (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 1) || ' AND');
+                      UTL_FILE.put_line(fich_salida_pkg,'    ' || transformo_funcion_outer (where_table_columns(indx), reg_scenario.TABLE_NAME, 0) || ' = ' || transformo_funcion_outer (where_interface_columns(indx), reg_scenario.TABLE_BASE_NAME, 1) || ' AND');
                     else
                       UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_NAME || '.' || where_table_columns(indx) || ' = ' || reg_scenario.TABLE_BASE_NAME || '.' || where_interface_columns(indx) || ' (+) AND');
                     end if;
