@@ -29,7 +29,8 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_REEMBOLSO_ITSON', 'DWF_PQ_SUSCRPCN_ITSON', 'DWF_COMPRA_ITSON');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_COMPRA_ITSON', 'DWF_AJUSTE_ITSON', 'DWF_REEMBOLSO_ITSON', 'DWF_PQ_SUSCRPCN_ITSON', 'DWF_CONSUMO_DETALLE_ITSON');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMA_PARQUE_SERIADOS_MES_DN');
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
     SELECT 
@@ -386,7 +387,7 @@ SELECT
         else
           v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2' || ' ,');
         end if;
-        v_cadena_result := v_cadena_temp; /* retorno el resultado */
+        v_cadena_result := regexp_replace(v_cadena_temp, '''', ''''''); /* retorno el resultado pero sustituyo comilla por doble comilla */
       else
         v_cadena_result := cadena_in;
       end if;
@@ -4014,6 +4015,7 @@ begin
       UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_salvaguardados NUMBER:=0;');
     end if;
     /* (20150918) Angel Ruiz. Fin NF */
+    UTL_FILE.put_line(fich_salida_pkg, '  numero_reg_tot NUMBER;');
     UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');
     UTL_FILE.put_line(fich_salida_pkg, '  ult_paso_ejecutado PLS_integer;');
     UTL_FILE.put_line(fich_salida_pkg, '  siguiente_paso_a_ejecutar PLS_integer;');
