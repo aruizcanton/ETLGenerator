@@ -1296,7 +1296,11 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
   
           --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
-          UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+          /* (20170313) Angel Ruiz. Debido a que ahora solo generamos la carga de los hechos de manera dinamica */
+          /* ya que ya no usamos los generadores que generan codigo en dinamico sin usar funciones de LookUp  */
+          /* ocurre que las tablas temporales T_* en las que se insertan registros, su nombre se forma de manera dinamica */ 
+          /* con la fecha del dia */ 
+          UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
           UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
       
           /****/
@@ -1347,13 +1351,18 @@ begin
           /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
           /****/    
           UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-          UTL_FILE.put_line(fich_salida_pkg, '   ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+          if (REGEXP_LIKE(reg_scenario.TABLE_BASE_NAME, '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9&]+') = true) then
+            /* (20170313) Angel Ruiz. Ocurre que la table_base_name puede tener propietario */
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME) || '_'' || fch_datos_in || '' ' || substr(REGEXP_SUBSTR (reg_scenario.TABLE_BASE_NAME, '\.[a-zA-Z_0-9&]+'), 2) || '''');
+          else
+            UTL_FILE.put_line(fich_salida_pkg, '   ' || reg_scenario.TABLE_BASE_NAME || '_'' || fch_datos_in || '' ' || reg_scenario.TABLE_BASE_NAME || '''');
+          end if;
           if (reg_scenario.FILTER is not null) then
             /* INICIO generacion parte  WHERE  */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+            UTL_FILE.put_line(fich_salida_pkg,'    || ''WHERE');
             /* Procesamos el campo FILTER */
             campo_filter := procesa_campo_filter(reg_scenario.FILTER);
-            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+            UTL_FILE.put_line(fich_salida_pkg, campo_filter || '''');
           end if;
           UTL_FILE.put_line(fich_salida_pkg, ';');
           UTL_FILE.put_line(fich_salida_pkg,'');
