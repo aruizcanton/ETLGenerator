@@ -11,28 +11,30 @@ SELECT
     WHERE
       (trim(MTDT_EXT_SCENARIO.STATUS) = 'P' or trim(MTDT_EXT_SCENARIO.STATUS) = 'D')
       and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in (
-    'PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
-    , 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
-    , 'CICLO_FACTURACION', 'CUENTA', 'ESTATUS_OPERACION'
-    , 'FORMA_PAGO', 'SEGMENTO_CLIENTE', 'TIPO_DISTRIBUIDOR'
-    , 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'CAUSA_BLOQUEO'
-    , 'NIR', 'CATEGORIA_CANAL', 'CIUDAD', 'CODIGO_POSTAL', 'COLONIA', 'ESTADO'
-    , 'MUNICIPIO', 'TERRITORIO', 'TIPO_BLOQUEO', 'PAIS', 'VENTAS_REGISTRADAS'
-    , 'PLAN_TARIFARIO', 'REL_PLAN_TARIF_CANAL', 'CARACT_PLAN_TARIFARIO', 'SVA', 'REL_SVA_CANAL'
-    , 'CARACT_SVA', 'TIPO_PROPIETARIO_OFER', 'ESTATUS_OFERTA', 'MEDIO_FACTURA'
-    , 'CANAL_OFERTA', 'TARJETA_PAGO', 'OFICINA', 'POSICION_VENDEDOR'
-    , 'CANAL', 'CANAL_CAMPANA', 'VENDEDOR', 'PUNTO_VENTA', 'BANCO', 'CATEGORIA_CLIENTE', 'PROMOCION', 'USUARIO_SCL'
-    , 'PARQUE_SVA', 'CART_VENCIDA', 'CAUSA_PAGO', 'CONCEPTO_FACTURA', 'DOC_CANCELADO'
-    , 'FACT_DETALLE', 'FACT_RESUMEN', 'PAGO', 'NODO', 'TIPO_NODO'
-    , 'MOVIMIENTO_ABO', 'ESTADO_TAREA', 'FORMA_CONTACTO', 'PRIORIDAD', 'TIPO_TRANSACCION'
-    , 'MOTIVO_OPERACION_TT', 'TIPO_CARACT_OFERTA', 'VENTA_EQUIPO', 'ICC', 'FACTURACION_IMEI', 'MOVIMIENTO_SVA'
-    , 'CLIENTES_CONTACTOS'
-    , 'MOVIMIENTOS_TT', 'UNIDAD_FUNCIONAL', 'ORIGEN_PAGO', 'PROMOCION_CAMPANA', 'TIPO_OPERACION_TT'
-    , 'DICCIONARIO_TT', 'TIPO_CAMPANA', 'MODO_CAMPANA', 'ROL_USUARIO', 'PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
-    , 'USUARIO_GC', 'TRAF_TARIF_VOZ_POST', 'TRAF_TARIF_DATOS_POST'
-    , 'PROVEEDOR_TELCO', 'MEDIO_CONTACTO', 'UNIDAD_FUNCIONAL2', 'UNIDAD_FUNCIONAL1'
-    , 'CENTRO_ATENCION', 'ESTADO_CONTACTO', 'CALIDAD_PERCIBIDA', 'TIPO_CUENTA'
-    , 'TIPO_CONCEPTO_FACTURA', 'TIPIFICACION_TT', 'ESPECIFICACION_TT', 'ORIGEN_VENTA_COMERCIAL'
+    --'PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
+    --, 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
+    --, 'CICLO_FACTURACION', 'CUENTA', 'ESTATUS_OPERACION'
+    --, 'FORMA_PAGO', 'SEGMENTO_CLIENTE', 'TIPO_DISTRIBUIDOR'
+    --, 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'CAUSA_BLOQUEO'
+    --, 'NIR', 'CATEGORIA_CANAL', 'CIUDAD', 'CODIGO_POSTAL', 'COLONIA', 'ESTADO'
+    --, 'MUNICIPIO', 'TERRITORIO', 'TIPO_BLOQUEO', 'PAIS', 'VENTAS_REGISTRADAS'
+    --, 'PLAN_TARIFARIO', 'REL_PLAN_TARIF_CANAL', 'CARACT_PLAN_TARIFARIO', 'SVA', 'REL_SVA_CANAL'
+    --, 'CARACT_SVA', 'TIPO_PROPIETARIO_OFER', 'ESTATUS_OFERTA', 'MEDIO_FACTURA'
+    --, 'CANAL_OFERTA', 'TARJETA_PAGO', 'OFICINA', 'POSICION_VENDEDOR'
+    --, 'CANAL', 'CANAL_CAMPANA', 'VENDEDOR', 'PUNTO_VENTA', 'BANCO', 'CATEGORIA_CLIENTE', 'PROMOCION', 'USUARIO_SCL'
+    --, 'PARQUE_SVA', 'CART_VENCIDA', 'CAUSA_PAGO', 'CONCEPTO_FACTURA', 'DOC_CANCELADO'
+    --, 'FACT_DETALLE', 'FACT_RESUMEN', 'PAGO', 'NODO', 'TIPO_NODO'
+    --, 'MOVIMIENTO_ABO', 'ESTADO_TAREA', 'FORMA_CONTACTO', 'PRIORIDAD', 'TIPO_TRANSACCION'
+    --, 'MOTIVO_OPERACION_TT', 'TIPO_CARACT_OFERTA', 'VENTA_EQUIPO', 'ICC', 'FACTURACION_IMEI', 'MOVIMIENTO_SVA'
+    --, 'CLIENTES_CONTACTOS'
+    --, 'MOVIMIENTOS_TT', 'UNIDAD_FUNCIONAL', 'ORIGEN_PAGO', 'PROMOCION_CAMPANA', 'TIPO_OPERACION_TT'
+    --, 'DICCIONARIO_TT', 'TIPO_CAMPANA', 'MODO_CAMPANA', 'ROL_USUARIO', 'PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
+    --, 'USUARIO_GC', 'TRAF_TARIF_VOZ_POST', 'TRAF_TARIF_DATOS_POST'
+    --, 'PROVEEDOR_TELCO', 'MEDIO_CONTACTO', 'UNIDAD_FUNCIONAL2', 'UNIDAD_FUNCIONAL1'
+    --, 'CENTRO_ATENCION', 'ESTADO_CONTACTO', 'CALIDAD_PERCIBIDA', 'TIPO_CUENTA'
+    --, 'TIPO_CONCEPTO_FACTURA', 'TIPIFICACION_TT', 'ESPECIFICACION_TT', 'ORIGEN_VENTA_COMERCIAL'
+    --'PAGO', 'USUARIO_SCL', 'ROL_USUARIO', 'CONCEPTO_PAGO'
+    'CART_VENCIDA', 'PAGO'
     );
     
     --and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in ('PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
@@ -1945,7 +1947,38 @@ SELECT
         valor_retorno := ''' || var_seqg || ''';
       when 'BASE' then
         /* Se toma el valor del campo de la tabla de staging */
-        valor_retorno := reg_detalle_in.VALUE;
+        /* (20170502) Angel Ruiz. BUG. Calificamos los campos BASE con la table base name*/
+        if (instr(reg_detalle_in.VALUE, '.') = 0) then
+          /* Solo si el campo ya no esta calificado lo calificamos */
+          if (REGEXP_LIKE(trim(reg_detalle_in.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+') = true) then
+            /* La tabla esta calificada */
+            v_temporal := procesa_campo_filter(trim(reg_detalle_in.TABLE_BASE_NAME));
+            if (REGEXP_LIKE(trim(v_temporal), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) then
+              /* (20160329) Angel Ruiz. Detectamos si TABLE_BASE_NAME posee ALIAS */
+              v_alias_table_base_name := trim(REGEXP_SUBSTR(TRIM(v_temporal), ' +[a-zA-Z_0-9]+$'));
+              v_table_base_name := substr(trim(REGEXP_SUBSTR(TRIM(v_temporal), '\.[a-zA-Z_0-9]+ ')),2);
+            else
+              v_alias_table_base_name := substr(trim(REGEXP_SUBSTR(TRIM(v_temporal), '\.[a-zA-Z_0-9]+')),2);
+              v_table_base_name := substr(trim(REGEXP_SUBSTR(TRIM(v_temporal), '\.[a-zA-Z_0-9]+')),2);
+            end if;
+          else
+            /* La tabla no esta calificada */
+            --if (REGEXP_LIKE(trim(reg_detalle_in.TABLE_BASE_NAME), '^[a-zA-Z_0-9]+ +[a-zA-Z_0-9]+$') = true) then
+            if (REGEXP_LIKE(trim(reg_detalle_in.TABLE_BASE_NAME), '^[a-zA-Z_0-9]+\[*[a-zA-Z_0-9]+\]* +[a-zA-Z_0-9]+$') = true) then
+              /* (20160329) Angel Ruiz. Detectamos si TABLE_BASE_NAME posee ALIAS */
+              v_alias_table_base_name := trim(REGEXP_SUBSTR(TRIM(reg_detalle_in.TABLE_BASE_NAME), ' +[a-zA-Z_0-9]+$'));
+              v_table_base_name := trim(REGEXP_SUBSTR(TRIM(reg_detalle_in.TABLE_BASE_NAME), '^+[a-zA-Z_0-9]+ '));
+            else
+              v_alias_table_base_name := reg_detalle_in.TABLE_BASE_NAME;
+              v_table_base_name := reg_detalle_in.TABLE_BASE_NAME;
+            end if;
+          end if;
+          --valor_retorno := reg_detalle_in.VALUE;
+          valor_retorno := v_alias_table_base_name || '.' || reg_detalle_in.VALUE;
+        else
+          valor_retorno := reg_detalle_in.VALUE;
+        end if;
+        --valor_retorno := reg_detalle_in.VALUE;
       when 'VAR_FCH_INICIO' then
         --valor_retorno :=  '    ' || ''' || var_fch_inicio || ''';
         valor_retorno :=  'SYSDATE';
@@ -2552,15 +2585,15 @@ begin
         /* Fin de la inicializacion */
         if (reg_scenario.OVER_PARTION is not null) then
           /* (20160510) Angel Ruiz. Hay clausula OVER PARTITION */
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT REGISTRY FROM (');
+          UTL_FILE.put_line(fich_salida_pkg,'SELECT REGISTRY FROM (' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
         end if;
         if (reg_scenario.HINT is not null) then
           /* (20160421) Angel Ruiz. Miro si se ha incluido un HINT */
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || reg_scenario.HINT);
+          UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || reg_scenario.HINT || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
         elsif (reg_scenario.DISTINCT_COL is not null) then
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT DISTINCT');
+          UTL_FILE.put_line(fich_salida_pkg,'SELECT DISTINCT' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
         else
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT ');
+          UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
         end if;
         /* (20160614) Angel Ruiz. NF: Tambien pueden aparecer las tablas tipo _[YYYYMM] en el campo TABLE_BASE_NAME */
         if (instr(reg_scenario.TABLE_BASE_NAME, '[YYYYMM]') > 0) then
