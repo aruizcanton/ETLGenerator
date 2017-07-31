@@ -11,8 +11,8 @@
       SEPARATOR,
       DELAYED,
       upper(trim(TYPE_VALIDATION)) TYPE_VALIDATION
-  FROM MTDT_INTERFACE_SUMMARY;
-  --where CONCEPT_NAME = 'CICLO';
+  FROM MTDT_INTERFACE_SUMMARY
+  where CONCEPT_NAME in ('MOVIMIENTOS_SERIADOS', 'MOVIMIENTOS_SERIADOS1');
 
   CURSOR dtd_interfaz_summary_history
   IS
@@ -25,7 +25,7 @@
       DELAYED,
       HISTORY
     FROM MTDT_INTERFACE_SUMMARY
-    where HISTORY is not null;
+    where HISTORY is not null and CONCEPT_NAME in ('MOVIMIENTOS_SERIADOS', 'MOVIMIENTOS_SERIADOS1');
   
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
@@ -88,6 +88,7 @@
       pos_fin_hora                              PLS_integer;
       num_column PLS_INTEGER;
       v_ulti_pos                        PLS_integer;
+      fecha date; /* (20170712) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
 
       
       
@@ -222,6 +223,20 @@ BEGIN
         else
           v_nombre_particion := reg_summary.CONCEPT_NAME;
         end if;
+
+        /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
+        fecha:=to_date('20150101', 'YYYYMMDD');
+        while (fecha <= (sysdate+90))
+        loop
+          if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
+            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(fecha+1,'YYYYMMDD') || ''',''YYYYMMDD''))');
+          else
+            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(fecha+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');
+          end if;
+          fecha:=fecha+1;
+        end loop;
+        /* (20170612) Angel Ruiz. FIN */
+        /*
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-90,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-89,'YYYYMMDD') || ''',''YYYYMMDD'')),');
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-89,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-88,'YYYYMMDD') || ''',''YYYYMMDD'')),');
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-88,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-87,'YYYYMMDD') || ''',''YYYYMMDD'')),');
@@ -402,7 +417,8 @@ BEGIN
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+87,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+88,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+88,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+89,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+89,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+90,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
-        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+91,'YYYYMMDD') || ''',''YYYYMMDD''))');   
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+91,'YYYYMMDD') || ''',''YYYYMMDD''))');
+        */
         DBMS_OUTPUT.put_line(')');
       end if;
       DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
@@ -989,6 +1005,20 @@ BEGIN
         else
           v_nombre_particion := reg_summary_history.CONCEPT_NAME;
         end if;
+
+        /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
+        fecha:=to_date('20150101', 'YYYYMMDD');
+        while (fecha <= (sysdate+90))
+        loop
+          if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
+            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || ')');
+          else
+            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || '),');
+          end if;
+          fecha:=fecha+1;
+        end loop;
+        /* (20170612) Angel Ruiz. FIN */
+        /*
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-89,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-88,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-87,'YYYYMMDD') || '),');   
@@ -1169,8 +1199,8 @@ BEGIN
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+87,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+88,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+89,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+90,'YYYYMMDD') || '),');   
-        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+91,'YYYYMMDD') || ')');   
-        
+        DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+91,'YYYYMMDD') || ')');
+        */
         DBMS_OUTPUT.put_line(')');
       end if;
       DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
@@ -1374,6 +1404,19 @@ BEGIN
             else
               v_nombre_particion := reg_summary_history.CONCEPT_NAME;
             end if;
+            /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
+            fecha:=to_date('20150101', 'YYYYMMDD');
+            while (fecha <= (sysdate+90))
+            loop
+              if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
+                DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || ')');
+              else
+                DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || '),');
+              end if;
+              fecha:=fecha+1;
+            end loop;
+            /* (20170612) Angel Ruiz. FIN */
+            /*
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-89,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-88,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-87,'YYYYMMDD') || '),');   
@@ -1554,7 +1597,8 @@ BEGIN
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+87,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+88,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+89,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+90,'YYYYMMDD') || '),');   
-            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+91,'YYYYMMDD') || ')');   
+            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+91,'YYYYMMDD') || ')');
+            */
             DBMS_OUTPUT.put_line(')');
           end if;
           DBMS_OUTPUT.put_line(';'); /* FIN CREATE */

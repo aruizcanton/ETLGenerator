@@ -20,8 +20,11 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
     --and TABLE_NAME in ('SA_CLIENTE_DIST1', 'DWD_CLIENTE_DISTRIBUIDOR')
     --and TABLE_NAME in ('DMD_SERIADO')
-    and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_CLIENTE_DIST1', 'SA_PARQUE_SERIADOS1', 'SA_USUARIO_SAP1',
-    'SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1')
+    --and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_CLIENTE_DIST1', 'SA_PARQUE_SERIADOS1', 'SA_USUARIO_SAP1',
+    --'SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1', 'DMD_MATERIAL', 'DWD_CLIENTE_DISTRIBUIDOR')
+    and TABLE_NAME in ('SA_PARQUE_SERIADOS1', 'DMD_MATERIAL', 'DMD_ADUANA', 'DMD_CANAL_DISTRIBUCION', 'DMD_CLASE_ENTREGA'
+    , 'DMD_TIPO_PEDIDO', 'DMD_GAMA', 'DMD_GRUPO_IMPUTACION', 'DMD_MARCA', 'DMD_ZONA_VENTA', 'DMD_SECTOR', 'DMD_ZONA_TRANSPORTE'
+    , 'DMD_CLASE_MOV', 'DMD_GRUPO_ARTICULO', 'DMD_ALMACEN', 'DMD_ESTADO_CLIENTE_DIST', 'DMD_ESTATUS_ENTREGAS')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -712,6 +715,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     v_LKUP_COM_RULE               VARCHAR2(1000);
     v_prototipo_func                        VARCHAR2(500);
     
+    
   begin
       case trim(reg_detalle_in.RUL)
       when 'KEEP' then
@@ -873,6 +877,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
         if reg_detalle_in.VALUE =  'VAR_PAIS_TM' then /* Si se trata de la fecha de carga, la podemos coger del parametro de la funcion */
           valor_retorno := '    ' || '1';
         end if;
+        
       end case;
     return valor_retorno;
   end;
