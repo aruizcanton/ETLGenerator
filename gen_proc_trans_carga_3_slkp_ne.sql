@@ -31,6 +31,7 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
     trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_CLASE_VALORACION','DMF_FACT_SERIADOS','DMF_PMP','DMF_MOVIMIENTOS_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
     SELECT 
@@ -168,51 +169,86 @@ SELECT
   begin
     /* Detecto si existen funciones SQL en el campo */
     if (regexp_instr(cadena_in, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 ) then
-      if (regexp_instr(cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,') > 0) then
+      if (regexp_instr(cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z0-9_\.]+ *,') > 0) then
         /* Se trata de un decode normal y corriente */
-        v_cadena_temp := regexp_substr (cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,'); 
-        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
-        v_cadena_result := v_campo;
+        if (instr(cadena_in, '.') > 0 ) then
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z0-9_\.]+ *,'); 
+          v_campo := regexp_substr (v_cadena_temp,'\.[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_campo := substr(v_campo, 2); /* quito el punto */
+          v_cadena_result := v_campo;
+        else
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Dd][Ee][Cc][Oo][Dd][Ee] *\( *[A-Za-z_]+ *,'); 
+          v_campo := regexp_substr (v_cadena_temp,'[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_cadena_result := v_campo;
+        end if;
       else
         v_cadena_result := cadena_in;
       end if;
     elsif (regexp_instr(cadena_in, '[Nn][Vv][Ll]') > 0) then
       /* Se trata de que el campo de join posee la funcion NVL */
-      if (regexp_instr(cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,') > 0) then
-        v_cadena_temp := regexp_substr (cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,');
-        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
-        v_cadena_result := v_campo;
+      if (regexp_instr(cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z0-9_\.]+ *,') > 0) then
+        if (instr(cadena_in, '.') > 0) then
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z0-9_\.]+ *,');
+          v_campo := regexp_substr (v_cadena_temp,'\.[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_campo := substr(v_campo, 2);
+          v_cadena_result := v_campo;
+        else
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Nn][Vv][Ll] *\( *[A-Za-z_]+ *,');
+          v_campo := regexp_substr (v_cadena_temp,'[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_cadena_result := v_campo;
+        end if;
       else
         v_cadena_result := cadena_in;
       end if;
     elsif (regexp_instr(cadena_in, '[Uu][Pp][Pp][Ee][Rr]') > 0) then
       /* Se trata de que el campo de join posee la funcion UPPER */
-      if (regexp_instr(cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)') > 0) then
-        v_cadena_temp := regexp_substr (cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)');
-        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
-        v_cadena_result := v_campo;
+      if (regexp_instr(cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z0-9_\.]+ *\)') > 0) then
+        if (instr(cadena_in, '.') > 0) then
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z0-9_\.]+ *\)');
+          v_campo := regexp_substr (v_cadena_temp,'\.[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_campo := substr(v_campo, 2); /* quito el punto */
+          v_cadena_result := v_campo;
+        else
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Uu][Pp][Pp][Ee][Rr] *\( *[A-Za-z_]+ *\)');
+          v_campo := regexp_substr (v_cadena_temp,'[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_cadena_result := v_campo;
+        end if;
       else
         v_cadena_result := cadena_in;
       end if;
     elsif (regexp_instr(cadena_in, '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
       /* Se trata de que el campo de join posee la funcion REPLACE */
-      if (regexp_instr(cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *\)') > 0) then
-        v_cadena_temp := regexp_substr (cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *,');
-        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
-        v_cadena_result := v_campo;
+      if (regexp_instr(cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_0-9\.]+ *\)') > 0) then
+        if (instr(v_cadena_temp, '.') > 0) then
+          /* El campo viene con ALIAS */
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z0-9_\.]+ *,');
+          v_campo := regexp_substr (v_cadena_temp,'\.[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_campo := substr(v_campo ,2); /* quito el punto */
+          v_cadena_result := v_campo;
+        else
+          v_cadena_temp := regexp_substr (cadena_in, ' *[Rr][Ee][Pp][Ll][Aa][Cc][Ee] *\( *[A-Za-z_]+ *,');
+          v_campo := regexp_substr (v_cadena_temp,'[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_cadena_result := v_campo;
+        end if;
       else
         v_cadena_result := cadena_in;
       end if;
     elsif (regexp_instr(cadena_in, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
       /* Se trata de que el campo de join posee la funcion LTRIM */
-      if (regexp_instr(cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z_]+ *,') > 0) then
-        v_cadena_temp := regexp_substr (cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z_]+ *,');
-        v_campo := regexp_substr (v_cadena_temp,'[A-Za-z_]+', instr( v_cadena_temp, '('));
+      if (regexp_instr(cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z0-9_\.]+ *,') > 0) then
+        v_cadena_temp := regexp_substr (cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z0-9_\.]+ *,');
+        if (instr(v_cadena_temp, '.') > 0) then
+          /* El campo viene con ALIAS */
+          v_campo := regexp_substr (v_cadena_temp,'\.[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+          v_campo := substr(v_campo, 2);  /* quito el punto */
+        else
+          /* El campo viene sin ALIAS */
+          v_campo := regexp_substr (v_cadena_temp,'[A-Za-z0-9_]+', instr( v_cadena_temp, '('));
+        end if;
         v_cadena_result := v_campo;
       else
         v_cadena_result := cadena_in;
       end if;
-      
     else
       v_cadena_result := cadena_in;
     end if;
@@ -381,15 +417,24 @@ SELECT
   begin
     if (regexp_instr(cadena_in, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
         /* trasformamos el primer operador del LTRIM */
-      if (regexp_instr(cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z_]+ *,') > 0) then
-        if outer_in = 1 then
-          v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2' || ' (+),');
+      if (regexp_instr(cadena_in, ' *[Ll][Tt][Rr][Ii][Mm] *\( *[A-Za-z0-9_\.]+ *,') > 0) then
+        if (instr(cadena_in, '.') > 0) then
+          /* el campo esta cualificado con ALIAS */
+          if outer_in = 1 then
+            v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z0-9_\.]+) *,', '\1(' || '\2' || ' (+),');
+          else
+            v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z0-9_\.]+) *,', '\1(' || '\2' || ' ,');
+          end if;
         else
-          v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z_]+) *,', '\1(' || alias_in || '.' || '\2' || ' ,');
+          if outer_in = 1 then
+            v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z0-9_]+) *,', '\1(' || alias_in || '.' || '\2' || ' (+),');
+          else
+            v_cadena_temp := regexp_replace (cadena_in, ' *([Ll][Tt][Rr][Ii][Mm]) *\( *([A-Za-z0-9_]+) *,', '\1(' || alias_in || '.' || '\2' || ' ,');
+          end if;
         end if;
         v_cadena_result := regexp_replace(v_cadena_temp, '''', ''''''); /* retorno el resultado pero sustituyo comilla por doble comilla */
       else
-        v_cadena_result := cadena_in;
+        v_cadena_result := regexp_replace (cadena_in, '''', '''''');
       end if;
     else
       v_cadena_result := alias_in || '.' || cadena_in;
@@ -1637,7 +1682,8 @@ SELECT
             if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
             (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0) or
             (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0) or
-            (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+            (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) or
+            (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0)
             then
               nombre_campo := extrae_campo (ie_column_lkup(indx));
               v_existe_valor:=false;
@@ -1701,7 +1747,8 @@ SELECT
                 if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
                 (regexp_instr(ie_column_lkup(indx), '[Nn][Vv][Ll]') > 0) or
                 (regexp_instr(ie_column_lkup(indx), '[Uu][Pp][Pp][Ee][Rr]') > 0) or
-                (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0)
+                (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) or
+                (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0)
                 then
                   --nombre_campo := extrae_campo_decode (ie_column_lkup(indx));
                   /* (20161117) Angel Ruiz. NF: Pueden venir funciones en los campos de join como */
@@ -1851,8 +1898,8 @@ SELECT
             l_WHERE.extend;
             /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
-            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
-            dbms_output.put_line('ESTOY EN EL LOOKUP. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
+            dbms_output.put_line('ESTOY EN EL LOOKUP. En la parte del Where. Varias Columnas. Este LoopUp es de varias columnas. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
+            dbms_output.put_line('ESTOY EN EL LOOKUP. En la parte del Where. Varias Columnas. Este LoopUp es de varias columnas. La Columna es: ' || ie_column_lkup(indx));
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
             /************************/
             /* (20161117) Angel Ruiz NF: Pueden venir funciones en los campos de JOIN */
@@ -1866,6 +1913,7 @@ SELECT
               /* (20161117) Angel Ruiz. NF: Pueden venir funciones en los campos de join como */
               /* UPPER, NVL, DECODE, ... */
               nombre_campo := extrae_campo (ie_column_lkup(indx));
+              dbms_output.put_line ('El campo del WHERE ES #####: ' || nombre_campo);
               /****************************************/
               /* (20170207) Angel Ruiz. BUG. Hay campos de los q no se puede hayar su tipo pq tienen muchas funciones */
               /****************************************/
@@ -1949,7 +1997,11 @@ SELECT
                   end if;
                 end if;
               else /* if (v_existe_valor = true) then */
-                l_WHERE(l_WHERE.last) :=  sustituye_comillas_dinam(ie_column_lkup(indx)) || ' = ' || sustituye_comillas_dinam(table_columns_lkup(indx)) || ' (+)';
+                if (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) :=  sustituye_comillas_dinam(ie_column_lkup(indx)) || ' = ' || sustituye_comillas_dinam(table_columns_lkup(indx)) || ' (+)';
+                end if;
               end if; /* if (v_existe_valor = true) then */
             else /* if (l_WHERE.count = 1) then */
               if (v_existe_valor = true) then /* (20170207) Angel Ruiz. BUG. Pueden venir campos que no esten en el diccionario */
@@ -1980,7 +2032,7 @@ SELECT
                     elsif (regexp_instr(ie_column_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Rr][Ee][Pp][Ll][Aa][Cc][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME) || ' = ' || transformo_funcion(table_columns_lkup(indx), v_alias) || ' (+)';
                     elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
-                      l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1) || ' (+)';
+                      l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                     end if;
@@ -2003,7 +2055,11 @@ SELECT
                     end if;
                 end if;
               else
-                l_WHERE(l_WHERE.last) :=  ' AND ' || sustituye_comillas_dinam(ie_column_lkup(indx)) || ' = ' || sustituye_comillas_dinam(table_columns_lkup(indx)) || ' (+)';
+                if (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || sustituye_comillas_dinam(ie_column_lkup(indx)) || ' = ' || sustituye_comillas_dinam(table_columns_lkup(indx)) || ' (+)';
+                end if;
               end if;
             end if;
           END LOOP;
@@ -2023,8 +2079,8 @@ SELECT
           else
             /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
             /* Recojo el tipo de dato del campo con el que se va a hacer LookUp */
-            dbms_output.put_line('#ESTOY EN EL LOOKUP. La Tabla es: $' || reg_detalle_in.TABLE_BASE_NAME || '$');
-            dbms_output.put_line('#ESTOY EN EL LOOKUP. La Columna es: $' || reg_detalle_in.IE_COLUMN_LKUP || '$');
+            dbms_output.put_line('#ESTOY EN EL LOOKUP. En la parte del Where. Una sola columna. La Tabla es: $' || reg_detalle_in.TABLE_BASE_NAME || '$');
+            dbms_output.put_line('#ESTOY EN EL LOOKUP. En la parte del Where. UNa sola columna. La Columna es: $' || reg_detalle_in.IE_COLUMN_LKUP || '$');
             /* (20161117) Angel Ruiz NF: Pueden venir funciones en los campos de JOIN */
             if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) or
             (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) or
@@ -2112,7 +2168,11 @@ SELECT
                   end if;
                 end if;
               else  /* if (v_existe_valor = true) then */
-                l_WHERE(l_WHERE.last) := sustituye_comillas_dinam(reg_detalle_in.IE_COLUMN_LKUP) ||  ' = ' || sustituye_comillas_dinam(reg_detalle_in.TABLE_COLUMN_LKUP) || ' (+)';
+                if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) := sustituye_comillas_dinam(reg_detalle_in.IE_COLUMN_LKUP) ||  ' = ' || sustituye_comillas_dinam(reg_detalle_in.TABLE_COLUMN_LKUP) || ' (+)';
+                end if;
               end if;
             else  /* sino es el primer campo del Where  */
               if (v_existe_valor = true) then /* (20170207) Angel Ruiz. BUG. Hay columnas que no se encuentran en el metadato */
@@ -2163,7 +2223,11 @@ SELECT
                   end if;
                 end if;
               else  /* if (v_existe_valor = true) then */
-                l_WHERE(l_WHERE.last) :=  ' AND ' || sustituye_comillas_dinam(reg_detalle_in.IE_COLUMN_LKUP) || ' = ' || sustituye_comillas_dinam(reg_detalle_in.TABLE_COLUMN_LKUP) || ' (+)';
+                if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Ll][Tt][Rr][Ii][Mm]') > 0) then
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
+                else
+                  l_WHERE(l_WHERE.last) :=  ' AND ' || sustituye_comillas_dinam(reg_detalle_in.IE_COLUMN_LKUP) || ' = ' || sustituye_comillas_dinam(reg_detalle_in.TABLE_COLUMN_LKUP) || ' (+)';
+                end if;
               end if;   /* if (v_existe_valor = true) then */
             end if;
           end if;
