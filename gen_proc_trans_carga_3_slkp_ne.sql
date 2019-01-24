@@ -30,8 +30,8 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DWF_COMPRA_ITSON', 'DWF_AJUSTE_ITSON', 'DWF_REEMBOLSO_ITSON', 'DWF_PQ_SUSCRPCN_ITSON', 'DWF_CONSUMO_DETALLE_ITSON');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_CLASE_VALORACION','DMF_FACT_SERIADOS','DMF_PMP','DMF_MOVIMIENTOS_SERIADOS');
-    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_CLASE_VALORACION','DMF_FACT_SERIADOS','DMF_PMP','DMF_MOVIMIENTOS_SERIADOS');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_ESTATUS_ENTREGAS');
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
     SELECT 
@@ -4474,16 +4474,64 @@ begin
     UTL_FILE.put_line(fich_salida_load, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
-    UTL_FILE.put_line(fich_salida_load, '# Comprobamos si el numero de parametros es el correcto');
-    UTL_FILE.put_line(fich_salida_load, 'if [ $# -ne 3 ] ; then');
-    UTL_FILE.put_line(fich_salida_load, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
-    UTL_FILE.put_line(fich_salida_load, '  echo ${SUBJECT}');        
-    UTL_FILE.put_line(fich_salida_load, '  exit 1');
-    UTL_FILE.put_line(fich_salida_load, 'fi');
-    UTL_FILE.put_line(fich_salida_load, '# Recogida de parametros');
-    UTL_FILE.put_line(fich_salida_load, 'FCH_CARGA=${1}');
-    UTL_FILE.put_line(fich_salida_load, 'FCH_DATOS=${2}');
-    UTL_FILE.put_line(fich_salida_load, 'BAN_FORZADO=${3}');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if reg_tabla.TABLE_NAME = 'DMF_ESTATUS_ENTREGAS' then
+      UTL_FILE.put_line(fich_salida_load, '################################################################################');
+      UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
+      UTL_FILE.put_line(fich_salida_load, '################################################################################');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+      UTL_FILE.put_line(fich_salida_load, '');
+      UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
+      UTL_FILE.put_line(fich_salida_load, 'BD_CLAVE=${PASSWORD}');
+      UTL_FILE.put_line(fich_salida_load, 'if [ $# -eq 0 ] ; then');
+      UTL_FILE.put_line(fich_salida_load, '  # Se obtiene la fecha inicial y final del periodo a calcular a partir de la fecha del sistema.');
+      UTL_FILE.put_line(fich_salida_load, '  FCH_CARGA=`sqlplus -s ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} <<!eof');
+      UTL_FILE.put_line(fich_salida_load, '    whenever sqlerror exit 1');
+      UTL_FILE.put_line(fich_salida_load, '    set pagesize 0');
+      UTL_FILE.put_line(fich_salida_load, '    set heading off');
+      UTL_FILE.put_line(fich_salida_load, '    select');
+      UTL_FILE.put_line(fich_salida_load, '      to_char(SYSDATE-1,''YYYYMMDD'')');
+      UTL_FILE.put_line(fich_salida_load, '    from dual;');
+      UTL_FILE.put_line(fich_salida_load, '    quit');
+      UTL_FILE.put_line(fich_salida_load, '  !eof`');
+      UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
+      UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+      UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_load, '    exit 1');
+      UTL_FILE.put_line(fich_salida_load, '  fi');
+      UTL_FILE.put_line(fich_salida_load, '  # Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_load, '  FCH_DATOS=${FCH_CARGA}');
+      UTL_FILE.put_line(fich_salida_load, '  BAN_FORZADO=N');
+      UTL_FILE.put_line(fich_salida_load, 'else');
+      UTL_FILE.put_line(fich_salida_load, '  # Comprobamos si el numero de parametros es el correcto');
+      UTL_FILE.put_line(fich_salida_load, '  if [ $# -ne 3 ] ; then');
+      UTL_FILE.put_line(fich_salida_load, '    SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
+      UTL_FILE.put_line(fich_salida_load, '    echo ${SUBJECT}');        
+      UTL_FILE.put_line(fich_salida_load, '    exit 1');
+      UTL_FILE.put_line(fich_salida_load, '  fi');
+      UTL_FILE.put_line(fich_salida_load, '  # Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_load, '  FCH_CARGA=${1}');
+      UTL_FILE.put_line(fich_salida_load, '  FCH_DATOS=${2}');
+      UTL_FILE.put_line(fich_salida_load, '  BAN_FORZADO=${3}');
+      UTL_FILE.put_line(fich_salida_load, 'fi');
+    else
+      UTL_FILE.put_line(fich_salida_load, '# Comprobamos si el numero de parametros es el correcto');
+      UTL_FILE.put_line(fich_salida_load, 'if [ $# -ne 3 ] ; then');
+      UTL_FILE.put_line(fich_salida_load, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
+      UTL_FILE.put_line(fich_salida_load, '  echo ${SUBJECT}');        
+      UTL_FILE.put_line(fich_salida_load, '  exit 1');
+      UTL_FILE.put_line(fich_salida_load, 'fi');
+      UTL_FILE.put_line(fich_salida_load, '# Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_load, 'FCH_CARGA=${1}');
+      UTL_FILE.put_line(fich_salida_load, 'FCH_DATOS=${2}');
+      UTL_FILE.put_line(fich_salida_load, 'BAN_FORZADO=${3}');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. */
     UTL_FILE.put_line(fich_salida_load, 'FECHA_HORA=${FCH_CARGA}_${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');    
     --UTL_FILE.put_line(fich_salida_load, 'echo "load_he_' || reg_tabla.TABLE_NAME || '" > ${' || NAME_DM || '_TRAZAS}/load_he_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_load, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
@@ -4506,13 +4554,17 @@ begin
     UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="Req89208"');
     UTL_FILE.put_line(fich_salida_load, 'INTERFAZ=Req89208_load_he_' || reg_tabla.TABLE_NAME);
     UTL_FILE.put_line(fich_salida_load, '');
-    UTL_FILE.put_line(fich_salida_load, '################################################################################');
-    UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
-    UTL_FILE.put_line(fich_salida_load, '################################################################################');
-    UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
-    UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
-    UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
-    UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_tabla.TABLE_NAME <> 'DMF_ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_load, '################################################################################');
+      UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
+      UTL_FILE.put_line(fich_salida_load, '################################################################################');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+      UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     UTL_FILE.put_line(fich_salida_load, '');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# Cuentas  Produccion / Desarrollo                                             #');
@@ -4531,8 +4583,12 @@ begin
     UTL_FILE.put_line(fich_salida_load, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
     UTL_FILE.put_line(fich_salida_load, 'fi');
     UTL_FILE.put_line(fich_salida_load, '');
-    UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
-    UTL_FILE.put_line(fich_salida_load, 'BD_CLAVE=${PASSWORD}');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_tabla.TABLE_NAME <> 'DMF_ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
+      UTL_FILE.put_line(fich_salida_load, 'BD_CLAVE=${PASSWORD}');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     /*************************/
     /* (20141211) Anyadido a posteriori al darme cuenta de que si falla el proceso pq no se invoque el procedimiento del paquete*/
     /* Fallara pero no se tendrá ni fecha ni hora de inicio */
@@ -4650,16 +4706,66 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
-    UTL_FILE.put_line(fich_salida_exchange, '# Comprobamos si el numero de parametros es el correcto');
-    UTL_FILE.put_line(fich_salida_exchange, 'if [ $# -ne 3 ] ; then');
-    UTL_FILE.put_line(fich_salida_exchange, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
-    UTL_FILE.put_line(fich_salida_exchange, '  echo ${SUBJECT}');        
-    UTL_FILE.put_line(fich_salida_exchange, '  exit 1');
-    UTL_FILE.put_line(fich_salida_exchange, 'fi');
-    UTL_FILE.put_line(fich_salida_exchange, '# Recogida de parametros');
-    UTL_FILE.put_line(fich_salida_exchange, 'FCH_CARGA=${1}');
-    UTL_FILE.put_line(fich_salida_exchange, 'FCH_DATOS=${2}');
-    UTL_FILE.put_line(fich_salida_exchange, 'BAN_FORZADO=${3}');
+
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_tabla.TABLE_NAME = 'DMF_ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
+      UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
+      UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '');
+      UTL_FILE.put_line(fich_salida_exchange, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
+      UTL_FILE.put_line(fich_salida_exchange, 'BD_CLAVE=${PASSWORD}');
+      UTL_FILE.put_line(fich_salida_exchange, 'if [ $# -eq 0 ] ; then');
+      UTL_FILE.put_line(fich_salida_exchange, '  # Se obtiene la fecha inicial y final del periodo a calcular a partir de la fecha del sistema.');
+      UTL_FILE.put_line(fich_salida_exchange, '  FCH_CARGA=`sqlplus -s ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} <<!eof');
+      UTL_FILE.put_line(fich_salida_exchange, '    whenever sqlerror exit 1');
+      UTL_FILE.put_line(fich_salida_exchange, '    set pagesize 0');
+      UTL_FILE.put_line(fich_salida_exchange, '    set heading off');
+      UTL_FILE.put_line(fich_salida_exchange, '    select');
+      UTL_FILE.put_line(fich_salida_exchange, '      to_char(SYSDATE-1,''YYYYMMDD'')');
+      UTL_FILE.put_line(fich_salida_exchange, '    from dual;');
+      UTL_FILE.put_line(fich_salida_exchange, '    quit');
+      UTL_FILE.put_line(fich_salida_exchange, '  !eof`');
+      UTL_FILE.put_line(fich_salida_exchange, '  if [ $? -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_exchange, '    SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
+      UTL_FILE.put_line(fich_salida_exchange, '    echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_exchange, '    echo `date`');
+      UTL_FILE.put_line(fich_salida_exchange, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_exchange, '    exit 1');
+      UTL_FILE.put_line(fich_salida_exchange, '  fi');
+      UTL_FILE.put_line(fich_salida_exchange, '  # Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_exchange, '  FCH_DATOS=${FCH_CARGA}');
+      UTL_FILE.put_line(fich_salida_exchange, '  BAN_FORZADO=N');
+      UTL_FILE.put_line(fich_salida_exchange, 'else');
+      UTL_FILE.put_line(fich_salida_exchange, '  # Comprobamos si el numero de parametros es el correcto');
+      UTL_FILE.put_line(fich_salida_exchange, '  if [ $# -ne 3 ] ; then');
+      UTL_FILE.put_line(fich_salida_exchange, '    SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
+      UTL_FILE.put_line(fich_salida_exchange, '    echo ${SUBJECT}');        
+      UTL_FILE.put_line(fich_salida_exchange, '    exit 1');
+      UTL_FILE.put_line(fich_salida_exchange, '  fi');
+      UTL_FILE.put_line(fich_salida_exchange, '  # Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_exchange, '  FCH_CARGA=${1}');
+      UTL_FILE.put_line(fich_salida_exchange, '  FCH_DATOS=${2}');
+      UTL_FILE.put_line(fich_salida_exchange, '  BAN_FORZADO=${3}');
+      UTL_FILE.put_line(fich_salida_exchange, 'fi');
+    else
+      UTL_FILE.put_line(fich_salida_exchange, '# Comprobamos si el numero de parametros es el correcto');
+      UTL_FILE.put_line(fich_salida_exchange, 'if [ $# -ne 3 ] ; then');
+      UTL_FILE.put_line(fich_salida_exchange, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
+      UTL_FILE.put_line(fich_salida_exchange, '  echo ${SUBJECT}');        
+      UTL_FILE.put_line(fich_salida_exchange, '  exit 1');
+      UTL_FILE.put_line(fich_salida_exchange, 'fi');
+      UTL_FILE.put_line(fich_salida_exchange, '# Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_exchange, 'FCH_CARGA=${1}');
+      UTL_FILE.put_line(fich_salida_exchange, 'FCH_DATOS=${2}');
+      UTL_FILE.put_line(fich_salida_exchange, 'BAN_FORZADO=${3}');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. */
+
     UTL_FILE.put_line(fich_salida_exchange, 'FECHA_HORA=${FCH_CARGA}_${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
     --UTL_FILE.put_line(fich_salida_exchange, 'echo "load_ex_' || reg_tabla.TABLE_NAME || '" > ${MVNO_TRAZAS}/load_ex_' || reg_tabla.TABLE_NAME || '_${FECHA_HORA}' || '.log ');
     UTL_FILE.put_line(fich_salida_exchange, '# Comprobamos si existe el directorio de Trazas para fecha de carga');
@@ -4682,13 +4788,17 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, 'REQ_NUM="Req89208"');
     UTL_FILE.put_line(fich_salida_exchange, 'INTERFAZ=Req89208_load_ex_' || reg_tabla.TABLE_NAME);
     UTL_FILE.put_line(fich_salida_exchange, '');
-    UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-    UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
-    UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
-    UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
-    UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
-    UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
-    UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_tabla.TABLE_NAME <> 'DMF_ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
+      UTL_FILE.put_line(fich_salida_exchange, '# LIBRERIAS                                                                    #');
+      UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+      UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     UTL_FILE.put_line(fich_salida_exchange, '');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '# Cuentas  Produccion / Desarrollo                                             #');
@@ -4707,8 +4817,12 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, '  TELEFONOS_USUARIOS=`cat ${' || NAME_DM || '_CONFIGURACION}/TELEFONOS_USUARIOS.txt`');
     UTL_FILE.put_line(fich_salida_exchange, 'fi');
     UTL_FILE.put_line(fich_salida_exchange, '');
-    UTL_FILE.put_line(fich_salida_exchange, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
-    UTL_FILE.put_line(fich_salida_exchange, 'BD_CLAVE=${PASSWORD}');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_tabla.TABLE_NAME <> 'DMF_ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_exchange, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
+      UTL_FILE.put_line(fich_salida_exchange, 'BD_CLAVE=${PASSWORD}');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     
     /*****************************************************/
     UTL_FILE.put_line(fich_salida_exchange, '# Llamada a sql_plus');

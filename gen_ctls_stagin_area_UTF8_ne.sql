@@ -154,8 +154,12 @@ BEGIN
       else
         nombre_proceso := reg_summary.CONCEPT_NAME;
       end if;
-      
       UTL_FILE.put_line(fich_salida, 'load data');
+      /* (20180306) Angel Ruiz. BUG para el tema de que viene el ficehro de MATERIAL desde UTF-8 y hay que añadir */
+      /* el juego de caracteres de la base de datos destino.*/
+      if reg_summary.CONCEPT_NAME = 'MATERIAL' or reg_summary.CONCEPT_NAME = 'CLASIFICACION_FISCAL_MAT' then
+        UTL_FILE.put_line(fich_salida, 'CHARACTERSET UTF8');
+      end if;
       --UTL_FILE.put_line(fich_salida, 'infile ' || '_DIR_DATOS/DMDIST_' || reg_summary.COUNTRY || '_' || reg_summary.SOURCE || '_' || reg_summary.CONCEPT_NAME || '_YYYYMMDD' || '.dat');
       UTL_FILE.put_line(fich_salida, 'into table ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
       --if (reg_summary.DELAYED = 'S') then
@@ -240,7 +244,9 @@ BEGIN
               /* (20141217) Angel Ruiz */
               /* Pueden venir blancos en los campos fecha. Hay que controlarlo */
               if (reg_datail.NULABLE is null ) then
-                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
+                /* (20180314) Angel Ruiz. BUG ya que envian como fecha nula 00000000 */
+                --tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
+                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), ''00000000'', TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
               else
                 tipo_col := 'DATE "YYYYMMDD"';
               end if;
@@ -382,7 +388,9 @@ BEGIN
               /* (20141217) Angel Ruiz */
               /* Pueden venir blancos en los campos fecha. Hay que controlarlo */
               if (reg_datail.KEY is null and reg_datail.NULABLE is null ) then
-                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
+                /* (20180314) Angel Ruiz. BUG ya que envian como fecha nula 00000000 */
+                --tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
+                tipo_col := '"DECODE (TRIM(:' || reg_datail.COLUMNA || '),'''',TO_DATE(''19900101'', ''YYYYMMDD''), ''00000000'', TO_DATE(''19900101'', ''YYYYMMDD''), TO_DATE(:' || reg_datail.COLUMNA || ',''YYYYMMDD''))"';
               else
                 tipo_col := 'DATE "YYYYMMDD"';
               end if;
@@ -447,6 +455,11 @@ BEGIN
       if (pos_ini_hora > 0) then
         pos_fin_hora := pos_ini_hora + length ('HH24MISS');
         nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
+      end if;
+      pos_ini_fecha := instr(reg_summary.INTERFACE_NAME, 'DDMMAA');
+      if (pos_ini_fecha > 0) then
+        pos_fin_fecha := pos_ini_fecha + length ('DDMMAA');
+        nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '${FCH_DATOS_DOS_DIGITOS}' || substr(nombre_interface_a_cargar, pos_fin_fecha);
       end if;
       /*****************************/
       nombre_flag_a_cargar := substr (nombre_interface_a_cargar, 1, instr(nombre_interface_a_cargar, '.')) || 'flag';
@@ -614,16 +627,67 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
-    UTL_FILE.put_line(fich_salida_sh, '# Comprobamos si el numero de parametros es el correcto');
-    UTL_FILE.put_line(fich_salida_sh, 'if [ $# -ne 3 ] ; then');
-    UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
-    UTL_FILE.put_line(fich_salida_sh, '  echo ${SUBJECT}');        
-    UTL_FILE.put_line(fich_salida_sh, '  exit 1');
-    UTL_FILE.put_line(fich_salida_sh, 'fi');
-    UTL_FILE.put_line(fich_salida_sh, '# Recogida de parametros');
-    UTL_FILE.put_line(fich_salida_sh, 'FCH_CARGA=${1}');
-    UTL_FILE.put_line(fich_salida_sh, 'FCH_DATOS=${2}');
-    UTL_FILE.put_line(fich_salida_sh, 'BAN_FORZADO=${3}');
+    
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_summary.CONCEPT_NAME = 'ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_sh, '################################################################################');
+      UTL_FILE.put_line(fich_salida_sh, '# LIBRERIAS                                                                    #');
+      UTL_FILE.put_line(fich_salida_sh, '################################################################################');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+      UTL_FILE.put_line(fich_salida_sh, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
+      UTL_FILE.put_line(fich_salida_sh, 'BD_CLAVE=${PASSWORD}');
+      UTL_FILE.put_line(fich_salida_sh, 'if [ $# -eq 0 ] ; then');
+      UTL_FILE.put_line(fich_salida_sh, '  # Se obtiene la fecha inicial y final del periodo a calcular a partir de la fecha del sistema.');
+      UTL_FILE.put_line(fich_salida_sh, '  FCH_CARGA=`sqlplus -s ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} <<!eof');
+      UTL_FILE.put_line(fich_salida_sh, '    whenever sqlerror exit 1');
+      UTL_FILE.put_line(fich_salida_sh, '    set pagesize 0');
+      UTL_FILE.put_line(fich_salida_sh, '    set heading off');
+      UTL_FILE.put_line(fich_salida_sh, '    select');
+      UTL_FILE.put_line(fich_salida_sh, '      to_char(SYSDATE-1,''YYYYMMDD'')');
+      UTL_FILE.put_line(fich_salida_sh, '    from dual;');
+      UTL_FILE.put_line(fich_salida_sh, '    quit');
+      UTL_FILE.put_line(fich_salida_sh, '  !eof`');
+      UTL_FILE.put_line(fich_salida_sh, '  if [ $? -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
+      UTL_FILE.put_line(fich_salida_sh, '    echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_sh, '    echo `date`');
+      UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_sh, '    exit 1');
+      UTL_FILE.put_line(fich_salida_sh, '  fi');
+      UTL_FILE.put_line(fich_salida_sh, '  # Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_sh, '  FCH_DATOS=${FCH_CARGA}');
+      UTL_FILE.put_line(fich_salida_sh, '  BAN_FORZADO=N');
+      UTL_FILE.put_line(fich_salida_sh, 'else');
+      UTL_FILE.put_line(fich_salida_sh, '  # Comprobamos si el numero de parametros es el correcto');
+      UTL_FILE.put_line(fich_salida_sh, '  if [ $# -ne 3 ] ; then');
+      UTL_FILE.put_line(fich_salida_sh, '    SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
+      UTL_FILE.put_line(fich_salida_sh, '    echo ${SUBJECT}');        
+      UTL_FILE.put_line(fich_salida_sh, '    exit 1');
+      UTL_FILE.put_line(fich_salida_sh, '  fi');
+      UTL_FILE.put_line(fich_salida_sh, '  # Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_sh, '  FCH_CARGA=${1}');
+      UTL_FILE.put_line(fich_salida_sh, '  FCH_DATOS=${2}');
+      UTL_FILE.put_line(fich_salida_sh, '  BAN_FORZADO=${3}');
+      UTL_FILE.put_line(fich_salida_sh, 'fi');
+    else
+      UTL_FILE.put_line(fich_salida_sh, '# Comprobamos si el numero de parametros es el correcto');
+      UTL_FILE.put_line(fich_salida_sh, 'if [ $# -ne 3 ] ; then');
+      UTL_FILE.put_line(fich_salida_sh, '  SUBJECT="Numero de paramatros de entrada incorrecto. Uso: ${0} <fch_carga> <fch_datos> <forzado>"');
+      UTL_FILE.put_line(fich_salida_sh, '  echo ${SUBJECT}');        
+      UTL_FILE.put_line(fich_salida_sh, '  exit 1');
+      UTL_FILE.put_line(fich_salida_sh, 'fi');
+      UTL_FILE.put_line(fich_salida_sh, '# Recogida de parametros');
+      UTL_FILE.put_line(fich_salida_sh, 'FCH_CARGA=${1}');
+      UTL_FILE.put_line(fich_salida_sh, 'FCH_DATOS=${2}');
+      --UTL_FILE.put_line(fich_salida_sh, 'FCH_DATOS_DOS_DIGITOS=`echo ${FCH_DATOS} | awk ''{ printf "%s%s%s", substr($1,3,2), substr($1,5,2), substr($1,7,2) ; }''`');
+      UTL_FILE.put_line(fich_salida_sh, 'FCH_DATOS_DOS_DIGITOS=`echo ${FCH_DATOS} | awk ''{ printf "%s%s%s", substr($1,7,2), substr($1,5,2), substr($1,3,2) ; }''`');
+      UTL_FILE.put_line(fich_salida_sh, 'BAN_FORZADO=${3}');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. */
+    
     UTL_FILE.put_line(fich_salida_sh, 'FECHA_HORA=${FCH_DATOS}_`date +%Y%m%d_%H%M%S`');
     --UTL_FILE.put_line(fich_salida_sh, 'FECHA_HORA = ﻿`date +%d/%m/%Y\ %H:%M:%S`');
     --UTL_FILE.put_line(fich_salida_sh, 'echo "load_SA_' || reg_summary.CONCEPT_NAME || '" > ${MVNO_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ');
@@ -639,7 +703,9 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, 'echo "Forzado: ${BAN_FORZADO}"  >> ${' || NAME_DM || '_TRAZAS}/load_SA_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}' || '.log ');
     --UTL_FILE.put_line(fich_salida_sh, 'set -x');
     UTL_FILE.put_line(fich_salida_sh, '#Permite los acentos y U');
-    UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+    
+    --UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
+    UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.UTF8');
     UTL_FILE.put_line(fich_salida_sh, 'export NLS_LANG');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
@@ -663,16 +729,20 @@ BEGIN
     --UTL_FILE.put_line(fich_salida_sh, '  PATH_ENVIA_SMS=/dbdata24/requerimientos/shells/Utilerias/EnviaSMS/');
     --UTL_FILE.put_line(fich_salida_sh, 'fi');
     UTL_FILE.put_line(fich_salida_sh, '');
-    UTL_FILE.put_line(fich_salida_sh, '################################################################################');
-    UTL_FILE.put_line(fich_salida_sh, '# LIBRERIAS                                                                    #');
-    UTL_FILE.put_line(fich_salida_sh, '################################################################################');
-    UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
-    UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
-    UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
-    UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
-    --UTL_FILE.put_line(fich_salida_sh, '# Se levantan las variables de ORACLE.');
-    --UTL_FILE.put_line(fich_salida_sh, 'LdVarOra');
-    UTL_FILE.put_line(fich_salida_sh, '');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_summary.CONCEPT_NAME <> 'ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_sh, '################################################################################');
+      UTL_FILE.put_line(fich_salida_sh, '# LIBRERIAS                                                                    #');
+      UTL_FILE.put_line(fich_salida_sh, '################################################################################');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilBD.sh');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilArchivo.sh');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/UtilUnix.sh');
+      UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_UTILIDADES}/Util' || NAME_DM || '.sh');
+      --UTL_FILE.put_line(fich_salida_sh, '# Se levantan las variables de ORACLE.');
+      --UTL_FILE.put_line(fich_salida_sh, 'LdVarOra');
+      UTL_FILE.put_line(fich_salida_sh, '');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# Cuentas  Produccion / Desarrollo                                             #');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
@@ -695,9 +765,13 @@ BEGIN
     --UTL_FILE.put_line(fich_salida_sh, '  USR_MVNO=ubitel_own');
     --UTL_FILE.put_line(fich_salida_sh, '  PWD_MVNO=');
     UTL_FILE.put_line(fich_salida_sh, 'fi');
-    UTL_FILE.put_line(fich_salida_sh, '');
-    UTL_FILE.put_line(fich_salida_sh, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
-    UTL_FILE.put_line(fich_salida_sh, 'BD_CLAVE=${PASSWORD}');
+    /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
+    if (reg_summary.CONCEPT_NAME <> 'ESTATUS_ENTREGAS') then
+      UTL_FILE.put_line(fich_salida_sh, '');
+      UTL_FILE.put_line(fich_salida_sh, 'ObtenContrasena ${BD_SID} ${BD_USUARIO}');
+      UTL_FILE.put_line(fich_salida_sh, 'BD_CLAVE=${PASSWORD}');
+    end if;
+    /* (20180319) Angel Ruiz. FIN. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     UTL_FILE.put_line(fich_salida_sh, 'ULT_PASO_EJECUTADO=`sqlplus -s ${BD_USUARIO}/${BD_CLAVE}@${BD_SID} <<EOF');
     UTL_FILE.put_line(fich_salida_sh, 'WHENEVER SQLERROR EXIT 1;');
     UTL_FILE.put_line(fich_salida_sh, 'WHENEVER OSERROR EXIT 2;');
@@ -828,19 +902,22 @@ BEGIN
       UTL_FILE.put_line(fich_salida_sh, '    InsertaFinFallido');
       UTL_FILE.put_line(fich_salida_sh, '    exit 1');
     end if;
-    UTL_FILE.put_line(fich_salida_sh, 'else');
-    UTL_FILE.put_line(fich_salida_sh, '  for FILE in ${NOMBRE_FICH_CARGA}');
-    UTL_FILE.put_line(fich_salida_sh, '  do');
-    UTL_FILE.put_line(fich_salida_sh, '    NAME_FLAG=`echo $FILE | sed -e ''s/\.[Dd][Aa][Tt]/\.flag/''`');
-    UTL_FILE.put_line(fich_salida_sh, '    if [ ! -f ${FILE} ] || [ ! -f ${NAME_FLAG} ] ; then');    
-    UTL_FILE.put_line(fich_salida_sh, '      SUBJECT="${INTERFAZ}: No existe fichero o su fichero de flag a cargar. ' || '${FILE}' || '."');
-    UTL_FILE.put_line(fich_salida_sh, '      ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
-    UTL_FILE.put_line(fich_salida_sh, '      echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
-    UTL_FILE.put_line(fich_salida_sh, '      echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
-    UTL_FILE.put_line(fich_salida_sh, '      InsertaFinFallido');
-    UTL_FILE.put_line(fich_salida_sh, '      exit 1');    
-    UTL_FILE.put_line(fich_salida_sh, '    fi');
-    UTL_FILE.put_line(fich_salida_sh, '  done');
+    if (reg_summary.CONCEPT_NAME <> 'PARQUE_SPN') then
+      /* (20180705) Angel Ruiz. Excepcion puesta ad-hoc. Chapuza la canto */
+      UTL_FILE.put_line(fich_salida_sh, 'else');
+      UTL_FILE.put_line(fich_salida_sh, '  for FILE in ${NOMBRE_FICH_CARGA}');
+      UTL_FILE.put_line(fich_salida_sh, '  do');
+      UTL_FILE.put_line(fich_salida_sh, '    NAME_FLAG=`echo $FILE | sed -e ''s/\.[Dd][Aa][Tt]/\.flag/''`');
+      UTL_FILE.put_line(fich_salida_sh, '    if [ ! -f ${FILE} ] || [ ! -f ${NAME_FLAG} ] ; then');    
+      UTL_FILE.put_line(fich_salida_sh, '      SUBJECT="${INTERFAZ}: No existe fichero o su fichero de flag a cargar. ' || '${FILE}' || '."');
+      UTL_FILE.put_line(fich_salida_sh, '      ${SHELL_SMS} "${TELEFONOS_DWH}" "${SUBJECT}"');
+      UTL_FILE.put_line(fich_salida_sh, '      echo ${SUBJECT} >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');    
+      UTL_FILE.put_line(fich_salida_sh, '      echo `date` >> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log');
+      UTL_FILE.put_line(fich_salida_sh, '      InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_sh, '      exit 1');    
+      UTL_FILE.put_line(fich_salida_sh, '    fi');
+      UTL_FILE.put_line(fich_salida_sh, '  done');
+    end if;
     UTL_FILE.put_line(fich_salida_sh, 'fi');
     /*(20160715) Angel Ruiz. Nueva Funcionalidad. Escribir el nombre del fichero cargado en una columna de la tabla de Staging */
     if (nombre_fich_cargado = 'Y') then
@@ -855,6 +932,15 @@ BEGIN
       --UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_CTL=`basename ${FILE%.*}`.ctl');
       UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_CTL=`echo ${NOMBRE_FICH_DATOS} | sed -e ''s/\.[Dd][Aa][Tt]/\.ctl/''`');
       UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_DATOS_T=`echo ${NOMBRE_FICH_DATOS} | sed -e ''s/\.[Dd][Aa][Tt]/_/''`');
+      /* (20180403) Angel Ruiz. BUG: Corrijo para poner el nombre del fichero .bad */
+      UTL_FILE.put_line(fich_salida_sh, '  NOMBRE_FICH_BAD=`echo ${NOMBRE_FICH_DATOS} | sed -e ''s/\.[Tt][Xx][Tt]/\.bad/''`');
+      /* (20180403) Angel Ruiz. FIN */
+      /* (20180705) Angel Ruiz. NF. Limpieza de posibles lineas en blanco */
+      UTL_FILE.put_line(fich_salida_sh, '  # Suprimimos posibles lineas en blanco');
+      UTL_FILE.put_line(fich_salida_sh, '  sed ''/^ *$/d'' ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS} > ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS}.tmp');
+      UTL_FILE.put_line(fich_salida_sh, '  mv ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS}.tmp ${' || NAME_DM || '_FUENTE}/${FCH_CARGA}/${NOMBRE_FICH_DATOS}');
+      /* (20180705) Angel Ruiz. FIN NF. Limpieza de posibles lineas en blanco */
+      UTL_FILE.put_line(fich_salida_sh, '');
       --UTL_FILE.put_line(fich_salida_sh, '  cat ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl | sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/g" > ' || '${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
       UTL_FILE.put_line(fich_salida_sh, '  sed "s/MY_FILE/${NOMBRE_FICH_DATOS}/" ${' || NAME_DM || '_CTL}/ctl_SA_' || reg_summary.CONCEPT_NAME || '.ctl > '  || '${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL}');
       /* (20160818) Angel Ruiz. NF: Puede existir una ruta alternativa para cargar fichero*/
@@ -866,7 +952,10 @@ BEGIN
         UTL_FILE.put_line(fich_salida_sh, '  CONTROL=${' || NAME_DM || '_CTL}/${NOMBRE_FICH_CTL} \' );
         --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS%.*}_${FECHA_HORA}' || '.log \');
         UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log \');
-        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        /* (20180403) Angel Ruiz */
+        --UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/${NOMBRE_FICH_BAD} ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        /* (20180403) Angel Ruiz. FIN*/
       else
       /* Se carga el fichero alternativo para validacion */
         UTL_FILE.put_line(fich_salida_sh, '  # Llamada a sqlldr');
@@ -875,7 +964,10 @@ BEGIN
         --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS%.*}_${FECHA_HORA}' || '.log \');
         --UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_${NOMBRE_FICH_DATOS_T}_${FECHA_HORA}' || '.log \');
         UTL_FILE.put_line(fich_salida_sh, '  LOG=${' || NAME_DM || '_TRAZAS}/' || 'ctl_SA' || '_' || reg_summary.CONCEPT_NAME || '_' || substr(REGEXP_SUBSTR(REGEXP_SUBSTR(reg_summary.FILE_VALIDATION, '/[A-Za-z_0-9]+\.[A-Za-z_0-9]+$'), '/[A-Za-z_0-9]+'), 2) || '_${FECHA_HORA}' || '.log \');
-        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        /* (20180403) Angel Ruiz */
+        --UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/ ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        UTL_FILE.put_line(fich_salida_sh, '  BAD=${' || NAME_DM || '_DESCARTADOS}/${NOMBRE_FICH_BAD} ' ||  '>> ' || '${' || NAME_DM || '_TRAZAS}/' || 'load_SA' || '_' || reg_summary.CONCEPT_NAME || '_${FECHA_HORA}.log ' || '2>&' || '1');
+        /* (20180403) Angel Ruiz. FIN */
       end if;
       UTL_FILE.put_line(fich_salida_sh, '');
       UTL_FILE.put_line(fich_salida_sh, '  err_salida=$?');

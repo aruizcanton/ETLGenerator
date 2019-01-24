@@ -10,43 +10,31 @@ SELECT
     --WHERE MTDT_EXT_SCFORMA_PAGOENARIO.TABLE_TYPE = 'F' and
     WHERE
       (trim(MTDT_EXT_SCENARIO.STATUS) = 'P' or trim(MTDT_EXT_SCENARIO.STATUS) = 'D')
+      and (MTDT_EXT_SCENARIO.SOURCE <> 'JSON')
       and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in (
-    --'PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'DISTRIBUIDOR'
-    --, 'CLIENTE', 'GRUPO_ABONADO', 'GRUPO_ABONADO_AA', 'REL_GRUPO_ABONADO', 'REL_GRUPO_ABONADO_AA', 'CICLO'
-    --, 'CICLO_FACTURACION', 'CUENTA', 'ESTATUS_OPERACION'
-    --, 'FORMA_PAGO', 'SEGMENTO_CLIENTE', 'TIPO_DISTRIBUIDOR'
-    --, 'ESTADO_CANAL', 'TIPO_DOCUMENTO', 'CONCEPTO_PAGO', 'CAUSA_BLOQUEO'
-    --, 'NIR', 'CATEGORIA_CANAL', 'CIUDAD', 'CODIGO_POSTAL', 'COLONIA', 'ESTADO'
-    --, 'MUNICIPIO', 'TERRITORIO', 'TIPO_BLOQUEO', 'PAIS', 'VENTAS_REGISTRADAS'
-    --, 'PLAN_TARIFARIO', 'REL_PLAN_TARIF_CANAL', 'CARACT_PLAN_TARIFARIO', 'SVA', 'REL_SVA_CANAL'
-    --, 'CARACT_SVA', 'TIPO_PROPIETARIO_OFER', 'ESTATUS_OFERTA', 'MEDIO_FACTURA'
-    --, 'CANAL_OFERTA', 'TARJETA_PAGO', 'OFICINA', 'POSICION_VENDEDOR'
-    --, 'CANAL', 'CANAL_CAMPANA', 'VENDEDOR', 'PUNTO_VENTA', 'BANCO', 'CATEGORIA_CLIENTE', 'PROMOCION', 'USUARIO_SCL'
-    --, 'PARQUE_SVA', 'CART_VENCIDA', 'CAUSA_PAGO', 'CONCEPTO_FACTURA', 'DOC_CANCELADO'
-    --, 'FACT_DETALLE', 'FACT_RESUMEN', 'PAGO', 'NODO', 'TIPO_NODO'
-    --, 'MOVIMIENTO_ABO', 'ESTADO_TAREA', 'FORMA_CONTACTO', 'PRIORIDAD', 'TIPO_TRANSACCION'
-    --, 'MOTIVO_OPERACION_TT', 'TIPO_CARACT_OFERTA', 'VENTA_EQUIPO', 'ICC', 'FACTURACION_IMEI', 'MOVIMIENTO_SVA'
-    --, 'CLIENTES_CONTACTOS'
-    --, 'MOVIMIENTOS_TT', 'UNIDAD_FUNCIONAL', 'ORIGEN_PAGO', 'PROMOCION_CAMPANA', 'TIPO_OPERACION_TT'
-    --, 'DICCIONARIO_TT', 'TIPO_CAMPANA', 'MODO_CAMPANA', 'ROL_USUARIO', 'PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
-    --, 'USUARIO_GC', 'TRAF_TARIF_VOZ_POST', 'TRAF_TARIF_DATOS_POST'
-    --, 'PROVEEDOR_TELCO', 'MEDIO_CONTACTO', 'UNIDAD_FUNCIONAL2', 'UNIDAD_FUNCIONAL1'
-    --, 'CENTRO_ATENCION', 'ESTADO_CONTACTO', 'CALIDAD_PERCIBIDA', 'TIPO_CUENTA'
-    --, 'TIPO_CONCEPTO_FACTURA', 'TIPIFICACION_TT', 'ESPECIFICACION_TT', 'ORIGEN_VENTA_COMERCIAL'
-    --'PAGO', 'USUARIO_SCL', 'ROL_USUARIO', 'CONCEPTO_PAGO'
-    --'CART_VENCIDA', 'PAGO'
-    'TARIFA_POSTPAGO', 'CENTRAL', 'AGENTE_GESTION', 'CATEGORIA_IMPOSITIVA', 'PLAZA', 'TIPO_CONCEPTO_PAGO',
-    'ZONA_IMPOSITIVA', 'TARJETA_PAGO', 'OFICINA', 'CAUSA_PAGO', 'CONCEPTO_PAGO', 'ORIGEN_PAGO',
-    'BANCO', 'USUARIO_SCL', 'CICLO_FACTURACION', 'SVA', 'TIPO_SERVICIO'
+    'USERS_JSON'
     );
     
-    --and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in ('PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
+    --and trim(MTDT_EXT_SCENARIO_1.TABLE_NAME) in ('PARQUE_PROMO_CAMPANA', 'MOV_PROMO_CAMPANA'
     --);
-      --and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in ('PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'CLIENTE', 'CUENTA', 
+      --and trim(MTDT_EXT_SCENARIO_1.TABLE_NAME) in ('PARQUE_ABO_PRE', 'PARQUE_ABO_POST', 'CLIENTE', 'CUENTA', 
     --'MOVIMIENTO_ABO', 'PLAN_TARIFARIO',
     --'CATEGORIA_CLIENTE', 'CICLO', 'ESTATUS_OPERACION', 'FORMA_PAGO', 'PROMOCION', 'SEGMENTO_CLIENTE', 
     --'GRUPO_ABONADO', 'REL_GRUPO_ABONADO');
-    --and trim(MTDT_EXT_SCENARIO.TABLE_NAME) in ('TRAF_TARIFICADO_VOZ_POST');
+    --and trim(MTDT_EXT_SCENARIO_1.TABLE_NAME) in ('TRAF_TARIFICADO_VOZ_POST');
+    
+  /********************************/
+  /* (20180308) Angel Ruiz. NF: Extraccion de interfaces desde diferentes */
+  /* fuentes */
+  cursor MTDT_FUENTES (table_name_in IN VARCHAR2)
+  is
+    SELECT DISTINCT TRIM(SOURCE) "SOURCE"
+    FROM MTDT_EXT_SCENARIO
+    where MTDT_EXT_SCENARIO.TABLE_NAME = table_name_in 
+    and (trim(MTDT_EXT_SCENARIO.STATUS) = 'P' or trim(MTDT_EXT_SCENARIO.STATUS) = 'D')
+    and MTDT_EXT_SCENARIO.SOURCE IS NOT NULL;
+  /* (20170413) Angel Ruiz. NF: FIN */
+    
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
     SELECT 
@@ -159,6 +147,7 @@ SELECT
   reg_lookup MTDT_TC_LOOKUP%rowtype;
   reg_function MTDT_TC_FUNCTION%rowtype;
   reg_interface_detail MTDT_INTERFAZ_DETAIL%rowtype;
+  reg_fuente MTDT_FUENTES%rowtype;
   
   type list_columns_primary  is table of varchar(30);
   type list_strings  IS TABLE OF VARCHAR(400);
@@ -183,7 +172,12 @@ SELECT
   nombre_fich_pkg_desde_stage     VARCHAR2(60);
   lista_scenarios_presentes                                    list_strings := list_strings();
   v_lista_elementos_scenario        list_strings := list_strings();     
-
+  v_lista_argumentos_url                list_strings := list_strings();
+  v_cadena_para_uri VARCHAR2(1000);
+  v_url_parametros VARCHAR2(1000);
+  v_url_previa VARCHAR2(1000);
+  v_cadena_para_split VARCHAR2(1000);
+  v_url_pre VARCHAR2(1000);
   campo_filter                                VARCHAR2(10000);
   nombre_proceso                        VARCHAR2(30);
   nombre_tabla_reducido           VARCHAR2(30);
@@ -239,8 +233,11 @@ SELECT
   pos_fin_hora                              PLS_integer;
   v_country                            varchar2(20);
   v_type_validation                   varchar2(1);
+  v_separator                       varchar2(3);
   v_separador_campos                VARCHAR2(1);
   v_contador                        PLS_integer;
+  v_numero_fuentes                  PLS_integer; /* (20180308) angel Ruiz. NF: Extraccion desde varias fuentes */
+  v_hay_usu_owner                   boolean:=false;  
   
 
 
@@ -472,14 +469,14 @@ SELECT
                 elemento := substr(cadena_in, pos_ant+1, (pos - pos_ant)-1);
                 dbms_output.put_line ('El elemento es: ' || elemento);
                 lista_elementos.EXTEND;
-                lista_elementos(lista_elementos.LAST) := UPPER(LTRIM(RTRIM (elemento)));
+                lista_elementos(lista_elementos.LAST) := LTRIM(RTRIM (elemento));
                 pos_ant := pos;
               end if;
        exit when pos = 0;
       end loop;
       lista_elementos.EXTEND;
-      lista_elementos(lista_elementos.LAST) := UPPER(LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena))));
-      dbms_output.put_line ('El ultimo elemento es: ' || UPPER(LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena)))));
+      lista_elementos(lista_elementos.LAST) := LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena)));
+      dbms_output.put_line ('El ultimo elemento es: ' || LTRIM(RTRIM (substr(cadena_in, pos_ant+1, lon_cadena))));
     end if;
     return lista_elementos;
   end split_string_coma;
@@ -1327,7 +1324,7 @@ SELECT
 /************/
 
   function genera_campo_select ( reg_detalle_in in MTDT_TC_DETAIL%rowtype) return VARCHAR2 is
-    valor_retorno VARCHAR (1500);
+    valor_retorno VARCHAR (2500);
     posicion          PLS_INTEGER;
     cad_pri           VARCHAR(500);
     cad_seg         VARCHAR(500);
@@ -1594,7 +1591,8 @@ SELECT
             else
               /* La tabla de LKUP no esta calificada, entonces la califico */
               /*(20160713) Angel Ruiz. BUG. Le anyado el procesa_campo_filter */
-              v_table_look_up := OWNER_EX || '.' || v_table_look_up;
+              --v_table_look_up := OWNER_EX || '.' || v_table_look_up;
+              v_table_look_up := v_table_look_up; /* (20180319) Decidimos no calificar la tabla */
             end if;
             mitabla_look_up := v_table_look_up || ' ' || v_alias_table_look_up;
             /* Busco si estaba ya en el FROM. Como es una tabla con ALIAS */
@@ -1633,7 +1631,9 @@ SELECT
               v_alias_table_look_up := v_table_look_up;
               /*(20160713) Angel Ruiz. BUG. Anyado procesa_campo_filter */
               --v_table_look_up := OWNER_EX || '.' || procesa_campo_filter(v_table_look_up);
-              v_table_look_up := OWNER_EX || '.' || v_table_look_up;
+              /* (20180319). Angel Ruiz. Modifico para que NO califique la tabla de LookUp con el usuario de extraccion */
+              /* POR LO QUE COMENTO LA SIGUIENTE LINEA*/
+              --v_table_look_up := OWNER_EX || '.' || v_table_look_up;
             end if;
             dbms_output.put_line('El alias es: ' || v_alias_table_look_up);
             dbms_output.put_line('La tabla de LKUP es: ' || v_table_look_up);
@@ -1901,8 +1901,10 @@ SELECT
                     end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
-                  else
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
                     l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  else
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
                 else
                   /* (20160630) Angel Ruiz. BUG. Ocurre que si los campos IE_COLUMN_LKUP o TABLE_COLUMN_LKUP ya estan calificados no hay que hacerlo */
@@ -1918,8 +1920,10 @@ SELECT
                     end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) := v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP;
-                  else
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
                     l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                  else
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP;
                   end if;
                 end if;
               end if;
@@ -1967,8 +1971,10 @@ SELECT
                     end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' ||  reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   else
-                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                   end if;
                 else
                   /* (20160630) Angel Ruiz. BUG. Ocurre que si los campos IE_COLUMN_LKUP o TABLE_COLUMN_LKUP ya estan calificados no hay que hacerlo */
@@ -1984,8 +1990,10 @@ SELECT
                     end if;
                   elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || v_alias_table_base_name || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP;
-                  else
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, v_alias_table_base_name || '.') >0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias || '.') = 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP;
+                  else
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP;
                   end if;
                 end if;
               end if;
@@ -2452,7 +2460,7 @@ SELECT
 
 begin
   /* (20141223) ANGEL RUIZ*/
-  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION*/
+  /* ANTES DE NADA LEEMOS LAS VAR. DE ENTORNO PARA TIEMPO DE GENERACION */
   SELECT VALOR INTO OWNER_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_SA';
   SELECT VALOR INTO OWNER_T FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_T';
   SELECT VALOR INTO OWNER_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_DM';
@@ -2479,6 +2487,7 @@ begin
     v_tabla_dinamica := false;  /* Por defecto cada interfaz no tiene tabla dinamica */
     v_fecha_ini_param := false; /* Por defecto cada interfaz no tiene fecha inicial */
     v_fecha_fin_param := false; /* Por defecto cada interfaz no tiene fecha final */
+    v_hay_usu_owner := false; /* (20180308) angel ruiz. Por defecto cada interfaz no tiene usuario owner */
     dbms_output.put_line ('Estoy en el primero LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME);
     
     /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
@@ -2486,704 +2495,861 @@ begin
     --nombre_fich_carga := 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sh';
     /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
     /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
-    nombre_fich_pkg := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sql';
-    --nombre_fich_pkg := 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sql';
-    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
     fich_salida_load := UTL_FILE.FOPEN ('SALIDA',nombre_fich_carga,'W');
     --fich_salida_exchange := UTL_FILE.FOPEN ('SALIDA',nombre_fich_exchange,'W');
-    fich_salida_pkg := UTL_FILE.FOPEN ('SALIDA',nombre_fich_pkg,'W');
-    nombre_tabla_reducido := substr(reg_tabla.TABLE_NAME, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
-    --nombre_tabla_base_reducido := substr(reg_tabla.TABLE_BASE_NAME, 4); /* Le quito al nombre de la tabla los caracteres SA_ */
-    /* Angel Ruiz (20150311) Hecho porque hay paquetes que no compilan porque el nombre es demasiado largo*/
-    if (length(reg_tabla.TABLE_NAME) < 25) then
-      nombre_proceso := reg_tabla.TABLE_NAME;
-    else
-      nombre_proceso := nombre_tabla_reducido;
-    end if;
-    /* (20150414) Angel Ruiz. Incidencia. El nombre de la particion es demasiado largo */
-    if (length(nombre_tabla_reducido) <= 18) then
-      v_nombre_particion := 'PA_' || nombre_tabla_reducido;
-    else
-      v_nombre_particion := nombre_tabla_reducido;
-    end if;
-    /* (20151112) Angel Ruiz. BUG. Si el nombre de la tabla es superior a los 19 caracteres*/
-    /* El nombre d ela tabla que se crea T_*_YYYYMMDD supera los 30 caracteres y da error*/
-    if (length(nombre_tabla_reducido) > 19) then
-      nombre_tabla_T := substr(nombre_tabla_reducido,1, length(nombre_tabla_reducido) - (length(nombre_tabla_reducido) - 19));
-    else
-      nombre_tabla_T := nombre_tabla_reducido;
-    end if;
-    /* (20160402) Angel Ruiz. NF:Si el fichero es de ancho fijo */
-    /* hay que calcular la longitud de la linea antes de nada */
-    v_type := 'N';
-    select TYPE into v_type from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
-    if (v_type = 'P') then
-      /* Se trata de un fichero que se ha de extraer por posicion */
-      --select sum(length) into v_line_size from MTDT_INTERFACE_DETAIL where trim(CONCEPT_NAME) = reg_tabla.TABLE_NAME;
-      select 
-        sum(to_number(case 
-        when instr(mtdt_interface_detail.length, ',') > 0 then 
-          (trim(substr(mtdt_interface_detail.length, 1, instr(mtdt_interface_detail.length, ',') - 1)))
-        when instr(mtdt_interface_detail.length, '.') > 0 then
-         (trim(substr(mtdt_interface_detail.length, 1, instr(mtdt_interface_detail.length, '.') - 1)))
-        else
-          trim(mtdt_interface_detail.length)
-        end)) into v_line_size
-      from mtdt_interface_detail where trim(CONCEPT_NAME) = reg_tabla.TABLE_NAME;      
-    end if;
-    /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
-    /* va directamente a las tablas de Stagin */
-    select nvl(TYPE_VALIDATION, 'T') into v_type_validation from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
     
-    UTL_FILE.put_line (fich_salida_pkg,'WHENEVER SQLERROR EXIT 1;');
-    UTL_FILE.put_line (fich_salida_pkg,'WHENEVER OSERROR EXIT 2;');
-    
-    if (v_type_validation <> 'I') then
-      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
-      /* va directamente a las tablas de Stagin */
-      /* Solo ponemos la cabecera del fichero SQL si no se trata del tipo que va directamente a tablas de Staging sin */
-      /* pasar por fichero plano, tipo de validacion I */
-      
-      if (v_type = 'P') then
-      /* Si se trata de un interfaz a fichero plano */
-        UTL_FILE.put_line (fich_salida_pkg,'SET LINESIZE ' || v_line_size || ';');
-        if (v_line_size > 4000) then
-        /* (20160803) Angel Ruiz. BUG: Si la longitud de la linea del fichero plano */
-        /* excede los 4000 caracteres da error, por lo que hay que escribir tres set mas */
-          UTL_FILE.put_line (fich_salida_pkg,'SET LONG ' || v_line_size || ';');
-          UTL_FILE.put_line (fich_salida_pkg,'SET LONGCHUNK ' || v_line_size || ';');
-        end if;
-        /* (20160803) Angel Ruiz. Fin BUG */        
-      end if;
-      UTL_FILE.put_line (fich_salida_pkg,'SET PAGESIZE 0;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET FEEDBACK OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET VERIFY OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET HEADING OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET DOC OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET ECHO OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET TRIMSPOOL OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET TERM OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET TRIMS OFF;');
-      UTL_FILE.put_line (fich_salida_pkg,'SET ARRAYSIZE 2500;');
-      UTL_FILE.put_line (fich_salida_pkg,'');
-      UTL_FILE.put_line (fich_salida_pkg,'SPOOL &' || '1');
-    end if;
-    UTL_FILE.put_line (fich_salida_pkg,'');
-    lista_scenarios_presentes.delete;
-    
-    /******/
-    /* COMIEZO LA GENERACION DEL SQL */
-    /******/
-    dbms_output.put_line ('Comienzo la generacion del PACKAGE DEFINITION');
-    dbms_output.put_line ('Antes de mirar funciones para hacer regla FUNCTION');
 
-    /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
-    /* va directamente a las tablas de Stagin */
-    select nvl(UPPER(TRIM(TYPE_VALIDATION)), 'T') into v_type_validation from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
-    if (v_type_validation = 'I') then
-      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
-      /* va directamente a las tablas de STAGING. Se generan por lo tanto INSERTs */
-      UTL_FILE.put_line (fich_salida_pkg,'');
-      UTL_FILE.put_line (fich_salida_pkg,'TRUNCATE TABLE ' || OWNER_SA || '.SA_' || reg_tabla.TABLE_NAME || ';');      
-      UTL_FILE.put_line (fich_salida_pkg,'');
-      UTL_FILE.put_line (fich_salida_pkg,'INSERT INTO ' || OWNER_SA || '.SA_' || reg_tabla.TABLE_NAME);
-      UTL_FILE.put_line (fich_salida_pkg,'(');
-      primera_col := 1;
-      open MTDT_INTERFAZ_DETAIL (reg_tabla.TABLE_NAME);
-      loop
-        fetch MTDT_INTERFAZ_DETAIL
-        into reg_interface_detail;
-        exit when MTDT_INTERFAZ_DETAIL%NOTFOUND;
-        if (primera_col = 1) then
-          UTL_FILE.put_line (fich_salida_pkg, reg_interface_detail.COLUMNA);
-          primera_col:=0;
-        else
-          UTL_FILE.put_line (fich_salida_pkg, ', ' || reg_interface_detail.COLUMNA);
-        end if;
-      end loop;
-      close MTDT_INTERFAZ_DETAIL;
-      UTL_FILE.put_line (fich_salida_pkg,')');
-    end if;
-    
-    
-    /* GENERO los SQL para los escenarios */
-    dbms_output.put_line ('Comienzo a generar los metodos para los escenarios');
-    
-    /* (20160714) Angel Ruiz. BUG. no realiza bien */
-    /* la sustitucion de [YYYYMM]. Tengo que buscar primero de todo si  */
-    /* hay tablas dinamicas, es decir, si la cadena [YYYYMM] aparece en */
-    /* la especificacion del todo interfaz */
-
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_DETAIL where 
-    trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
-    instr(MTDT_EXT_DETAIL.TABLE_LKUP, '[YYYYMM]') > 0;
-    if (v_contador > 0) then
-      v_tabla_dinamica := true;
-    end if;
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_DETAIL where 
-    trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
-    instr(MTDT_EXT_DETAIL.TABLE_BASE_NAME, '[YYYYMM]') > 0;
-    if (v_contador > 0) then
-      v_tabla_dinamica := true;
-    end if;
-    /* Tambien puede aparecer [YYYYMM] en TABLE_BASE_NAME */
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_SCENARIO where 
-    trim(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and 
-    instr(MTDT_EXT_SCENARIO.TABLE_BASE_NAME, '[YYYYMM]') > 0;
-    if (v_contador > 0) then
-      v_tabla_dinamica := true;
-    end if;
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_SCENARIO where
-    TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
-    instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_INI#') > 0;
-    if (v_contador > 0) then
-      v_fecha_ini_param:=true;
-    end if;
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_DETAIL where
-    TRIM(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and
-    instr(MTDT_EXT_DETAIL.TABLE_LKUP, '#FCH_INI#') > 0;
-    if (v_contador > 0) then
-      v_fecha_ini_param:=true;
-    end if;
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_SCENARIO where
-    TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
-    instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_FIN#') > 0;
-    if (v_contador > 0) then
-      v_fecha_fin_param:=true;
-    end if;
-    v_contador:=0;
-    select count(*) into v_contador from MTDT_EXT_DETAIL where
-    TRIM(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and
-    instr(MTDT_EXT_DETAIL.TABLE_LKUP, '#FCH_FIN#') > 0;
-    if (v_contador > 0) then
-      v_fecha_ini_param:=true;
-    end if;
-    /* (20160714) Fin BUG.*/
-    
-    
-    v_hay_sce_COMPUESTO := false;
-    open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
+    /* (20160602) Angel Ruiz. NF: Hay que poner la fuente en el nombre del fichero que se genera */
+    v_interface_name := '';
+    for v_fuente_cursor in (
+      select interface_name, country from mtdt_interface_summary
+      where trim(MTDT_INTERFACE_SUMMARY.CONCEPT_NAME) = reg_tabla.TABLE_NAME
+      and (MTDT_INTERFACE_SUMMARY.STATUS = 'P' or MTDT_INTERFACE_SUMMARY.STATUS = 'D'))
     loop
-      fetch MTDT_SCENARIO
-      into reg_scenario;
-      exit when MTDT_SCENARIO%NOTFOUND;
-      dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
-      /* Elaboramos la implementacion de las funciones de LOOK UP antes de nada */
-      
-      /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-      lista_scenarios_presentes.EXTEND;
-      --lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'N';
-      lista_scenarios_presentes(lista_scenarios_presentes.LAST) := reg_scenario.SCENARIO;
-      if (instr(reg_scenario.SCENARIO, 'COMP:') > 0)then
-        /* se trata del scenario COMPUESTO de varios otros escenarios */
-        /* por lo que tenemos que analizar las operaciones conjunto que tenemos */
-        v_lista_elementos_scenario := split_string_blanco (trim(substr(reg_scenario.SCENARIO, instr(reg_scenario.SCENARIO, ':') + 1)));
-        v_hay_sce_COMPUESTO := true;
-      end if;
-    end loop; /* fin del LOOP MTDT_SCENARIO  */
-    close MTDT_SCENARIO;
-
-
-    /* GENERACION DEL PACKAGE BODY */
-
-    dbms_output.put_line ('Estoy en PACKAGE IMPLEMENTATION. :-)');
-    
-    /* Tercero genero los cuerpos de los metodos que implementan los escenarios */
-    v_num_scenarios := 0;
-    open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
-    loop
-      fetch MTDT_SCENARIO
-      into reg_scenario;
-      exit when MTDT_SCENARIO%NOTFOUND;
-      v_num_scenarios := v_num_scenarios + 1;
-      dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
-      /* PROCESO EL ESCENARIO */
-      dbms_output.put_line ('Estoy dentro del scenario ' || reg_scenario.SCENARIO);
-      --UTL_FILE.put_line(fich_salida_pkg, '');
-      if ((reg_scenario.TABLE_TYPE = 'F' and v_hay_sce_COMPUESTO = false) or reg_scenario.TABLE_TYPE = 'C') then
-        /* (20160418) Angel Ruiz. Modificacion para los scenarios compuestos. */
-        /* No se genera codigo SQL para los escenarios con TABLE_TYPE "F" y que tengan Scenarios Compuestos previos */  
-        /****/
-        /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-        /****/
-        /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
-        l_FROM.delete;
-        l_WHERE.delete;
-        /* Fin de la inicializacion */
-        if (reg_scenario.OVER_PARTION is not null) then
-          /* (20160510) Angel Ruiz. Hay clausula OVER PARTITION */
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT REGISTRY FROM (' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
-        end if;
-        if (reg_scenario.HINT is not null) then
-          /* (20160421) Angel Ruiz. Miro si se ha incluido un HINT */
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || reg_scenario.HINT || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
-        elsif (reg_scenario.DISTINCT_COL is not null) then
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT DISTINCT' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
-        else
-          UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
-        end if;
-        /* (20160614) Angel Ruiz. NF: Tambien pueden aparecer las tablas tipo _[YYYYMM] en el campo TABLE_BASE_NAME */
-        if (instr(reg_scenario.TABLE_BASE_NAME, '[YYYYMM]') > 0) then
-            /* Hay una tabla dinamica. Ponemos el switch a true */
-            /* Para posteriormente cuando generamos el Shell script, hacerlo */
-            /* de manera adecuada */
-            v_tabla_dinamica := true;
-        end if;
-        open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-        primera_col := 1;
-        loop
-          fetch MTDT_TC_DETAIL
-          into reg_detail;
-          exit when MTDT_TC_DETAIL%NOTFOUND;
-          /* (20160414) Angel Ruiz. Miramos si hay alguna tabla dinamica que acabe con */
-          /* [YYYYMM] para generar el procedure de manera adecuada */
-          if (instr(reg_detail.TABLE_LKUP, '[YYYYMM]') > 0) then
-            /* Hay una tabla dinamica. Ponemos el switch a true */
-            /* Para posteriormente cuando generamos el Shell script, hacerlo */
-            /* de manera adecuada */
-            v_tabla_dinamica := true;
-          end if;
-          columna := genera_campo_select (reg_detail);
-          if (primera_col = 1) then
-            if (v_type_validation = 'I') then
-              /* (20160606) Angel Ruiz. NF: Se trata de que el tipo de validacion es I lo que significa */
-              /* que se extrae desde el origen y va directamente a las tablas de Staging sin pasar por un fichero plano */
-              case 
-                when reg_detail.TYPE = 'NU' then
-                  if (reg_detail.RUL = 'HARDC') then
-                    /* Se trata de un valor literal */
-                    /* Comprobamos si es un NA# */
-                    if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, '-1');
-                    else
-                      UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
-                    end if;
-                  else
-                    UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                else
-                  UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
-              end case;
-            elsif (reg_scenario.TYPE = 'S') then
-              /* Se trata de un fichero plano con separador */
-              case 
-                when reg_detail.TYPE = 'NU' then
-                  if (reg_detail.RUL = 'HARDC') then
-                    /* Se trata de un valor literal */
-                    /* Comprobamos si es un NA# */
-                    if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, '-1');
-                    else
-                      UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
-                    end if;
-                  else
-                    UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                else
-                  UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
-              end case;
-            else
-              /* Se trata de un fichero plano por posicion */
-              /* (20160803) Angel Ruiz. BUG. Si la linea supera los 4000 caracteres da error */
-              /* por lo que voy a convertir el primer campos a CLOB */
-              if (v_line_size > 4000) then
-                UTL_FILE.put_line(fich_salida_pkg, 'TO_CLOB(');
-              end if;
-              /* (20160803) Angel Ruiz. FIN BUG */
-              case 
-                when reg_detail.TYPE = 'AN' then
-                  /* Se tarta de un valor de tipo alfanumerico */
-                  UTL_FILE.put_line(fich_salida_pkg, 'RPAD(NVL(' || columna || ','' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
-                when reg_detail.TYPE = 'NU' then
-                  /* Se trata de un valor de tipo numerico */
-                  if (reg_detail.RUL = 'HARDC') then
-                    /* Se trata de un valor literal */
-                    /* Comprobamos si es un NA# */
-                    if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, '''-' || lpad('1', reg_detail.LONGITUD -1, '0') || '''' || '          --' || reg_detail.TABLE_COLUMN);
-                    else
-                      /* (20160803) Angel Ruiz. BUG. Me doy cuenta de que si el literal lleva un signo no funciona */
-                      /* He de usar el mismo algoritmo que para los importes */
-                      /* en caso de que el numero que se hardcodea sea negativo */
-                      if (instr(reg_detail.VALUE, '-') = 0) then
-                      /* Si el numero que se hardcodea es positivo */
-                        UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                      else
-                        /* Si el numero que se hardcodea es negativo */
-                        if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                          /* Quiere decir que en la longitud aparecen zona de decimales */
-                          /* Preparo la mascara */
-                          v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                          v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                          v_mascara := 'S';
-                          for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                          loop
-                            v_mascara := v_mascara || '0';
-                          end loop;
-                          v_mascara := v_mascara || '.';
-                          for indice in  1..v_long_parte_decimal
-                          loop
-                            v_mascara := v_mascara || '0';
-                          end loop;
-                          UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                        else
-                          /* Quiere decir que en la longitud no aparece zona de decimales */
-                          v_long_total := to_number (trim(reg_detail.LONGITUD));
-                          v_long_parte_decimal := 0;
-                          v_mascara := 'S';
-                          for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                          loop
-                            v_mascara := v_mascara || '0';
-                          end loop;
-                          UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                        end if;
-                      end if;
-                    end if;
-                  else
-                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                when reg_detail.TYPE = 'IM' then
-                  /*(20160503) Angel Ruiz */
-                  /* Se trata de un valor de tipo importe */
-                  if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                    /* Quiere decir que en la longitud aparecen zona de decimales */
-                    /* Preparo la mascara */
-                    v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                    v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                    v_mascara := 'S';
-                    for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                    loop
-                      v_mascara := v_mascara || '0';
-                    end loop;
-                    v_mascara := v_mascara || '.';
-                    for indice in  1..v_long_parte_decimal
-                    loop
-                      v_mascara := v_mascara || '0';
-                    end loop;
-                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  else
-                    /* Quiere decir que en la longitud no aparece zona de decimales */
-                    v_long_total := to_number (trim(reg_detail.LONGITUD));
-                    v_long_parte_decimal := 0;
-                    v_mascara := 'S';
-                    for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                    loop
-                      v_mascara := v_mascara || '0';
-                    end loop;
-                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                when reg_detail.TYPE = 'FE' then
-                  /* Se trata de un valor de tipo fecha */
-                  /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
-                  if (reg_detail.RUL <> 'VAR_FCH_INICIO' and (instr(upper(reg_detail.VALUE), 'SYSDATE') = 0)) then
-                    /* (20161006) Angel Ruiz. BUG. A los sysdate no se les puede hacer el CAST */
-                    columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
-                  end if;
-                  if (reg_detail.LONGITUD = 8) then
-                    --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  else
-                    --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                when reg_detail.TYPE = 'TI' then
-                  /* Se trata de un valor de tipo TIME HHMISS */
-                  UTL_FILE.put_line(fich_salida_pkg, 'RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
-              end case;
-              /* Se trata de un fichero plano por posicion */
-              /* (20160803) Angel Ruiz. BUG. Si la linea supera los 4000 caracteres da error */
-              /* por lo que voy a convertir el primer campos a CLOB */
-              if (v_line_size > 4000) then
-                UTL_FILE.put_line(fich_salida_pkg, ')');
-              end if;
-              /* (20160803) Angel Ruiz. FIN BUG */
-            end if;
-            primera_col := 0;
-          else /* NO SE TRATA DE LA PRIMERA COLUMNA */
-            if (v_type_validation = 'I') then
-              /* (20160606) Angel Ruiz. NF: Se trata de que el tipo de validacion es I lo que significa */
-              /* que se extrae desde el origen y va directamente a las tablas de Staging sin pasar por un fichero plano */
-              case 
-                when reg_detail.TYPE = 'NU' then
-                  if (reg_detail.RUL = 'HARDC') then
-                    /* Se trata de un valor literal */
-                    /* Comprobamos si es un NA# */
-                    if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, ', ' || '-1' || '          --' || reg_detail.TABLE_COLUMN);
-                    else
-                      UTL_FILE.put_line(fich_salida_pkg, ', ' || columna || '          --' || reg_detail.TABLE_COLUMN);
-                    end if;
-                  else
-                    UTL_FILE.put_line(fich_salida_pkg, ', ' || columna || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                else
-                  UTL_FILE.put_line(fich_salida_pkg, ', ' || columna || '          --' || reg_detail.TABLE_COLUMN);
-              end case;
-            elsif (reg_scenario.TYPE = 'S') then
-              /* Se trata de un fichero plano con separador */
-              case 
-                when reg_detail.TYPE = 'NU' then
-                  if (reg_detail.RUL = 'HARDC') then
-                    /* Se trata de un valor literal */
-                    /* Comprobamos si es un NA# */
-                    if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || '-1' || '          --' || reg_detail.TABLE_COLUMN);
-                    else
-                      UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
-                    end if;
-                  else
-                    UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                else
-                  UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
-              end case;
-            else    /* Se trata de un fichero plano por posicion */
-              case
-                when reg_detail.TYPE = 'AN' then
-                  /* Se tarta de un valor de tipo alfanumerico */
-                  UTL_FILE.put_line(fich_salida_pkg, '|| RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
-                when reg_detail.TYPE = 'NU' then
-                  /* Se trata de un valor de tipo numerico */
-                  if (reg_detail.RUL = 'HARDC') then
-                    /* Se trata de un valor literal */
-                    /* Comprobamos si es un NA# */
-                    if (reg_detail.VALUE = 'NA') then
-                      UTL_FILE.put_line(fich_salida_pkg, '|| ''-' || lpad('1', reg_detail.LONGITUD -1, '0') || '''' || '          --' || reg_detail.TABLE_COLUMN);
-                    else
-                      /* (20160803) Angel Ruiz. BUG. Si el campo viene con signo negativo no funciona y he de tratarlo */
-                      /* con el mismo algoritmo que los importes */
-                      if (instr(reg_detail.VALUE, '-') = 0) then
-                      /* si el valor que vamos a hardcodear no es negativo */
-                        UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                      else
-                      /* si el valor que vamos a hardcodear es negativo */
-                        if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                          /* Quiere decir que en la longitud aparecen zona de decimales */
-                          /* Preparo la mascara */
-                          v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                          v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                          v_mascara := 'S';
-                          for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                          loop
-                            v_mascara := v_mascara || '0';
-                          end loop;
-                          v_mascara := v_mascara || '.';
-                          for indice in  1..v_long_parte_decimal
-                          loop
-                            v_mascara := v_mascara || '0';
-                          end loop;
-                          UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                        else
-                          /* Quiere decir que en la longitud no aparece zona de decimales */
-                          v_long_total := to_number (trim(reg_detail.LONGITUD));
-                          v_long_parte_decimal := 0;
-                          v_mascara := 'S';
-                          for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                          loop
-                            v_mascara := v_mascara || '0';
-                          end loop;
-                          UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                        end if;
-                      end if;
-                      /* (20160803) Angel Ruiz. Fin BUG */                      
-                    end if;
-                  else
-                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                when reg_detail.TYPE = 'IM' then
-                  /* Se trata de un valor de tipo importe */
-                  --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD || ', '' '') ELSE LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                  --if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                  --  /* Quiere decir que en la longitud aparecen zona de decimales */
-                  --  UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || to_char((to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))+1)) || ', ''0''), RPAD('' '', ' || to_char((to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))+1)) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  --else
-                  --  UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  --end if;
-                  /***************************************/
-                  /*(20160503) Angel Ruiz */
-                  /* Se trata de un valor de tipo importe */
-                  if (instr(reg_detail.LONGITUD, ',') > 0 ) then
-                    /* Quiere decir que en la longitud aparecen zona de decimales */
-                    /* Preparo la mascara */
-                    v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
-                    v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
-                    v_mascara := 'S';
-                    for indice in  1..(v_long_total-v_long_parte_decimal-2)
-                    loop
-                      v_mascara := v_mascara || '0';
-                    end loop;
-                    v_mascara := v_mascara || '.';
-                    for indice in  1..v_long_parte_decimal
-                    loop
-                      v_mascara := v_mascara || '0';
-                    end loop;
-                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  else
-                    /* Quiere decir que en la longitud no aparece zona de decimales */
-                    v_long_total := to_number (trim(reg_detail.LONGITUD));
-                    v_long_parte_decimal := 0;
-                    v_mascara := 'S';
-                    for indice in  1..(v_long_total-v_long_parte_decimal-1)
-                    loop
-                      v_mascara := v_mascara || '0';
-                    end loop;
-                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                when reg_detail.TYPE = 'FE' then
-                  /* Se trata de un valor de tipo fecha */
-                  /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
-                  if (reg_detail.RUL <> 'VAR_FCH_INICIO' and (instr(upper(reg_detail.VALUE), 'SYSDATE') = 0)) then
-                    /* (20161006) Angel Ruiz. BUG. A los sysdate no se les puede hacer el CAST */
-                    columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
-                  end if;
-                  if (reg_detail.LONGITUD = 8) then
-                    --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  else
-                    --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS'') END' || '          --' || reg_detail.TABLE_COLUMN);
-                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
-                  end if;
-                when reg_detail.TYPE = 'TI' then
-                  /* Se trata de un valor de tipo TIME HHMISS */
-                  UTL_FILE.put_line(fich_salida_pkg, '|| RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
-              end case;
-            end if;
-          end if;
-        end loop;
-        close MTDT_TC_DETAIL;
-        /****/
-        /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-        /****/
-        /*(20160421) Angel Ruiz. Antes de comenzar a generar el FROM comprobamos si existe */
-        /* informacion en el campo OVER_PARTITION. Si existe hay que escribirla como ultimo campo */
-        if (reg_scenario.OVER_PARTION is not null) then
-          UTL_FILE.put_line(fich_salida_pkg, 'REGISTRY');
-          UTL_FILE.put_line(fich_salida_pkg, ', ' || reg_scenario.OVER_PARTION);
-        end if;
-        /****/
-        /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
-        /****/    
-        dbms_output.put_line ('Despues del SELECT');
-        --dbms_output.put_line ('El valor que han cogifo v_FROM:' || v_FROM);
-        --dbms_output.put_line ('El valor que han cogifo v_WHERE:' || v_WHERE);
-        UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-        --UTL_FILE.put_line(fich_salida pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
-        if (instr (reg_scenario.TABLE_BASE_NAME,'SELECT') > 0 or instr (reg_scenario.TABLE_BASE_NAME,'select') > 0 ) then
-        /* (20160719) Angel Ruiz. BUG. Pueden venir QUERIES en TABLE_BASE_NAME */
-          UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
-        else
-          if (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) then
-            /* Comprobamos si la tabla esta calificada */
-            UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
-          else
-            /* L atabla base no esta calificada, por defecto la calificamos con OWNER_EX */
-            /* (20180228) Angel Ruiz. BUG. Compruebo si la tabla_base_name tiene propietario. */
-            --UTL_FILE.put_line (fich_salida_pkg, '    '  || OWNER_EX || '.' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
-            if (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) or
-            (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ *') = true) then
-              UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
-            else            
-              UTL_FILE.put_line (fich_salida_pkg, '    '  || OWNER_EX || '.' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
-            end if;
-            /* (20180228) Angel Ruiz. FIN BUG. Compruebo si la tabla_base_name tiene propietario. */
-          end if;
-        end if;
-        /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-        v_hay_look_up:='N';
-        /* (20150311) ANGEL RUIZ. se produce un error al generar ya que la tabla de hechos no tiene tablas de LookUp */
-        if l_FROM.count > 0 then
-          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-          LOOP
-            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
-            v_hay_look_up := 'Y';
-          END LOOP;
-        end if;
-        /* FIN */
-        --UTL_FILE.put_line(fich_salida_pkg,'    ' || v_FROM);
-        dbms_output.put_line ('Despues del FROM');
-        if (reg_scenario.FILTER is not null) then
-          /* Procesamos el campo FILTER */
-          UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-          dbms_output.put_line ('Antes de procesar el campo FILTER');
-          campo_filter := procesa_campo_filter (reg_scenario.FILTER);
-          UTL_FILE.put_line(fich_salida_pkg, campo_filter);
-          dbms_output.put_line ('Despues de procesar el campo FILTER');
-          if (v_hay_look_up = 'Y') then
-          /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-            dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-            /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-            UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
-            FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-            LOOP
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-            END LOOP;
-            /* FIN */
-          end if;
-        else
-          if (v_hay_look_up = 'Y') then
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-            dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-            /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-            FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-            LOOP
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-            END LOOP;
-            /* FIN */
-          end if;
-        end if;
-        /*(20160510) Angel Ruiz. Antes de comenzar a generar el FROM comprobamos si existe */
-        /* informacion en el campo OVER_PARTITION. Si existe hay que escribirla como ultimo campo */
-        if (reg_scenario.OVER_PARTION is not null) then
-          UTL_FILE.put_line(fich_salida_pkg, ')');
-          UTL_FILE.put_line(fich_salida_pkg, 'WHERE RN = 1');
-        end if;
-        if (reg_scenario.COLUMNA_GROUP is not null) then
-        /* (20160907) Angel Ruiz. Implementacion del GROUP BY */
-          UTL_FILE.put_line(fich_salida_pkg, 'GROUP BY');
-          UTL_FILE.put_line(fich_salida_pkg, reg_scenario.COLUMNA_GROUP);
-        end if;
-      end if;
-      /**************/
-      /**************/
-      if (reg_scenario.TABLE_TYPE = 'F') then
-        /* Se trata de un scenario de tipo F, lo que quiere decir que es el unico */
-        /* que existe o es el scenario COMP de un conjunto de scenarios */
-        /* por lo que escribimos el punto y coma final de la query */
-        UTL_FILE.put_line (fich_salida_pkg, ';');
-      else
-        /* Se trata de un scenario de tipo C, es decir, es un operando en un conjunto */
-        /* de escenarios, asi tenemos que escribir la operacion que une este operando */
-        /* al resto */
-        if (v_num_scenarios < lista_scenarios_presentes.count -1) then
-          /* Ocurre que si no calculamos el numero de escenarios totales menos uno, ya que el */
-          /* ultimo escenario no tendra operador */
-          UTL_FILE.put_line (fich_salida_pkg, v_lista_elementos_scenario (v_num_scenarios * 2));
-        end if;
-        --UTL_FILE.put_line(fich_salida_pkg, '');
-      end if;
+      v_interface_name := v_fuente_cursor.interface_name;
+      v_country := v_fuente_cursor.country;
+      --v_type_validation := trim(v_fuente_cursor.type_validation);
+      --v_separator := trim(v_fuente_cursor.separator);
       
     end loop;
-    close MTDT_SCENARIO;
-
-    UTL_FILE.put_line(fich_salida_pkg, '');
-  
-    /**************/
     
-    UTL_FILE.put_line(fich_salida_pkg, '');
-    /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
-    /* va directamente a las tablas de Stagin */
-    if (v_type_validation <> 'I') then
-      UTL_FILE.put_line(fich_salida_pkg, 'SPOOL OFF;');
+    
+    nombre_interface_a_cargar := v_interface_name;
+    pos_ini_pais := instr(v_interface_name, '_XXX_');
+    if (pos_ini_pais > 0) then
+      pos_fin_pais := pos_ini_pais + length ('_XXX_');
+      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_pais -1) || '_' || v_country || '_' || substr(nombre_interface_a_cargar, pos_fin_pais);
     end if;
-    UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
+    pos_ini_fecha := instr(v_interface_name, '_YYYYMMDD');
+    if (pos_ini_fecha > 0) then
+      pos_fin_fecha := pos_ini_fecha + length ('_YYYYMMDD');
+      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '_" + sys.argv[1] + ' || '"' || substr(nombre_interface_a_cargar, pos_fin_fecha);
+      nom_inter_a_cargar_sin_fecha := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1);
+    end if;
+    /* (20160225) Angel Ruiz */
+    pos_ini_hora := instr(nombre_interface_a_cargar, 'HH24MISS');
+    if (pos_ini_hora > 0) then
+      pos_fin_hora := pos_ini_hora + length ('HH24MISS');
+      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
+    end if;
 
+    
+    
+    /* (20180308) Angel Ruiz. NF: Extraccion desde varias FUENTES */
+    /* Calculo el numero de fuentes que tiene la interfaz */
+    select count(*) into v_numero_fuentes from (select DISTINCT SOURCE from MTDT_EXT_SCENARIO where TABLE_NAME = reg_tabla.TABLE_NAME);
+    open MTDT_FUENTES(reg_tabla.TABLE_NAME);
+    loop
+      fetch MTDT_FUENTES
+      into reg_fuente;
+      exit when MTDT_FUENTES%NOTFOUND;
+      if (v_numero_fuentes > 1) then
+        nombre_fich_pkg := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '_' || reg_fuente.SOURCE || '.py';
+      else
+        nombre_fich_pkg := REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '_' || reg_fuente.SOURCE || '.py';
+      end if;
+      fich_salida_pkg := UTL_FILE.FOPEN ('SALIDA',nombre_fich_pkg,'W');
+      nombre_tabla_reducido := substr(reg_tabla.TABLE_NAME, 5); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
+      --nombre_tabla_base_reducido := substr(reg_tabla.TABLE_BASE_NAME, 4); /* Le quito al nombre de la tabla los caracteres SA_ */
+      /* Angel Ruiz (20150311) Hecho porque hay paquetes que no compilan porque el nombre es demasiado largo*/
+      if (length(reg_tabla.TABLE_NAME) < 25) then
+        nombre_proceso := reg_tabla.TABLE_NAME;
+      else
+        nombre_proceso := nombre_tabla_reducido;
+      end if;
+      /* (20150414) Angel Ruiz. Incidencia. El nombre de la particion es demasiado largo */
+      if (length(nombre_tabla_reducido) <= 18) then
+        v_nombre_particion := 'PA_' || nombre_tabla_reducido;
+      else
+        v_nombre_particion := nombre_tabla_reducido;
+      end if;
+      /* (20151112) Angel Ruiz. BUG. Si el nombre de la tabla es superior a los 19 caracteres*/
+      /* El nombre d ela tabla que se crea T_*_YYYYMMDD supera los 30 caracteres y da error*/
+      if (length(nombre_tabla_reducido) > 19) then
+        nombre_tabla_T := substr(nombre_tabla_reducido,1, length(nombre_tabla_reducido) - (length(nombre_tabla_reducido) - 19));
+      else
+        nombre_tabla_T := nombre_tabla_reducido;
+      end if;
+      /* (20160402) Angel Ruiz. NF:Si el fichero es de ancho fijo */
+      /* hay que calcular la longitud de la linea antes de nada */
+      v_type := 'N';
+      select TYPE into v_type from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
+      if (v_type = 'P') then
+        /* Se trata de un fichero que se ha de extraer por posicion */
+        --select sum(length) into v_line_size from MTDT_INTERFACE_DETAIL where trim(CONCEPT_NAME) = reg_tabla.TABLE_NAME;
+        select 
+          sum(to_number(case 
+          when instr(mtdt_interface_detail.length, ',') > 0 then 
+            (trim(substr(mtdt_interface_detail.length, 1, instr(mtdt_interface_detail.length, ',') - 1)))
+          when instr(mtdt_interface_detail.length, '.') > 0 then
+           (trim(substr(mtdt_interface_detail.length, 1, instr(mtdt_interface_detail.length, '.') - 1)))
+          else
+            trim(mtdt_interface_detail.length)
+          end)) into v_line_size
+        from mtdt_interface_detail where trim(CONCEPT_NAME) = reg_tabla.TABLE_NAME;      
+      end if;
+      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
+      /* va directamente a las tablas de Stagin */
+      select nvl(TYPE_VALIDATION, 'T') into v_type_validation from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
+    
+      UTL_FILE.put_line (fich_salida_pkg,'#!/usr/bin/env python3');
+      UTL_FILE.put_line (fich_salida_pkg,'# -*- coding: utf-8 -*-');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'try:');
+      UTL_FILE.put_line (fich_salida_pkg,'    import requests');
+      UTL_FILE.put_line (fich_salida_pkg,'    import json');
+      UTL_FILE.put_line (fich_salida_pkg,'    import time');
+      UTL_FILE.put_line (fich_salida_pkg,'    import sys');
+      UTL_FILE.put_line (fich_salida_pkg,'    import os');
+      UTL_FILE.put_line (fich_salida_pkg,'except ImportError:');
+      UTL_FILE.put_line (fich_salida_pkg,'     mensaje=print ("Unexpected error:{}",sys.exc_info()[0])');
+      UTL_FILE.put_line (fich_salida_pkg,'     sys.exit(mensaje)');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'try:');
+      UTL_FILE.put_line (fich_salida_pkg,'    headers = {');
+      UTL_FILE.put_line (fich_salida_pkg,'        ''Authorization'': "Basic TTVxRWJwc0REWGg1NTRCeWxSSlVuV3lyaXJyVUZQOg==",');
+      UTL_FILE.put_line (fich_salida_pkg,'        ''Cache-Control'': "no-cache"');
+      UTL_FILE.put_line (fich_salida_pkg,'    }');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      UTL_FILE.put_line (fich_salida_pkg,'');
+    
+      UTL_FILE.put_line (fich_salida_pkg,'');
+      lista_scenarios_presentes.delete;
+    
+      /******/
+      /* COMIEZO LA GENERACION DEL SQL */
+      /******/
+      dbms_output.put_line ('Comienzo la generacion del PACKAGE DEFINITION');
+      dbms_output.put_line ('Antes de mirar funciones para hacer regla FUNCTION');
+
+      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
+      /* va directamente a las tablas de Stagin */
+      select nvl(UPPER(TRIM(TYPE_VALIDATION)), 'T') into v_type_validation from MTDT_INTERFACE_SUMMARY where trim(CONCEPT_NAME) = trim(reg_tabla.TABLE_NAME);
+    
+    
+      /* GENERO los SQL para los escenarios */
+      dbms_output.put_line ('Comienzo a generar los metodos para los escenarios');
+    
+      /* (20160714) Angel Ruiz. BUG. no realiza bien */
+      /* la sustitucion de [YYYYMM]. Tengo que buscar primero de todo si  */
+      /* hay tablas dinamicas, es decir, si la cadena [YYYYMM] aparece en */
+      /* la especificacion del todo interfaz */
+
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_DETAIL where 
+      trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+      instr(MTDT_EXT_DETAIL.TABLE_LKUP, '[YYYYMM]') > 0;
+      if (v_contador > 0) then
+        v_tabla_dinamica := true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_DETAIL where 
+      trim(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+      instr(MTDT_EXT_DETAIL.TABLE_BASE_NAME, '[YYYYMM]') > 0;
+      if (v_contador > 0) then
+        v_tabla_dinamica := true;
+      end if;
+      /* Tambien puede aparecer [YYYYMM] en TABLE_BASE_NAME */
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_SCENARIO where 
+      trim(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and 
+      instr(MTDT_EXT_SCENARIO.TABLE_BASE_NAME, '[YYYYMM]') > 0;
+      if (v_contador > 0) then
+        v_tabla_dinamica := true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_SCENARIO where
+      TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
+      instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_INI#') > 0;
+      if (v_contador > 0) then
+        v_fecha_ini_param:=true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_DETAIL where
+      TRIM(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and
+      instr(MTDT_EXT_DETAIL.TABLE_LKUP, '#FCH_INI#') > 0;
+      if (v_contador > 0) then
+        v_fecha_ini_param:=true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_SCENARIO where
+      TRIM(MTDT_EXT_SCENARIO.TABLE_NAME) = reg_tabla.TABLE_NAME and
+      instr(MTDT_EXT_SCENARIO.FILTER, '#FCH_FIN#') > 0;
+      if (v_contador > 0) then
+        v_fecha_fin_param:=true;
+      end if;
+      v_contador:=0;
+      select count(*) into v_contador from MTDT_EXT_DETAIL where
+      TRIM(MTDT_EXT_DETAIL.TABLE_NAME) = reg_tabla.TABLE_NAME and
+      instr(MTDT_EXT_DETAIL.TABLE_LKUP, '#FCH_FIN#') > 0;
+      if (v_contador > 0) then
+        v_fecha_ini_param:=true;
+      end if;
+      /* (20160714) Fin BUG.*/
+    
+    
+      v_hay_sce_COMPUESTO := false;
+      open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
+      loop
+        fetch MTDT_SCENARIO
+        into reg_scenario;
+        exit when MTDT_SCENARIO%NOTFOUND;
+        dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
+        /* Elaboramos la implementacion de las funciones de LOOK UP antes de nada */
+        
+        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
+        lista_scenarios_presentes.EXTEND;
+        --lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'N';
+        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := reg_scenario.SCENARIO;
+        if (instr(reg_scenario.SCENARIO, 'COMP:') > 0)then
+          /* se trata del scenario COMPUESTO de varios otros escenarios */
+          /* por lo que tenemos que analizar las operaciones conjunto que tenemos */
+          v_lista_elementos_scenario := split_string_blanco (trim(substr(reg_scenario.SCENARIO, instr(reg_scenario.SCENARIO, ':') + 1)));
+          v_hay_sce_COMPUESTO := true;
+        end if;
+      end loop; /* fin del LOOP MTDT_SCENARIO  */
+      close MTDT_SCENARIO;
+
+
+      /* GENERACION DEL PACKAGE BODY */
+
+      dbms_output.put_line ('Estoy en PACKAGE IMPLEMENTATION. :-)');
+    
+      /* Tercero genero los cuerpos de los metodos que implementan los escenarios */
+      
+      /* (20180308) Angel Ruiz. MOdificacion para permitir UNION ALL*/
+      /* Si solo hay un escenario, naturalmente este no tendra escenarios compuestos */
+      /* por lo que introduzco el unico escenario que hay en la coleccion */
+      if (lista_scenarios_presentes.COUNT = 1) then
+        v_lista_elementos_scenario.delete; /* primero limpio la lista por si tenia valores */
+        v_lista_elementos_scenario.extend;
+        v_lista_elementos_scenario(v_lista_elementos_scenario.LAST) := lista_scenarios_presentes(lista_scenarios_presentes.COUNT);
+      end if;
+      /* (20180308) Angel Ruiz. fin */    
+      
+      v_num_scenarios := 0;
+      /* (20180308) Angel Ruiz. Meto la mejora de que los escenarios aparezcan en el orden */
+      /* en el que se especifican */
+      FOR ind_scenario IN v_lista_elementos_scenario.FIRST .. v_lista_elementos_scenario.LAST
+      LOOP
+        if (
+        UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) <> 'UNION' and
+        UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) <> 'INTERSECT' and
+        UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) <> 'ALL' and
+        UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) <> 'APPEND'
+        ) then
+        /* No se trata de uno de los operadores que unen los scenarios compuestos */
+          open MTDT_SCENARIO (reg_tabla.TABLE_NAME);
+          loop
+            fetch MTDT_SCENARIO
+            into reg_scenario;
+            exit when MTDT_SCENARIO%NOTFOUND;
+            dbms_output.put_line ('***LOOP DE ESCENARIOS DENTRO DE LOOP DE ELEMENTOS DE ESCENARIO. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: #' || reg_scenario.SCENARIO || '#. El elemento es: #' || UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) || '#');
+            if (UPPER(TRIM(reg_scenario.SCENARIO)) = UPPER(TRIM(v_lista_elementos_scenario(ind_scenario)))) then
+              v_num_scenarios := v_num_scenarios + 1;
+              dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
+              /* PROCESO EL ESCENARIO */
+              dbms_output.put_line ('Estoy dentro del scenario ' || reg_scenario.SCENARIO);
+              --UTL_FILE.put_line(fich_salida_pkg, '');
+              if ((reg_scenario.TABLE_TYPE = 'F' and v_hay_sce_COMPUESTO = false) or reg_scenario.TABLE_TYPE = 'C') then
+                /* (20160418) Angel Ruiz. Modificacion para los scenarios compuestos. */
+                /* No se genera codigo SQL para los escenarios con TABLE_TYPE "F" y que tengan Scenarios Compuestos previos */  
+                /****/
+                /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+                /****/
+                /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
+                l_FROM.delete;
+                l_WHERE.delete;
+                
+                /*************************************************/
+                if (reg_scenario.TYPE = 'J') then
+                  if (instr(reg_scenario.TABLE_BASE_NAME,'@') = 0) then
+                    /* Se trata de la extracción de un catalogo, es decir, no hay que pasarle fichero de configuracion (.cfg) */
+                    UTL_FILE.put_line (fich_salida_pkg,'    url = "' || reg_scenario.TABLE_BASE_NAME || '"');
+                    UTL_FILE.put_line (fich_salida_pkg,'    outfile=os.environ[' || NAME_DM || '_FUENTE] + "/" + sys.argv[1] + "/" + "' || nombre_interface_a_cargar || '"');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                    UTL_FILE.put_line (fich_salida_pkg,'    response = requests.request("GET", url, headers=headers)');
+                    UTL_FILE.put_line (fich_salida_pkg,'    print ("Inicia proceso ' || nombre_fich_pkg || ': ", time.strftime("%d/%m/%y %H:%M:%S"))');
+                    UTL_FILE.put_line (fich_salida_pkg,'    if response.status_code== requests.codes.ok:');
+                    UTL_FILE.put_line (fich_salida_pkg,'		    with open(outfile,''w'') as file:');
+                    UTL_FILE.put_line (fich_salida_pkg,'        json.dump(response.text, file)');
+                    UTL_FILE.put_line (fich_salida_pkg,'    else:');
+                    UTL_FILE.put_line (fich_salida_pkg,'        print (response.status_code, response.text)');
+                    UTL_FILE.put_line (fich_salida_pkg,'        sys.exit("Error al obtener el archivo json")');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                    UTL_FILE.put_line (fich_salida_pkg,'except Exception as error:');
+                    UTL_FILE.put_line (fich_salida_pkg,'    print ("I/O error({0}): {1}".format(error.errno, error.strerror))');
+                    UTL_FILE.put_line (fich_salida_pkg,'    print("Hubo errores en el proceso")');
+                    UTL_FILE.put_line (fich_salida_pkg,'    sys.exit(error)');
+                    UTL_FILE.put_line (fich_salida_pkg,'finally:');
+                    UTL_FILE.put_line (fich_salida_pkg,'    print ("Termina proceso : "' || nombre_fich_pkg || '", time.strftime("%d/%m/%y %H:%M:%S"))');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                  else
+                    /* Se trata de la extracción de un fichero que no es un catalogo, por lo que hay que pasarle fichero de configuracion (.cfg) */
+                    UTL_FILE.put_line (fich_salida_pkg,'    infile=os.environ[' || NAME_DM || '_FUENTE] + "/" + sys.argv[1] + "/" + "' || substr(regexp_substr(reg_scenario.TABLE_BASE_NAME, '@[A-Za-z]+\.cfg'), 2) || '"');
+                    UTL_FILE.put_line (fich_salida_pkg,'    outfile=os.environ[' || NAME_DM || '_FUENTE] + "/" + sys.argv[1] + "/" + "' || nombre_interface_a_cargar || '"');
+                    /* Me quedo con la parte que interesa */
+                    /* De algo como esto: "https://combi.talentlms.com/api/v1/gettestanswers/(test_id:#valor_1) @Usuarios.cfg"*/
+                    /* Me quedo con "https://combi.talentlms.com/api/v1/gettestanswers/(test_id:#valor_1)" */
+                    v_cadena_para_uri := regexp_substr(reg_scenario.TABLE_BASE_NAME, '^.+ *@');
+                    v_url_parametros := substr(v_cadena_para_uri, instr(v_url_pre, '(')+1, ((instr(v_url_pre, ')') - instr(v_url_pre, '('))-1));
+                    v_url_previa := trim(substr(v_cadena_para_uri, 1, length(v_cadena_para_uri)-1));
+                    v_url_previa := substr(v_url_previa, 1, instr(v_url_previa, '(') -1);
+                    v_lista_argumentos_url := split_string_coma (v_url_parametros);
+                    for indice in v_lista_argumentos_url.FIRST..v_lista_argumentos_url.LAST
+                    loop
+                      dbms_output.put_line('El parametro es: ' || v_lista_argumentos_url(indice));
+                      if (indice = 1) then
+                        v_cadena_para_split := substr(v_lista_argumentos_url(indice), 1, instr(v_lista_argumentos_url(indice), ':')-1);
+                        v_cadena_para_uri := substr(v_lista_argumentos_url(indice), 1, instr(v_lista_argumentos_url(indice), ':')-1) || ':" + ' || 'str(' || substr(v_lista_argumentos_url(indice), 1, instr(v_lista_argumentos_url(indice), ':')-1) || ')';                      
+                        dbms_output.put_line('v_cadena_para_split: ' || v_cadena_para_split);
+                      else
+                        v_cadena_para_split := v_cadena_para_split || ', ' || substr(v_lista_argumentos_url(indice), 1, instr(v_lista_argumentos_url(indice), ':')-1);
+                        v_cadena_para_uri := v_cadena_para_uri || ' + ", ' || substr(v_lista_argumentos_url(indice), 1, instr(v_lista_argumentos_url(indice), ':')-1) || ':" + ' || 'str(' || substr(v_lista_argumentos_url(indice), 1, instr(v_lista_argumentos_url(indice), ':')-1) || ')';
+                      end if;
+                    end loop;
+                    UTL_FILE.put_line (fich_salida_pkg,'    print ("Inicia proceso ' || nombre_fich_pkg || ': ", time.strftime("%d/%m/%y %H:%M:%S"))');
+                    UTL_FILE.put_line (fich_salida_pkg,'    with open(infile, ''r'') as file:');
+                    UTL_FILE.put_line (fich_salida_pkg,'        for line in file:');
+                    UTL_FILE.put_line (fich_salida_pkg,'            ' || v_cadena_para_split || ' = line.rstrip(''\n'').split(separador);');
+                    UTL_FILE.put_line (fich_salida_pkg,'            urlX = "' || v_url_previa || v_cadena_para_uri);
+                    UTL_FILE.put_line (fich_salida_pkg,'            response = requests.request("GET", urlX, headers=headers)');
+                    UTL_FILE.put_line (fich_salida_pkg,'            if response.status_code== requests.codes.ok:');
+                    UTL_FILE.put_line (fich_salida_pkg,'                lista.append(response.text)');
+                    UTL_FILE.put_line (fich_salida_pkg,'                cont+=1');
+                    UTL_FILE.put_line (fich_salida_pkg,'            else:');
+                    UTL_FILE.put_line (fich_salida_pkg,'                print (response.status_code, response.text)');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                    UTL_FILE.put_line (fich_salida_pkg,'    if len(lista)>0:');
+                    UTL_FILE.put_line (fich_salida_pkg,'        with open(outfile,''w'') as file:');
+                    UTL_FILE.put_line (fich_salida_pkg,'            json.dump(lista,file)');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                    UTL_FILE.put_line (fich_salida_pkg,'except Exception as error:');
+                    UTL_FILE.put_line (fich_salida_pkg,'    sys.exit(error)');
+                    UTL_FILE.put_line (fich_salida_pkg,'else:');
+                    UTL_FILE.put_line (fich_salida_pkg,'    print ("Registros procesados: ", cont)');
+                    UTL_FILE.put_line (fich_salida_pkg,'finally:');
+                    UTL_FILE.put_line (fich_salida_pkg,'    print ("Termina proceso USER_ID: ", time.strftime("%d/%m/%y %H:%M:%S"))');
+                    UTL_FILE.put_line (fich_salida_pkg,'');
+                  
+                  end if; 
+                  
+                end if;
+                
+                /*************************************************/
+
+
+                
+                
+                
+                if (reg_scenario.TYPE = 'S') then
+                
+                  /* Fin de la inicializacion */
+                  if (reg_scenario.OVER_PARTION is not null) then
+                    /* (20160510) Angel Ruiz. Hay clausula OVER PARTITION */
+                    UTL_FILE.put_line(fich_salida_pkg,'SELECT REGISTRY FROM (' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
+                  end if;
+                  if (reg_scenario.HINT is not null) then
+                    /* (20160421) Angel Ruiz. Miro si se ha incluido un HINT */
+                    UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || reg_scenario.HINT || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
+                  elsif (reg_scenario.DISTINCT_COL is not null) then
+                    UTL_FILE.put_line(fich_salida_pkg,'SELECT DISTINCT' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
+                  else
+                    UTL_FILE.put_line(fich_salida_pkg,'SELECT ' || '-- ESCENARIO: ' || reg_scenario.SCENARIO);
+                  end if;
+                  /* (20160614) Angel Ruiz. NF: Tambien pueden aparecer las tablas tipo _[YYYYMM] en el campo TABLE_BASE_NAME */
+                  if (instr(reg_scenario.TABLE_BASE_NAME, '[YYYYMM]') > 0) then
+                      /* Hay una tabla dinamica. Ponemos el switch a true */
+                      /* Para posteriormente cuando generamos el Shell script, hacerlo */
+                      /* de manera adecuada */
+                      v_tabla_dinamica := true;
+                  end if;
+                  open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
+                  primera_col := 1;
+                  loop
+                    fetch MTDT_TC_DETAIL
+                    into reg_detail;
+                    exit when MTDT_TC_DETAIL%NOTFOUND;
+                    /* (20160414) Angel Ruiz. Miramos si hay alguna tabla dinamica que acabe con */
+                    /* [YYYYMM] para generar el procedure de manera adecuada */
+                    if (instr(reg_detail.TABLE_LKUP, '[YYYYMM]') > 0) then
+                      /* Hay una tabla dinamica. Ponemos el switch a true */
+                      /* Para posteriormente cuando generamos el Shell script, hacerlo */
+                      /* de manera adecuada */
+                      v_tabla_dinamica := true;
+                    end if;
+                    columna := genera_campo_select (reg_detail);
+                    if (primera_col = 1) then
+                      if (v_type_validation = 'I') then
+                        /* (20160606) Angel Ruiz. NF: Se trata de que el tipo de validacion es I lo que significa */
+                        /* que se extrae desde el origen y va directamente a las tablas de Staging sin pasar por un fichero plano */
+                        case 
+                          when reg_detail.TYPE = 'NU' then
+                            if (reg_detail.RUL = 'HARDC') then
+                              /* Se trata de un valor literal */
+                              /* Comprobamos si es un NA# */
+                              if (reg_detail.VALUE = 'NA') then
+                                UTL_FILE.put_line(fich_salida_pkg, '-1');
+                              else
+                                UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
+                              end if;
+                            else
+                              UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          else
+                            UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
+                        end case;
+                      elsif (reg_scenario.TYPE = 'S') then
+                        /* Se trata de un fichero plano con separador */
+                        case 
+                          when reg_detail.TYPE = 'NU' then
+                            if (reg_detail.RUL = 'HARDC') then
+                              /* Se trata de un valor literal */
+                              /* Comprobamos si es un NA# */
+                              if (reg_detail.VALUE = 'NA') then
+                                UTL_FILE.put_line(fich_salida_pkg, '-1');
+                              else
+                                UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
+                              end if;
+                            else
+                              UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          else
+                            UTL_FILE.put_line(fich_salida_pkg, columna || '          --' || reg_detail.TABLE_COLUMN);
+                        end case;
+                      else
+                        /* Se trata de un fichero plano por posicion */
+                        /* (20160803) Angel Ruiz. BUG. Si la linea supera los 4000 caracteres da error */
+                        /* por lo que voy a convertir el primer campos a CLOB */
+                        if (v_line_size > 4000) then
+                          UTL_FILE.put_line(fich_salida_pkg, 'TO_CLOB(');
+                        end if;
+                        /* (20160803) Angel Ruiz. FIN BUG */
+                        case 
+                          when reg_detail.TYPE = 'AN' then
+                            /* Se tarta de un valor de tipo alfanumerico */
+                            UTL_FILE.put_line(fich_salida_pkg, 'RPAD(NVL(' || columna || ','' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
+                          when reg_detail.TYPE = 'NU' then
+                            /* Se trata de un valor de tipo numerico */
+                            if (reg_detail.RUL = 'HARDC') then
+                              /* Se trata de un valor literal */
+                              /* Comprobamos si es un NA# */
+                              if (reg_detail.VALUE = 'NA') then
+                                UTL_FILE.put_line(fich_salida_pkg, '''-' || lpad('1', reg_detail.LONGITUD -1, '0') || '''' || '          --' || reg_detail.TABLE_COLUMN);
+                              else
+                                /* (20160803) Angel Ruiz. BUG. Me doy cuenta de que si el literal lleva un signo no funciona */
+                                /* He de usar el mismo algoritmo que para los importes */
+                                /* en caso de que el numero que se hardcodea sea negativo */
+                                if (instr(reg_detail.VALUE, '-') = 0) then
+                                /* Si el numero que se hardcodea es positivo */
+                                  UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                                else
+                                  /* Si el numero que se hardcodea es negativo */
+                                  if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                                    /* Quiere decir que en la longitud aparecen zona de decimales */
+                                    /* Preparo la mascara */
+                                    v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                                    v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                                    v_mascara := 'S';
+                                    for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                                    loop
+                                      v_mascara := v_mascara || '0';
+                                    end loop;
+                                    v_mascara := v_mascara || '.';
+                                    for indice in  1..v_long_parte_decimal
+                                    loop
+                                      v_mascara := v_mascara || '0';
+                                    end loop;
+                                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                                  else
+                                    /* Quiere decir que en la longitud no aparece zona de decimales */
+                                    v_long_total := to_number (trim(reg_detail.LONGITUD));
+                                    v_long_parte_decimal := 0;
+                                    v_mascara := 'S';
+                                    for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                                    loop
+                                      v_mascara := v_mascara || '0';
+                                    end loop;
+                                    UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                                  end if;
+                                end if;
+                              end if;
+                            else
+                              UTL_FILE.put_line(fich_salida_pkg, 'NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          when reg_detail.TYPE = 'IM' then
+                            /*(20160503) Angel Ruiz */
+                            /* Se trata de un valor de tipo importe */
+                            if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                              /* Quiere decir que en la longitud aparecen zona de decimales */
+                              /* Preparo la mascara */
+                              v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                              v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                              v_mascara := 'S';
+                              for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                              loop
+                                v_mascara := v_mascara || '0';
+                              end loop;
+                              v_mascara := v_mascara || '.';
+                              for indice in  1..v_long_parte_decimal
+                              loop
+                                v_mascara := v_mascara || '0';
+                              end loop;
+                              UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            else
+                              /* Quiere decir que en la longitud no aparece zona de decimales */
+                              v_long_total := to_number (trim(reg_detail.LONGITUD));
+                              v_long_parte_decimal := 0;
+                              v_mascara := 'S';
+                              for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                              loop
+                                v_mascara := v_mascara || '0';
+                              end loop;
+                              UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          when reg_detail.TYPE = 'FE' then
+                            /* Se trata de un valor de tipo fecha */
+                            /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
+                            if (reg_detail.RUL <> 'VAR_FCH_INICIO' and (instr(upper(reg_detail.VALUE), 'SYSDATE') = 0)) then
+                              /* (20161006) Angel Ruiz. BUG. A los sysdate no se les puede hacer el CAST */
+                              columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
+                            end if;
+                            if (reg_detail.LONGITUD = 8) then
+                              --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
+                              UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            else
+                              --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS'') END' || '          --' || reg_detail.TABLE_COLUMN);
+                              UTL_FILE.put_line(fich_salida_pkg, 'NVL(TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          when reg_detail.TYPE = 'TI' then
+                            /* Se trata de un valor de tipo TIME HHMISS */
+                            UTL_FILE.put_line(fich_salida_pkg, 'RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
+                        end case;
+                        /* Se trata de un fichero plano por posicion */
+                        /* (20160803) Angel Ruiz. BUG. Si la linea supera los 4000 caracteres da error */
+                        /* por lo que voy a convertir el primer campos a CLOB */
+                        if (v_line_size > 4000) then
+                          UTL_FILE.put_line(fich_salida_pkg, ')');
+                        end if;
+                        /* (20160803) Angel Ruiz. FIN BUG */
+                      end if;
+                      primera_col := 0;
+                    else /* NO SE TRATA DE LA PRIMERA COLUMNA */
+                      if (v_type_validation = 'I') then
+                        /* (20160606) Angel Ruiz. NF: Se trata de que el tipo de validacion es I lo que significa */
+                        /* que se extrae desde el origen y va directamente a las tablas de Staging sin pasar por un fichero plano */
+                        case 
+                          when reg_detail.TYPE = 'NU' then
+                            if (reg_detail.RUL = 'HARDC') then
+                              /* Se trata de un valor literal */
+                              /* Comprobamos si es un NA# */
+                              if (reg_detail.VALUE = 'NA') then
+                                UTL_FILE.put_line(fich_salida_pkg, ', ' || '-1' || '          --' || reg_detail.TABLE_COLUMN);
+                              else
+                                UTL_FILE.put_line(fich_salida_pkg, ', ' || columna || '          --' || reg_detail.TABLE_COLUMN);
+                              end if;
+                            else
+                              UTL_FILE.put_line(fich_salida_pkg, ', ' || columna || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          else
+                            UTL_FILE.put_line(fich_salida_pkg, ', ' || columna || '          --' || reg_detail.TABLE_COLUMN);
+                        end case;
+                      elsif (reg_scenario.TYPE = 'S') then
+                        /* Se trata de un fichero plano con separador */
+                        case 
+                          when reg_detail.TYPE = 'NU' then
+                            if (reg_detail.RUL = 'HARDC') then
+                              /* Se trata de un valor literal */
+                              /* Comprobamos si es un NA# */
+                              if (reg_detail.VALUE = 'NA') then
+                                UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || '-1' || '          --' || reg_detail.TABLE_COLUMN);
+                              else
+                                UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
+                              end if;
+                            else
+                              UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          else
+                            UTL_FILE.put_line(fich_salida_pkg, '||' || '''' || reg_scenario.SEPARATOR || '''||' || columna || '          --' || reg_detail.TABLE_COLUMN);
+                        end case;
+                      else    /* Se trata de un fichero plano por posicion */
+                        case
+                          when reg_detail.TYPE = 'AN' then
+                            /* Se tarta de un valor de tipo alfanumerico */
+                            UTL_FILE.put_line(fich_salida_pkg, '|| RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
+                          when reg_detail.TYPE = 'NU' then
+                            /* Se trata de un valor de tipo numerico */
+                            if (reg_detail.RUL = 'HARDC') then
+                              /* Se trata de un valor literal */
+                              /* Comprobamos si es un NA# */
+                              if (reg_detail.VALUE = 'NA') then
+                                UTL_FILE.put_line(fich_salida_pkg, '|| ''-' || lpad('1', reg_detail.LONGITUD -1, '0') || '''' || '          --' || reg_detail.TABLE_COLUMN);
+                              else
+                                /* (20160803) Angel Ruiz. BUG. Si el campo viene con signo negativo no funciona y he de tratarlo */
+                                /* con el mismo algoritmo que los importes */
+                                if (instr(reg_detail.VALUE, '-') = 0) then
+                                /* si el valor que vamos a hardcodear no es negativo */
+                                  UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                                else
+                                /* si el valor que vamos a hardcodear es negativo */
+                                  if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                                    /* Quiere decir que en la longitud aparecen zona de decimales */
+                                    /* Preparo la mascara */
+                                    v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                                    v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                                    v_mascara := 'S';
+                                    for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                                    loop
+                                      v_mascara := v_mascara || '0';
+                                    end loop;
+                                    v_mascara := v_mascara || '.';
+                                    for indice in  1..v_long_parte_decimal
+                                    loop
+                                      v_mascara := v_mascara || '0';
+                                    end loop;
+                                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                                  else
+                                    /* Quiere decir que en la longitud no aparece zona de decimales */
+                                    v_long_total := to_number (trim(reg_detail.LONGITUD));
+                                    v_long_parte_decimal := 0;
+                                    v_mascara := 'S';
+                                    for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                                    loop
+                                      v_mascara := v_mascara || '0';
+                                    end loop;
+                                    UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                                  end if;
+                                end if;
+                                /* (20160803) Angel Ruiz. Fin BUG */                      
+                              end if;
+                            else
+                              UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          when reg_detail.TYPE = 'IM' then
+                            /* Se trata de un valor de tipo importe */
+                            --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD || ', '' '') ELSE LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0'') END' || '          --' || reg_detail.TABLE_COLUMN);
+                            --if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                            --  /* Quiere decir que en la longitud aparecen zona de decimales */
+                            --  UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || to_char((to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))+1)) || ', ''0''), RPAD('' '', ' || to_char((to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))+1)) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            --else
+                            --  UTL_FILE.put_line(fich_salida_pkg, '|| NVL(LPAD(' || columna || ', ' || reg_detail.LONGITUD || ', ''0''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            --end if;
+                            /***************************************/
+                            /*(20160503) Angel Ruiz */
+                            /* Se trata de un valor de tipo importe */
+                            if (instr(reg_detail.LONGITUD, ',') > 0 ) then
+                              /* Quiere decir que en la longitud aparecen zona de decimales */
+                              /* Preparo la mascara */
+                              v_long_total := to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1));
+                              v_long_parte_decimal := to_number(trim(substr(reg_detail.LONGITUD, instr(reg_detail.LONGITUD, ',') +1)));
+                              v_mascara := 'S';
+                              for indice in  1..(v_long_total-v_long_parte_decimal-2)
+                              loop
+                                v_mascara := v_mascara || '0';
+                              end loop;
+                              v_mascara := v_mascara || '.';
+                              for indice in  1..v_long_parte_decimal
+                              loop
+                                v_mascara := v_mascara || '0';
+                              end loop;
+                              UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || to_char(to_number(substr(reg_detail.LONGITUD, 1, instr(reg_detail.LONGITUD, ',') -1))) || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            else
+                              /* Quiere decir que en la longitud no aparece zona de decimales */
+                              v_long_total := to_number (trim(reg_detail.LONGITUD));
+                              v_long_parte_decimal := 0;
+                              v_mascara := 'S';
+                              for indice in  1..(v_long_total-v_long_parte_decimal-1)
+                              loop
+                                v_mascara := v_mascara || '0';
+                              end loop;
+                              UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''' || v_mascara || '''), RPAD('' '', ' || reg_detail.LONGITUD || ', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          when reg_detail.TYPE = 'FE' then
+                            /* Se trata de un valor de tipo fecha */
+                            /* (20160907) Angel Ruiz. Cambio TEMPORAL para HUSO HORARIO */
+                            if (reg_detail.RUL <> 'VAR_FCH_INICIO' and (instr(upper(reg_detail.VALUE), 'SYSDATE') = 0)) then
+                              /* (20161006) Angel Ruiz. BUG. A los sysdate no se les puede hacer el CAST */
+                              columna := 'CAST(FROM_TZ( TO_TIMESTAMP(TO_CHAR(' || columna || ',''YYYYMMDDHH24MISS''),''YYYYMMDDHH24MISS''), ''GMT'') AT TIME ZONE ''America/Mexico_City'' AS DATE)';
+                            end if;
+                            if (reg_detail.LONGITUD = 8) then
+                              --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDD'') END' || '          --' || reg_detail.TABLE_COLUMN);
+                              UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''YYYYMMDD''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            else
+                              --UTL_FILE.put_line(fich_salida_pkg, '|| CASE WHEN ' || columna || ' IS NULL THEN RPAD('' '',' || reg_detail.LONGITUD ||', '' '') ELSE TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS'') END' || '          --' || reg_detail.TABLE_COLUMN);
+                              UTL_FILE.put_line(fich_salida_pkg, '|| NVL(TO_CHAR(' || columna || ', ''YYYYMMDDHH24MISS''), RPAD('' '',' || reg_detail.LONGITUD ||', '' ''))' || '          --' || reg_detail.TABLE_COLUMN);
+                            end if;
+                          when reg_detail.TYPE = 'TI' then
+                            /* Se trata de un valor de tipo TIME HHMISS */
+                            UTL_FILE.put_line(fich_salida_pkg, '|| RPAD(NVL(' || columna || ', '' ''), ' || reg_detail.LONGITUD || ', '' '')' || '          --' || reg_detail.TABLE_COLUMN);
+                        end case;
+                      end if;
+                    end if;
+                  end loop;
+                  close MTDT_TC_DETAIL;
+                  /****/
+                  /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
+                  /****/
+                  /*(20160421) Angel Ruiz. Antes de comenzar a generar el FROM comprobamos si existe */
+                  /* informacion en el campo OVER_PARTITION. Si existe hay que escribirla como ultimo campo */
+                  if (reg_scenario.OVER_PARTION is not null) then
+                    UTL_FILE.put_line(fich_salida_pkg, 'REGISTRY');
+                    UTL_FILE.put_line(fich_salida_pkg, ', ' || reg_scenario.OVER_PARTION);
+                  end if;
+                  /****/
+                  /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
+                  /****/    
+                  dbms_output.put_line ('Despues del SELECT');
+                  --dbms_output.put_line ('El valor que han cogifo v_FROM:' || v_FROM);
+                  --dbms_output.put_line ('El valor que han cogifo v_WHERE:' || v_WHERE);
+                  UTL_FILE.put_line(fich_salida_pkg,'    FROM');
+                  --UTL_FILE.put_line(fich_salida pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
+                  if (instr (reg_scenario.TABLE_BASE_NAME,'SELECT') > 0 or instr (reg_scenario.TABLE_BASE_NAME,'select') > 0 ) then
+                  /* (20160719) Angel Ruiz. BUG. Pueden venir QUERIES en TABLE_BASE_NAME */
+                    UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+                  else
+                    if (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) then
+                      /* Comprobamos si la tabla esta calificada */
+                      UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+                    else
+                      /* L atabla base no esta calificada, por defecto la calificamos con OWNER_EX */
+                      /* (20180228) Angel Ruiz. BUG. Compruebo si la tabla_base_name tiene propietario. */
+                      --UTL_FILE.put_line (fich_salida_pkg, '    '  || OWNER_EX || '.' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+                      if (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ +[a-zA-Z0-9_]+$') = true) or
+                      (REGEXP_LIKE(trim(reg_scenario.TABLE_BASE_NAME), '^[a-zA-Z_0-9#]+\.[a-zA-Z_0-9]+ *') = true) then
+                        UTL_FILE.put_line (fich_salida_pkg, '    '  || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+                      else            
+                        UTL_FILE.put_line (fich_salida_pkg, '    '  || OWNER_EX || '.' || procesa_campo_filter(reg_scenario.TABLE_BASE_NAME));
+                      end if;
+                      /* (20180228) Angel Ruiz. FIN BUG. Compruebo si la tabla_base_name tiene propietario. */
+                    end if;
+                  end if;
+                  /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+                  v_hay_look_up:='N';
+                  /* (20150311) ANGEL RUIZ. se produce un error al generar ya que la tabla de hechos no tiene tablas de LookUp */
+                  if l_FROM.count > 0 then
+                    FOR indx IN l_FROM.FIRST .. l_FROM.LAST
+                    LOOP
+                      UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
+                      v_hay_look_up := 'Y';
+                    END LOOP;
+                  end if;
+                  /* FIN */
+                  --UTL_FILE.put_line(fich_salida_pkg,'    ' || v_FROM);
+                  dbms_output.put_line ('Despues del FROM');
+                  if (reg_scenario.FILTER is not null) then
+                    /* Procesamos el campo FILTER */
+                    UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+                    dbms_output.put_line ('Antes de procesar el campo FILTER');
+                    campo_filter := procesa_campo_filter (reg_scenario.FILTER);
+                    UTL_FILE.put_line(fich_salida_pkg, campo_filter);
+                    dbms_output.put_line ('Despues de procesar el campo FILTER');
+                    if (v_hay_look_up = 'Y') then
+                    /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+                      dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+                      /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+                      UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
+                      FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+                      LOOP
+                        UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+                      END LOOP;
+                      /* FIN */
+                    end if;
+                  else
+                    if (v_hay_look_up = 'Y') then
+                      UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
+                      /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
+                      dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
+                      /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
+                      FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
+                      LOOP
+                        UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
+                      END LOOP;
+                      /* FIN */
+                    end if;
+                  end if;
+                  /*(20160510) Angel Ruiz. Antes de comenzar a generar el FROM comprobamos si existe */
+                  /* informacion en el campo OVER_PARTITION. Si existe hay que escribirla como ultimo campo */
+                  if (reg_scenario.OVER_PARTION is not null) then
+                    UTL_FILE.put_line(fich_salida_pkg, ')');
+                    UTL_FILE.put_line(fich_salida_pkg, 'WHERE RN = 1');
+                  end if;
+                  if (reg_scenario.COLUMNA_GROUP is not null) then
+                  /* (20160907) Angel Ruiz. Implementacion del GROUP BY */
+                    UTL_FILE.put_line(fich_salida_pkg, 'GROUP BY');
+                    UTL_FILE.put_line(fich_salida_pkg, reg_scenario.COLUMNA_GROUP);
+                  end if;
+                end if; /* if (reg_scenario.TYPE = 'S') then */
+              end if; /* if ((reg_scenario.TABLE_TYPE = 'F' and v_hay_sce_COMPUESTO = false) or reg_scenario.TABLE_TYPE = 'C') then */
+              /**************/
+              /**************/
+              /* (20189319) Angel Ruiz. NF: Varias fuentes. Comento el codigo que viene porque no es necesario */
+              --if (reg_scenario.TABLE_TYPE = 'F') then
+                /* Se trata de un scenario de tipo F, lo que quiere decir que es el unico */
+                /* que existe o es el scenario COMP de un conjunto de scenarios */
+                /* por lo que escribimos el punto y coma final de la query */
+                --UTL_FILE.put_line (fich_salida_pkg, ';');
+              --else
+                /* Se trata de un scenario de tipo C, es decir, es un operando en un conjunto */
+                /* de escenarios, asi tenemos que escribir la operacion que une este operando */
+                /* al resto */
+                --if (v_num_scenarios < lista_scenarios_presentes.count -1) then
+                  /* Ocurre que si no calculamos el numero de escenarios totales menos uno, ya que el */
+                  /* ultimo escenario no tendra operador */
+                  --UTL_FILE.put_line (fich_salida_pkg, v_lista_elementos_scenario (v_num_scenarios * 2));
+                --end if;
+                --UTL_FILE.put_line(fich_salida_pkg, '');
+              --end if;
+            end if; /* Final del IF if (UPPER(TRIM(reg_scenario.SCENARIO)) = UPPER(TRIM(v_lista_elementos_scenario(ind_scenario)))) then */
+          end loop; /* Final del LOOP que recorreo todos los escenarios */
+          close MTDT_SCENARIO;
+        else  /* else del IF UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) <> 'UNION' ...*/
+          /* Lo que hay en lista_scenario para este indice no es un escenario */
+          /* sino un operador que une escenarios como UNION por lo que hay que escribirlo*/
+          dbms_output.put_line('El operador que tenemos en el escenario es: ' || v_lista_elementos_scenario(ind_scenario));
+          dbms_output.put_line('El operador que tenemos en el escenario es: ' || v_lista_elementos_scenario(ind_scenario+1));
+          if (UPPER(TRIM(v_lista_elementos_scenario (ind_scenario))) = 'UNION') then
+            /* Puede ocurrir que se haya escrito UNION ALL */
+            if (UPPER(TRIM(v_lista_elementos_scenario (ind_scenario+1))) = 'ALL') then
+              --UTL_FILE.put_line (fich_salida_pkg, v_lista_elementos_scenario (ind_scenario) || ' ALL \');
+              UTL_FILE.put_line (fich_salida_pkg, v_lista_elementos_scenario (ind_scenario) || ' ALL');
+            else  
+              --UTL_FILE.put_line (fich_salida_pkg, v_lista_elementos_scenario (ind_scenario) || ' \');
+              UTL_FILE.put_line (fich_salida_pkg, v_lista_elementos_scenario (ind_scenario));
+            end if;
+          end if;
+          if (UPPER(TRIM(v_lista_elementos_scenario (ind_scenario))) = 'APPEND') then
+            UTL_FILE.put_line (fich_salida_pkg, ';');
+            dbms_output.put_line('---HE PASADO POR EL APPEND');
+          end if;
+        end if; /* Fin IF UPPER(TRIM(v_lista_elementos_scenario(ind_scenario))) <> 'UNION' ...*/ 
+  
+        --UTL_FILE.put_line(fich_salida_pkg, '');
+    
+        /**************/
+      
+      END LOOP; /* FOR ind_scenario IN v_lista_elementos_scenario.FIRST .. v_lista_elementos_scenario.LAST */
+      --UTL_FILE.put_line(fich_salida_pkg, '');
+      --UTL_FILE.put_line(fich_salida_pkg, ';');
+      /* (20160606) Angel Ruiz. NF: Se trata de la validacion en la que en lugar de ir a un fichero plano */
+      /* va directamente a las tablas de Stagin */
+      --if (v_type_validation <> 'I') then
+        --UTL_FILE.put_line(fich_salida_pkg, 'SPOOL OFF;');
+      --end if;
+      --UTL_FILE.put_line(fich_salida_pkg, 'exit SUCCESS;');
+      --UTL_FILE.FCLOSE (fich_salida_pkg);
+      
+    end loop;
+    close MTDT_FUENTES;
+    
+    
     /******/
     /* INICIO DE LA GENERACION DEL sh de CARGA */
     /******/
@@ -3199,27 +3365,30 @@ begin
       v_fuente := v_fuente_cursor.source;
       v_interface_name := v_fuente_cursor.interface_name;
       v_country := v_fuente_cursor.country;
+      --v_type_validation := trim(v_fuente_cursor.type_validation);
+      --v_separator := trim(v_fuente_cursor.separator);
+      
     end loop;
     
     
-    nombre_interface_a_cargar := v_interface_name;
-    pos_ini_pais := instr(v_interface_name, '_XXX_');
-    if (pos_ini_pais > 0) then
-      pos_fin_pais := pos_ini_pais + length ('_XXX_');
-      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_pais -1) || '_' || v_country || '_' || substr(nombre_interface_a_cargar, pos_fin_pais);
-    end if;
-    pos_ini_fecha := instr(v_interface_name, '_YYYYMMDD');
-    if (pos_ini_fecha > 0) then
-      pos_fin_fecha := pos_ini_fecha + length ('_YYYYMMDD');
-      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '_${FECHA}' || substr(nombre_interface_a_cargar, pos_fin_fecha);
-      nom_inter_a_cargar_sin_fecha := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1);
-    end if;
+    --nombre_interface_a_cargar := v_interface_name;
+    --pos_ini_pais := instr(v_interface_name, '_XXX_');
+    --if (pos_ini_pais > 0) then
+      --pos_fin_pais := pos_ini_pais + length ('_XXX_');
+      --nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_pais -1) || '_' || v_country || '_' || substr(nombre_interface_a_cargar, pos_fin_pais);
+    --end if;
+    --pos_ini_fecha := instr(v_interface_name, '_YYYYMMDD');
+    --if (pos_ini_fecha > 0) then
+      --pos_fin_fecha := pos_ini_fecha + length ('_YYYYMMDD');
+      --nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1) || '_${FECHA}' || substr(nombre_interface_a_cargar, pos_fin_fecha);
+      --nom_inter_a_cargar_sin_fecha := substr(nombre_interface_a_cargar, 1, pos_ini_fecha -1);
+    --end if;
     /* (20160225) Angel Ruiz */
-    pos_ini_hora := instr(nombre_interface_a_cargar, 'HH24MISS');
-    if (pos_ini_hora > 0) then
-      pos_fin_hora := pos_ini_hora + length ('HH24MISS');
-      nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
-    end if;
+    --pos_ini_hora := instr(nombre_interface_a_cargar, 'HH24MISS');
+    --if (pos_ini_hora > 0) then
+      --pos_fin_hora := pos_ini_hora + length ('HH24MISS');
+      --nombre_interface_a_cargar := substr(nombre_interface_a_cargar, 1, pos_ini_hora -1) || '*' || substr(nombre_interface_a_cargar, pos_fin_hora);
+    --end if;
     
     UTL_FILE.put_line(fich_salida_load, '#!/bin/bash');
     UTL_FILE.put_line(fich_salida_load, '#############################################################################');
@@ -3260,12 +3429,8 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');    
     UTL_FILE.put_line(fich_salida_load, 'InsertaFinFallido()');
     UTL_FILE.put_line(fich_salida_load, '{');
-    UTL_FILE.put_line(fich_salida_load, 'sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-    UTL_FILE.put_line(fich_salida_load, 'whenever sqlerror exit 1');
-    UTL_FILE.put_line(fich_salida_load, 'set pagesize 0');
-    UTL_FILE.put_line(fich_salida_load, 'set heading off');
-    UTL_FILE.put_line(fich_salida_load, 'begin');
-    UTL_FILE.put_line(fich_salida_load, '  INSERT INTO ' || OWNER_MTDT || '.MTDT_MONITOREO');
+    UTL_FILE.put_line(fich_salida_load, 'mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} -e \');
+    UTL_FILE.put_line(fich_salida_load, '"INSERT INTO ' || OWNER_MTDT || '.MTDT_MONITOREO');
     UTL_FILE.put_line(fich_salida_load, '  (');
     UTL_FILE.put_line(fich_salida_load, '    CVE_PROCESO,');
     UTL_FILE.put_line(fich_salida_load, '    CVE_PASO,');
@@ -3282,29 +3447,30 @@ begin
     UTL_FILE.put_line(fich_salida_load, '    mtdt_proceso.cve_proceso,');
     UTL_FILE.put_line(fich_salida_load, '    1,');
     UTL_FILE.put_line(fich_salida_load, '    1,');
-    UTL_FILE.put_line(fich_salida_load, '    to_date(''${INICIO_PASO_TMR}'', ''YYYYMMDDHH24MISS''),');
-    UTL_FILE.put_line(fich_salida_load, '    sysdate,');
-    UTL_FILE.put_line(fich_salida_load, '    to_date(''${FECHA}'', ''yyyymmdd''),');
-    UTL_FILE.put_line(fich_salida_load, '    to_date(''${FECHA}'', ''yyyymmdd''),');
+    UTL_FILE.put_line(fich_salida_load, '    ''${INICIO_PASO_TMR}'',');
+    UTL_FILE.put_line(fich_salida_load, '    current_timestamp,');
+    UTL_FILE.put_line(fich_salida_load, '    ''${FECHA}'',');
+    UTL_FILE.put_line(fich_salida_load, '    ''${FECHA}'',');
     UTL_FILE.put_line(fich_salida_load, '    ${CONTEO_ARCHIVO},');
     UTL_FILE.put_line(fich_salida_load, '    ${B_CONTEO_BD},');
-    UTL_FILE.put_line(fich_salida_load, '    sysdate');
+    UTL_FILE.put_line(fich_salida_load, '    current_timestamp');
     UTL_FILE.put_line(fich_salida_load, '  FROM');
     UTL_FILE.put_line(fich_salida_load, '  ' || OWNER_MTDT || '.MTDT_PROCESO');
     UTL_FILE.put_line(fich_salida_load, '  WHERE');
     /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
-    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh''"');
     --UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sh'';');
     /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
-    UTL_FILE.put_line(fich_salida_load, '  commit;');
-    UTL_FILE.put_line(fich_salida_load, 'end;');
-    UTL_FILE.put_line(fich_salida_load, '/');
-    UTL_FILE.put_line(fich_salida_load, 'exit 0;');
-    UTL_FILE.put_line(fich_salida_load, '!eof');
+    --UTL_FILE.put_line(fich_salida_load, '  commit;');
+    --UTL_FILE.put_line(fich_salida_load, 'end;');
+    --UTL_FILE.put_line(fich_salida_load, '/');
+    --UTL_FILE.put_line(fich_salida_load, 'exit 0;');
+    --UTL_FILE.put_line(fich_salida_load, '!eof');
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]');
     UTL_FILE.put_line(fich_salida_load, '  then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}: ERROR: Al insertar en el metadato Fin Fallido."');
     UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al insertar en el metadato que le proceso no ha terminado OK." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al insertar en el metadato que le proceso no ha terminado OK."');
     UTL_FILE.put_line(fich_salida_load, '    echo `date`');
     UTL_FILE.put_line(fich_salida_load, '    exit 1');
     UTL_FILE.put_line(fich_salida_load, '  fi');
@@ -3316,12 +3482,8 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');    
     UTL_FILE.put_line(fich_salida_load, 'InsertaFinOK()');
     UTL_FILE.put_line(fich_salida_load, '{');
-    UTL_FILE.put_line(fich_salida_load, 'sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-    UTL_FILE.put_line(fich_salida_load, 'whenever sqlerror exit 1');
-    UTL_FILE.put_line(fich_salida_load, 'set pagesize 0');
-    UTL_FILE.put_line(fich_salida_load, 'set heading off');
-    UTL_FILE.put_line(fich_salida_load, 'begin');
-    UTL_FILE.put_line(fich_salida_load, '  INSERT INTO ' || OWNER_MTDT || '.MTDT_MONITOREO');
+    UTL_FILE.put_line(fich_salida_load, 'mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} -e \');
+    UTL_FILE.put_line(fich_salida_load, '"INSERT INTO ' || OWNER_MTDT || '.MTDT_MONITOREO');
     UTL_FILE.put_line(fich_salida_load, '  (');
     UTL_FILE.put_line(fich_salida_load, '    CVE_PROCESO,');
     UTL_FILE.put_line(fich_salida_load, '    CVE_PASO,');
@@ -3338,29 +3500,25 @@ begin
     UTL_FILE.put_line(fich_salida_load, '    mtdt_proceso.cve_proceso,');
     UTL_FILE.put_line(fich_salida_load, '    1,');
     UTL_FILE.put_line(fich_salida_load, '    0,');
-    UTL_FILE.put_line(fich_salida_load, '    to_date(''${INICIO_PASO_TMR}'', ''YYYYMMDDHH24MISS''),');
-    UTL_FILE.put_line(fich_salida_load, '    sysdate,');
-    UTL_FILE.put_line(fich_salida_load, '    to_date(''${FECHA}'', ''yyyymmdd''),');
-    UTL_FILE.put_line(fich_salida_load, '    to_date(''${FECHA}'', ''yyyymmdd''),');
+    UTL_FILE.put_line(fich_salida_load, '    ''${INICIO_PASO_TMR}'',');
+    UTL_FILE.put_line(fich_salida_load, '    current_timestamp,');
+    UTL_FILE.put_line(fich_salida_load, '    ''${FECHA}'',');
+    UTL_FILE.put_line(fich_salida_load, '    ''${FECHA}'',');
     UTL_FILE.put_line(fich_salida_load, '    ${CONTEO_ARCHIVO},');
     UTL_FILE.put_line(fich_salida_load, '    ${B_CONTEO_BD},');
-    UTL_FILE.put_line(fich_salida_load, '    sysdate');
+    UTL_FILE.put_line(fich_salida_load, '    current_timestamp');
     UTL_FILE.put_line(fich_salida_load, '  FROM');
     UTL_FILE.put_line(fich_salida_load, '  ' || OWNER_MTDT || '.MTDT_PROCESO');
     UTL_FILE.put_line(fich_salida_load, '  WHERE');
     /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/    
-    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh'';');
+    UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || REQ_NUMBER || '_' || reg_tabla.TABLE_NAME || '.sh''"');
     --UTL_FILE.put_line(fich_salida_load, '  MTDT_PROCESO.NOMBRE_PROCESO = ''' || 'ONIX' || '_' || reg_tabla.TABLE_NAME || '.sh'';');
     /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/
-    UTL_FILE.put_line(fich_salida_load, '  commit;');
-    UTL_FILE.put_line(fich_salida_load, 'end;');
-    UTL_FILE.put_line(fich_salida_load, '/');
-    UTL_FILE.put_line(fich_salida_load, 'exit 0;');
-    UTL_FILE.put_line(fich_salida_load, '!eof');
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]');
     UTL_FILE.put_line(fich_salida_load, '  then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}: ERROR: Al insertar en el metadato Fin OK."');
     UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al insertar en el metadato que le proceso ha terminado OK." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al insertar en el metadato que le proceso ha terminado OK."');
     UTL_FILE.put_line(fich_salida_load, '    echo `date`');
     UTL_FILE.put_line(fich_salida_load, '    exit 1');
     UTL_FILE.put_line(fich_salida_load, '  fi');
@@ -3382,24 +3540,28 @@ begin
     UTL_FILE.put_line(fich_salida_load, '    then');
     UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: Error al generar el reporte ${REPORTE}, [No se genero el archivo .txt]"');
     UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, no se gener en el servidor." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, no se gener en el servidor."');
+    --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '      exit 2');
     UTL_FILE.put_line(fich_salida_load, '    elif [ $CodErr -eq 3 ]');
     UTL_FILE.put_line(fich_salida_load, '    then');
     UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: Error al generar el reporte ${REPORTE}, [archivo .txt Vacio]"');
     UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, no tiene datos." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, no tiene datos."');
+    --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '      exit 3');
     UTL_FILE.put_line(fich_salida_load, '    elif [ $CodErr -eq 4 ]');
     UTL_FILE.put_line(fich_salida_load, '    then');
     UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: Error al generar el reporte ${REPORTE}, [Error de Oracle]"');
     UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, contiene errores de oracle." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, contiene errores de oracle."');
+    --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '      exit 4');
     UTL_FILE.put_line(fich_salida_load, '    else');
     UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: Error al generar el reporte ${REPORTE}, [Error en archivo .txt]"');
     UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, contiene errores." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '      echo "El reporte: ${REPORTE}, contiene errores."');
+    --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '      exit 1');
     UTL_FILE.put_line(fich_salida_load, '    fi');
     UTL_FILE.put_line(fich_salida_load, '  fi');
@@ -3408,13 +3570,55 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '#Obtiene los password de base de datos                                         #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
+    /* (20180316) Angel Ruiz. NF: Fuentes de datos diferentes */
+    UTL_FILE.put_line(fich_salida_load, 'ObtenContrasenaExt()');
+    UTL_FILE.put_line(fich_salida_load, '{');
+    UTL_FILE.put_line(fich_salida_load, '  # Obtenemos el password de la BD');
+    /*************/ /* (20180309) Angel Ruiz. NF: Varios origenes */
+    UTL_FILE.put_line(fich_salida_load, '  TraeUserExt $1');
+    UTL_FILE.put_line(fich_salida_load, '  TraePassExt $1 ${BD_USR_EXT}');
+    UTL_FILE.put_line(fich_salida_load, '  TraeCadConexExt $1 ${BD_USR_EXT}');
+    UTL_FILE.put_line(fich_salida_load, '  TraeOwnerExt $1 ${BD_USR_EXT}');
+    UTL_FILE.put_line(fich_salida_load, '  if [ "${BD_USR_EXT}" = "" ] ; then');
+    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="Error BD ${REQ_NUM} (`date +%d/%m/%Y`)"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Error no se pudo obtener el usuario para el sistema fuente $1"');
+    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '    exit 1;');
+    UTL_FILE.put_line(fich_salida_load, '  fi');
+    UTL_FILE.put_line(fich_salida_load, '  if [ "${PASSWORD_EXT}" = "" ] ; then');
+    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="Error BD ${REQ_NUM} (`date +%d/%m/%Y`)"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Error no se pudo obtener la password para el sistema fuente $1 y el usuario ${BD_USR}"');
+    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '    exit 1;');
+    UTL_FILE.put_line(fich_salida_load, '  fi');
+    UTL_FILE.put_line(fich_salida_load, '  if [ "${CAD_CONEX_EXT}" = "" ] ; then');
+    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="Error BD ${REQ_NUM} (`date +%d/%m/%Y`)"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Error no se pudo obtener la cadena de conexion para el sistema fuente $1"');
+    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '    exit 1;');
+    UTL_FILE.put_line(fich_salida_load, '  fi');
+    UTL_FILE.put_line(fich_salida_load, '  if [ "${OWNER_EXT}" = "" ] ; then');
+    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="Error BD ${REQ_NUM} (`date +%d/%m/%Y`)"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Error no se pudo obtener el propietario para el sistema fuente $1"');
+    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    UTL_FILE.put_line(fich_salida_load, '    exit 1;');
+    UTL_FILE.put_line(fich_salida_load, '  fi');
+    UTL_FILE.put_line(fich_salida_load, '  BD_PWD_EXT="${PASSWORD_EXT}"');
+    UTL_FILE.put_line(fich_salida_load, '  return 0');
+    UTL_FILE.put_line(fich_salida_load, '}');
     UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena()');
     UTL_FILE.put_line(fich_salida_load, '{');
     UTL_FILE.put_line(fich_salida_load, '  # Obtenemos el password de la BD');
+    /*************/
     UTL_FILE.put_line(fich_salida_load, '  TraePass $1 $2');
     UTL_FILE.put_line(fich_salida_load, '  if [ "${PASSWORD}" = "" ] ; then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="Error BD ${REQ_NUM} (`date +%d/%m/%Y`)"');
     UTL_FILE.put_line(fich_salida_load, '    echo "Error no se pudo obtener el password para el usuario $2 y BD $1" | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Error no se pudo obtener el password para el usuario $2 y BD $1"');
     UTL_FILE.put_line(fich_salida_load, '    echo `date`');
     --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '    exit 1;');
@@ -3424,11 +3628,12 @@ begin
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="ERROR: No se pudo establecer la conexion, ${REQ_NUM} (`date +%d/%m/%Y`)"');
     UTL_FILE.put_line(fich_salida_load, '    echo "No se pudo conectar  a la BD: $1, USER=$2, PASSWORD=${PASSWORD}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "No se pudo conectar  a la BD: $1, USER=$2, PASSWORD=${PASSWORD}."');
     UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '    exit 1');
     UTL_FILE.put_line(fich_salida_load, '  fi');
-    UTL_FILE.put_line(fich_salida_load, '  BD_PWD="${PASSWORD}"');
+    UTL_FILE.put_line(fich_salida_load, '  BD_CLAVE="${PASSWORD}"');
     UTL_FILE.put_line(fich_salida_load, '  return 0');
     UTL_FILE.put_line(fich_salida_load, '}');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
@@ -3438,73 +3643,60 @@ begin
     UTL_FILE.put_line(fich_salida_load, '{');
     UTL_FILE.put_line(fich_salida_load, '  if [ $# = 0 ] ; then');
     UTL_FILE.put_line(fich_salida_load, '    # Se obtiene la fecha inicial y final del periodo a calcular a partir de la fecha del sistema.');
-    UTL_FILE.put_line(fich_salida_load, '    FECHA=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-    UTL_FILE.put_line(fich_salida_load, '      whenever sqlerror exit 1');
-    UTL_FILE.put_line(fich_salida_load, '      set pagesize 0');
-    UTL_FILE.put_line(fich_salida_load, '      set heading off');
-    UTL_FILE.put_line(fich_salida_load, '      select');
-    UTL_FILE.put_line(fich_salida_load, '        to_char(SYSDATE-1,''YYYYMMDD'')');
-    UTL_FILE.put_line(fich_salida_load, '      from dual;');
+    UTL_FILE.put_line(fich_salida_load, '    FECHA=`mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} 2> /dev/null << !eof');
+    UTL_FILE.put_line(fich_salida_load, '      select date_format(adddate(current_timestamp, -1), ''%Y%m%d'') from dual;');
     UTL_FILE.put_line(fich_salida_load, '      quit');
     UTL_FILE.put_line(fich_salida_load, '    !eof`');
     UTL_FILE.put_line(fich_salida_load, '    if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
     UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD."');
     UTL_FILE.put_line(fich_salida_load, '      echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '      exit 1');
     UTL_FILE.put_line(fich_salida_load, '    fi');
     if (v_fecha_ini_param = true and v_fecha_fin_param = true) then
       /* (20160419) Angel Ruiz. Si tenemos parametros de FCH_INI y FCH_FIN tenmos que generar codigo para recuperar la fecha Inicial */
-      UTL_FILE.put_line(fich_salida_load, '    FECHA_FIN=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-      UTL_FILE.put_line(fich_salida_load, '      whenever sqlerror exit 1');
-      UTL_FILE.put_line(fich_salida_load, '      set pagesize 0');
-      UTL_FILE.put_line(fich_salida_load, '      set heading off');
-      UTL_FILE.put_line(fich_salida_load, '      select to_char(SYSDATE,''YYYYMMDD'')');
-      UTL_FILE.put_line(fich_salida_load, '      from dual;');
+      UTL_FILE.put_line(fich_salida_load, '    FECHA_FIN=`mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} 2> /dev/null << !eof');
+      UTL_FILE.put_line(fich_salida_load, '      select date_format(current_timestamp,''%Y%m%d'')  from dual;');
       UTL_FILE.put_line(fich_salida_load, '    quit');
       UTL_FILE.put_line(fich_salida_load, '    !eof`');
       UTL_FILE.put_line(fich_salida_load, '    if [ $? -ne 0 ]; then');
       UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
       UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha fin o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha fin o el parametro no es un formato de fecha YYYYMMDD."');
       UTL_FILE.put_line(fich_salida_load, '      echo `date`');
-      UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+      --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
       UTL_FILE.put_line(fich_salida_load, '      exit 1');
       UTL_FILE.put_line(fich_salida_load, '    fi');
     end if;
     
     UTL_FILE.put_line(fich_salida_load, '  else');
     UTL_FILE.put_line(fich_salida_load, '    # Se obtiene la fecha inicial y final del periodo a calcular a partir de la fecha proporcionada como parametro.');
-    UTL_FILE.put_line(fich_salida_load, '    FECHA=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-    UTL_FILE.put_line(fich_salida_load, '      whenever sqlerror exit 1');
-    UTL_FILE.put_line(fich_salida_load, '      set pagesize 0');
-    UTL_FILE.put_line(fich_salida_load, '      set heading off');
-    UTL_FILE.put_line(fich_salida_load, '      select to_char(to_date( ''$1'',''YYYYMMDD''), ''YYYYMMDD'')');
-    UTL_FILE.put_line(fich_salida_load, '      from dual;');
+    UTL_FILE.put_line(fich_salida_load, '    FECHA=`mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} 2> /dev/null << !eof');
+    UTL_FILE.put_line(fich_salida_load, '      select date_format( ''$1'',''%Y%m%d'') from dual;');
     UTL_FILE.put_line(fich_salida_load, '    quit');
     UTL_FILE.put_line(fich_salida_load, '    !eof`');
     UTL_FILE.put_line(fich_salida_load, '    if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
     UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha del sistema o el parametro no es un formato de fecha YYYYMMDD."');
     UTL_FILE.put_line(fich_salida_load, '      echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '      exit 1');
     UTL_FILE.put_line(fich_salida_load, '    fi');
     if (v_fecha_ini_param = true and v_fecha_fin_param = true) then
       /* (20160419) Angel Ruiz. Si tenemos parametros de FCH_INI y FCH_FIN tenmos que generar codigo para recuperar la fecha Inicial */
-      UTL_FILE.put_line(fich_salida_load, '    FECHA_FIN=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-      UTL_FILE.put_line(fich_salida_load, '      whenever sqlerror exit 1');
-      UTL_FILE.put_line(fich_salida_load, '      set pagesize 0');
-      UTL_FILE.put_line(fich_salida_load, '      set heading off');
-      UTL_FILE.put_line(fich_salida_load, '      select to_char(to_date( ''$1'',''YYYYMMDD''), ''YYYYMMDD'')');
-      UTL_FILE.put_line(fich_salida_load, '      from dual;');
+      UTL_FILE.put_line(fich_salida_load, '    FECHA_FIN=`mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} 2> /dev/null << !eof');
+      UTL_FILE.put_line(fich_salida_load, '      select date_format( ''$1'',''%Y%m%d'') from dual;');
       UTL_FILE.put_line(fich_salida_load, '    quit');
       UTL_FILE.put_line(fich_salida_load, '    !eof`');
       UTL_FILE.put_line(fich_salida_load, '    if [ $? -ne 0 ]; then');
       UTL_FILE.put_line(fich_salida_load, '      SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha."');
       UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha final o el parametro no es un formato de fecha YYYYMMDD." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_load, '      echo "Surgio un error al obtener la fecha final o el parametro no es un formato de fecha YYYYMMDD."');
       UTL_FILE.put_line(fich_salida_load, '      echo `date`');
-      UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
+      --UTL_FILE.put_line(fich_salida_load, '      InsertaFinFallido');
       UTL_FILE.put_line(fich_salida_load, '      exit 1');
       UTL_FILE.put_line(fich_salida_load, '    fi');
     end if;
@@ -3521,20 +3713,16 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, 'ObtieneFechaHora()');
     UTL_FILE.put_line(fich_salida_load, '{');
-    UTL_FILE.put_line(fich_salida_load, '  INICIO_PASO_TMR=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-    UTL_FILE.put_line(fich_salida_load, '      whenever sqlerror exit 1');
-    UTL_FILE.put_line(fich_salida_load, '      set pagesize 0');
-    UTL_FILE.put_line(fich_salida_load, '      set heading off');
-    UTL_FILE.put_line(fich_salida_load, '      select');
-    UTL_FILE.put_line(fich_salida_load, '        to_char(sysdate,''YYYYMMDDHH24MISS'')');
-    UTL_FILE.put_line(fich_salida_load, '      from dual;');
+    UTL_FILE.put_line(fich_salida_load, '  INICIO_PASO_TMR=`mysql -Ns -u ${BD_USUARIO} -p${BD_CLAVE} -D ${BD_SID} 2> /dev/null << !eof');
+    UTL_FILE.put_line(fich_salida_load, '      select to_char(current_timestamp,''%Y%m%d%k%i%s'') from dual;');
     UTL_FILE.put_line(fich_salida_load, '      quit');
     UTL_FILE.put_line(fich_salida_load, '    !eof`');
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}: ERROR: Al obtener la fecha y hora del sistema."');
     UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al obtener la fecha y hora del sistema." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al obtener la fecha y hora del sistema."');
     UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');    
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');    
     UTL_FILE.put_line(fich_salida_load, '    exit 1');
     UTL_FILE.put_line(fich_salida_load, '  fi');
     UTL_FILE.put_line(fich_salida_load, '  return 0');
@@ -3564,68 +3752,167 @@ begin
       /* a las tablas de STAGING. No es necesario declarar el fichero de salida cuando estamos llevando los datos directamente a las tablas de Staging */
       UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SALIDA="' || nombre_interface_a_cargar || '"');
     end if;
-    /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
-    UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="${REQ_NUM}_' || reg_tabla.TABLE_NAME || '.sql"');
-    --UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="ONIX_' || reg_tabla.TABLE_NAME || '.sql"');
-    /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/    
-    if (v_tabla_dinamica = true and v_fecha_ini_param = false and v_fecha_fin_param = false) then
-      /* (20160414) Angel Ruiz. Si existe tabla dinamica, entonces hay que hacer una llamada al sqlplus con un parametro mas  */
-      if (v_type_validation = 'I') then
-        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
-        /* va a las tablas de Stagin sin pasar por ficehro plano */
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES}');
+    /************/
+
+    /********************/
+    /* (20170418) Angel Ruiz. NF: DISTINTOS ORIGENES PARA UN MISMO INTERFAZ */
+    /********************/
+    open MTDT_FUENTES(reg_tabla.TABLE_NAME);
+    loop
+      fetch MTDT_FUENTES
+      into reg_fuente;
+      exit when MTDT_FUENTES%NOTFOUND;
+    
+      --UTL_FILE.put_line(fich_salida_load, '  ObtenContrasenaExt ${SIST_ORIGEN' || '_' || reg_fuente.SOURCE || '}');
+    
+      /* (20170428) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+      if (v_numero_fuentes > 1) then
+        UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="${REQ_NUM}_' || reg_tabla.TABLE_NAME || '_' || reg_fuente.SOURCE || '.sql"');
       else
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES}');
+        UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="${REQ_NUM}_' || reg_tabla.TABLE_NAME || '.sql"');
       end if;
-    elsif (v_tabla_dinamica = true and v_fecha_ini_param = true and v_fecha_fin_param = true) then
-      /* (20160414) Angel Ruiz. Si NO existe tabla dinamica, entonces hacemos la llamada normal  */
-      if (v_type_validation = 'I') then
-        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
-        /* va a las tablas de Stagin sin pasar por ficehro plano */
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES} ${FECHA} ${FECHA_FIN}');
-      else
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES} ${FECHA} ${FECHA_FIN}');
+
+      /***********/
+      /* (20160817) Angel Ruiz. Cambio temporal para adecuarse a la entrega de produccion*/
+      --UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="${REQ_NUM}_' || reg_tabla.TABLE_NAME || '.sql"');
+      --UTL_FILE.put_line(fich_salida_load, '  ARCHIVO_SQL="ONIX_' || reg_tabla.TABLE_NAME || '.sql"');
+      /* (20160817) Angel Ruiz FIN Cambio temporal para adecuarse a la entrega de produccion*/    
+      if (v_tabla_dinamica = true and v_fecha_ini_param = false and v_fecha_fin_param = false) then
+        /* (20160414) Angel Ruiz. Si existe tabla dinamica, entonces hay que hacer una llamada al sqlplus con un parametro mas  */
+        if (v_type_validation = 'I') then
+          /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+          /* va a las tablas de Stagin sin pasar por ficehro plano */
+          --UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES}');
+          UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES}');
+        else
+          --UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES}');
+          /* (20180316) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+          if (v_numero_fuentes > 1) then
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE || ' ${FECHA_MES}');
+          else          
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES}');
+          end if;
+          /* (20180316) Angel Ruiz. FIN NF: Interfaz de fuentes diferentes */
+        end if;
+      elsif (v_tabla_dinamica = true and v_fecha_ini_param = true and v_fecha_fin_param = true) then
+        /* (20160414) Angel Ruiz. Si NO existe tabla dinamica, entonces hacemos la llamada normal  */
+        if (v_type_validation = 'I') then
+          /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+          /* va a las tablas de Stagin sin pasar por ficehro plano */
+          UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES} ${FECHA} ${FECHA_FIN}');
+        else
+          /* (20180316) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+          if (v_numero_fuentes > 1) then
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE || ' ${FECHA_MES} ${FECHA} ${FECHA_FIN}');
+          else        
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES} ${FECHA} ${FECHA_FIN}');
+          end if;
+          /* (20180316) Angel Ruiz. FIN NF: Interfaz de fuentes diferentes */
+        end if;
+      elsif (v_tabla_dinamica = true and v_fecha_ini_param = true and v_fecha_fin_param = false) then
+        if (v_type_validation = 'I') then
+          /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+          /* va a las tablas de Stagin sin pasar por ficehro plano */
+          UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES} ${FECHA}');
+        else
+          /* (20180316) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+          if (v_numero_fuentes > 1) then
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE || ' ${FECHA_MES} ${FECHA}');
+          else      
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES} ${FECHA}');
+          end if;
+          /* (20180316) Angel Ruiz. FIN NF: Interfaz de fuentes diferentes */
+        end if;
+      elsif (v_tabla_dinamica = false and v_fecha_ini_param = true and v_fecha_fin_param = true) then
+        if (v_type_validation = 'I') then
+          /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+          /* va a las tablas de Stagin sin pasar por ficehro plano */
+          UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA} ${FECHA_FIN}');
+        else
+          /* (20180316) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+          if (v_numero_fuentes > 1) then
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE || ' ${FECHA} ${FECHA_FIN}');
+          else        
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA} ${FECHA_FIN}');
+          end if;
+          /* (20180316) Angel Ruiz. FIN NF: Interfaz de fuentes diferentes */
+        end if;
+      elsif (v_tabla_dinamica = false and v_fecha_ini_param = true and v_fecha_fin_param = false) then
+        if (v_type_validation = 'I') then
+          /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+          /* va a las tablas de Stagin sin pasar por ficehro plano */
+          UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA}');
+        else
+          /* (20180316) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+          if (v_numero_fuentes > 1) then
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE || ' ${FECHA}');
+          else        
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA}');
+          end if;
+          /* (20180316) Angel Ruiz. FIN NF: Interfaz de fuentes diferentes */
+        end if;
+      else  
+        if (v_type_validation = 'I') then
+          /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
+          /* va a las tablas de Stagin sin pasar por ficehro plano */
+          UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL}');
+        else
+          /* (20180316) Angel Ruiz. NF: Interfaz de fuentes diferentes */
+          if (v_numero_fuentes > 1) then
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE);
+          else        
+            UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR_EXT}/${BD_PWD_EXT}@${CAD_CONEX_EXT} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}');
+          end if;
+        end if;
       end if;
-    elsif (v_tabla_dinamica = true and v_fecha_ini_param = true and v_fecha_fin_param = false) then
-      if (v_type_validation = 'I') then
-        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
-        /* va a las tablas de Stagin sin pasar por ficehro plano */
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA_MES} ${FECHA}');
-      else
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA_MES} ${FECHA}');
-      end if;
-    elsif (v_tabla_dinamica = false and v_fecha_ini_param = true and v_fecha_fin_param = true) then
-      if (v_type_validation = 'I') then
-        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
-        /* va a las tablas de Stagin sin pasar por ficehro plano */
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA} ${FECHA_FIN}');
-      else
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA} ${FECHA_FIN}');
-      end if;
-    elsif (v_tabla_dinamica = false and v_fecha_ini_param = true and v_fecha_fin_param = false) then
-      if (v_type_validation = 'I') then
-        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
-        /* va a las tablas de Stagin sin pasar por ficehro plano */
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${FECHA}');
-      else
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA} ${FECHA}');
-      end if;
-    else  
-      if (v_type_validation = 'I') then
-        /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
-        /* va a las tablas de Stagin sin pasar por ficehro plano */
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL}');
-      else
-        UTL_FILE.put_line(fich_salida_load, '  sqlplus ${BD_USR}/${BD_PWD}@${BD_SID} @${PATH_SQL}${ARCHIVO_SQL} ${PATH_SALIDA}${ARCHIVO_SALIDA}');
-      end if;
+      UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  ERROR: Al generar la interfaz ${ARCHIVO_SQL} (ERROR al ejecutar sqlplus)."');
+      UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al generar la interfaz ${ARCHIVO_SALIDA} (El error surgio al ejecutar sqlplus)." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al generar la interfaz ${ARCHIVO_SALIDA} (El error surgio al ejecutar sqlplus)."');
+      UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+      --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_load, '    exit 1');
+      UTL_FILE.put_line(fich_salida_load, '  fi');
+    end loop;
+    close MTDT_FUENTES; 
+    if (v_numero_fuentes > 1) then
+      /* Tenemos que concatenar los ficheros de cada fuente en un solo fichero */
+      UTL_FILE.put_line(fich_salida_load, '  # Concatenamos los ficheros intermedios generados para cada FUENTE en uno solo');
+      UTL_FILE.put_line(fich_salida_load, '  cat \');
+      open MTDT_FUENTES(reg_tabla.TABLE_NAME);
+      loop
+        fetch MTDT_FUENTES
+        into reg_fuente;
+        exit when MTDT_FUENTES%NOTFOUND;
+        UTL_FILE.put_line(fich_salida_load, '  ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE || ' \');
+      end loop;
+      close MTDT_FUENTES;
+      UTL_FILE.put_line(fich_salida_load, '  > ${PATH_SALIDA}${ARCHIVO_SALIDA}');
+      UTL_FILE.put_line(fich_salida_load, '  > ${PATH_SALIDA}${ARCHIVO_SALIDA}');
+      UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
+      UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  ERROR: Al generar la interfaz ${ARCHIVO_SQL} (ERROR concatenar los archivos de las diferentes fuentes)."');
+      UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al generar la interfaz ${ARCHIVO_SALIDA} (El error surgio al concatenar los archivos de las diferentes fuentes)." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+      UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+      UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+      UTL_FILE.put_line(fich_salida_load, '    exit 1');
+      UTL_FILE.put_line(fich_salida_load, '  fi');
+      UTL_FILE.put_line(fich_salida_load, '  # Borramos los ficheros intermedios generados para cada FUENTE en uno solo');
+      /* Borramos los ficheros intermedios */
+      UTL_FILE.put_line(fich_salida_load, '  # Borramos los ficheros intermedios generados para cada FUENTE en uno solo');
+      open MTDT_FUENTES(reg_tabla.TABLE_NAME);
+      loop
+        fetch MTDT_FUENTES
+        into reg_fuente;
+        exit when MTDT_FUENTES%NOTFOUND;
+        UTL_FILE.put_line(fich_salida_load, '  rm -f ${PATH_SALIDA}${ARCHIVO_SALIDA}_' || reg_fuente.SOURCE);
+      end loop;
+      close MTDT_FUENTES;
     end if;
-    UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
-    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  ERROR: Al generar la interfaz ${ARCHIVO_SQL} (ERROR al ejecutar sqlplus)."');
-    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al generar la interfaz ${ARCHIVO_SALIDA} (El error surgio al ejecutar sqlplus)." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
-    UTL_FILE.put_line(fich_salida_load, '    exit 1');
-    UTL_FILE.put_line(fich_salida_load, '  fi');
+    
+    /************************/
+    /* (20170418) Angel Ruiz. NF FIN */
+    /************************/
+    
     if (v_type_validation <> 'I') then
       /* (20160607) Angel Ruiz. Si se trata de validacion I desde la extraccion */
       /* va a las tablas de Stagin sin pasar por ficehro plano */
@@ -3633,6 +3920,8 @@ begin
     end if;
     UTL_FILE.put_line(fich_salida_load, '  return 0');
     UTL_FILE.put_line(fich_salida_load, '}');
+
+
 
 
     if (v_type_validation = 'I') then
@@ -3685,37 +3974,37 @@ begin
     UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  ERROR: Al generar el conteo del fichero (ERROR al ejecutar wc)."');
     UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al generar el conteo de la interfaz ' || reg_tabla.TABLE_NAME || ' (El error surgio al ejecutar wc)." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
     UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '    exit 1');
     UTL_FILE.put_line(fich_salida_load, '  fi');
-    UTL_FILE.put_line(fich_salida_load, '  B_CONTEO_BD=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
-    UTL_FILE.put_line(fich_salida_load, 'whenever sqlerror exit 1');
-    UTL_FILE.put_line(fich_salida_load, 'set pagesize 0');
-    UTL_FILE.put_line(fich_salida_load, 'set heading off');
-    UTL_FILE.put_line(fich_salida_load, 'select');
-    if (v_fecha_ini_param = false and v_fecha_fin_param = false) then
-      UTL_FILE.put_line(fich_salida_load, 'GET_CUENTAINTERFAZ(''${INTERFAZ}'', NULL, NULL)');
-    elsif (v_fecha_ini_param = true and v_fecha_fin_param = true) then
-      UTL_FILE.put_line(fich_salida_load, 'GET_CUENTAINTERFAZ(''${INTERFAZ}'', ''${FECHA}'', ''${FECHA_FIN}'')');      
-    elsif (v_fecha_ini_param = true and v_fecha_fin_param = false) then    
-      UTL_FILE.put_line(fich_salida_load, 'GET_CUENTAINTERFAZ(''${INTERFAZ}'', ''${FECHA}'', NULL)');
-    end if;
-    UTL_FILE.put_line(fich_salida_load, 'from dual;');
-    UTL_FILE.put_line(fich_salida_load, 'quit');
-    UTL_FILE.put_line(fich_salida_load, '!eof`');
-    UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
-    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}: ERROR: Al obtener la Bandera de Conteo de Base de Datos."');
-    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al obtener el conteo de Base de datos para esta interfaz mediante la funcion GET_CUENTAINTERFAZ" | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
-    UTL_FILE.put_line(fich_salida_load, '    exit 1');
-    UTL_FILE.put_line(fich_salida_load, '  fi');
-    UTL_FILE.put_line(fich_salida_load, '  if [ ${CONTEO_ARCHIVO} -ne ${B_CONTEO_BD} ]; then');
-    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  ERROR: Los conteos no coinciden (ERROR al ejecutar comparacion de conteos )."');
-    UTL_FILE.put_line(fich_salida_load, '    echo "La validacion de conteo ha fallado, favor de validar la extraccion antes de continuar" | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '  fi');
-    UTL_FILE.put_line(fich_salida_load, '}');
+    --UTL_FILE.put_line(fich_salida_load, '  B_CONTEO_BD=`sqlplus -s ${BD_USR}/${BD_PWD}@${BD_SID} <<!eof');
+    --UTL_FILE.put_line(fich_salida_load, 'whenever sqlerror exit 1');
+    --UTL_FILE.put_line(fich_salida_load, 'set pagesize 0');
+    --UTL_FILE.put_line(fich_salida_load, 'set heading off');
+    --UTL_FILE.put_line(fich_salida_load, 'select');
+    --if (v_fecha_ini_param = false and v_fecha_fin_param = false) then
+      --UTL_FILE.put_line(fich_salida_load, 'GET_CUENTAINTERFAZ(''${INTERFAZ}'', NULL, NULL)');
+    --elsif (v_fecha_ini_param = true and v_fecha_fin_param = true) then
+      --UTL_FILE.put_line(fich_salida_load, 'GET_CUENTAINTERFAZ(''${INTERFAZ}'', ''${FECHA}'', ''${FECHA_FIN}'')');      
+    --elsif (v_fecha_ini_param = true and v_fecha_fin_param = false) then    
+      --UTL_FILE.put_line(fich_salida_load, 'GET_CUENTAINTERFAZ(''${INTERFAZ}'', ''${FECHA}'', NULL)');
+    --end if;
+    --UTL_FILE.put_line(fich_salida_load, 'from dual;');
+    --UTL_FILE.put_line(fich_salida_load, 'quit');
+    --UTL_FILE.put_line(fich_salida_load, '!eof`');
+    --UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
+    --UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}: ERROR: Al obtener la Bandera de Conteo de Base de Datos."');
+    --UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al obtener el conteo de Base de datos para esta interfaz mediante la funcion GET_CUENTAINTERFAZ" | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    --UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '    exit 1');
+    --UTL_FILE.put_line(fich_salida_load, '  fi');
+    --UTL_FILE.put_line(fich_salida_load, '  if [ ${CONTEO_ARCHIVO} -ne ${B_CONTEO_BD} ]; then');
+    --UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  ERROR: Los conteos no coinciden (ERROR al ejecutar comparacion de conteos )."');
+    --UTL_FILE.put_line(fich_salida_load, '    echo "La validacion de conteo ha fallado, favor de validar la extraccion antes de continuar" | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    --UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '  fi');
+    --UTL_FILE.put_line(fich_salida_load, '}');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# SE GENERA EL GENERA EL FICHERO DE FLAG                                       #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
@@ -3728,7 +4017,7 @@ begin
     UTL_FILE.put_line(fich_salida_load, '  printf "%-50s%015d%015d\n" ${ARCHIVO_SALIDA} ${CONTEO_ARCHIVO} ${B_CONTEO_BD} > ${PATH_SALIDA}${NAME_FLAG}');
     UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
     UTL_FILE.put_line(fich_salida_load, '    echo "Error al generar el archivo flag ${PATH_SALIDA}${NAME_FLAG}"');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
     UTL_FILE.put_line(fich_salida_load, '    exit 3');
     UTL_FILE.put_line(fich_salida_load, '  fi');
     UTL_FILE.put_line(fich_salida_load, '  echo "TERMINA LA CREACION DEL ARCHIVO ${PATH_SALIDA}${NAME_FLAG} [`date +%d/%m/%Y\ %H:%M:%S`]"');
@@ -3736,44 +4025,44 @@ begin
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# REALIZA EL ENVIO DE LOS ARCHIVOS POR SCP                                     #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
-    UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos()');
-    UTL_FILE.put_line(fich_salida_load, '{');
+    --UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos()');
+    --UTL_FILE.put_line(fich_salida_load, '{');
     /* (20161004) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
     /* dado que seran concatenados con otra fuente */
-    if ( reg_tabla.TABLE_NAME in ('CALIDAD_PERCIBIDA', 'DICCIONARIO_TT', 'ESPECIFICACION_TT', 'ESTADO_TAREA', 'FORMA_CONTACTO'
-      , 'MOTIVO_OPERACION_TT', 'MOVIMIENTOS_TT', 'NODO', 'PROVEEDOR_TELCO', 'TIPIFICACION_TT'
-      , 'TIPO_NODO', 'TIPO_OPERACION_TT', 'UNIDAD_FUNCIONAL1', 'UNIDAD_FUNCIONAL2')) then
-      UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/DWH/dwhprod/DWH/MEX/Fuente"');
-      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}/${FECHA}');
-    else
-      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
-    end if;
+    --if ( reg_tabla.TABLE_NAME in ('CALIDAD_PERCIBIDA', 'DICCIONARIO_TT', 'ESPECIFICACION_TT', 'ESTADO_TAREA', 'FORMA_CONTACTO'
+      --, 'MOTIVO_OPERACION_TT', 'MOVIMIENTOS_TT', 'NODO', 'PROVEEDOR_TELCO', 'TIPIFICACION_TT'
+      --, 'TIPO_NODO', 'TIPO_OPERACION_TT', 'UNIDAD_FUNCIONAL1', 'UNIDAD_FUNCIONAL2')) then
+      --UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/DWH/dwhprod/DWH/MEX/Fuente"');
+      --UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}/${FECHA}');
+    --else
+      --UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${ARCHIVO_SALIDA} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
+    --end if;
     /* (20161004) Angel Ruiz. Fin cambio Temporal*/
-    UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
-    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  Surgio un error en el envio del archivo."');
-    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al enviar el archivo ${ARCHIVO_SALIDA} al servidor ${DESTINO_IP}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
-    UTL_FILE.put_line(fich_salida_load, '    exit 1');
-    UTL_FILE.put_line(fich_salida_load, '  fi');
+    --UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
+    --UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  Surgio un error en el envio del archivo."');
+    --UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al enviar el archivo ${ARCHIVO_SALIDA} al servidor ${DESTINO_IP}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    --UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '    exit 1');
+    --UTL_FILE.put_line(fich_salida_load, '  fi');
     /* (20161004) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
     /* dado que seran concatenados con otra fuente */
-    if ( reg_tabla.TABLE_NAME in ('CALIDAD_PERCIBIDA', 'DICCIONARIO_TT', 'ESPECIFICACION_TT', 'ESTADO_TAREA', 'FORMA_CONTACTO'
-      , 'MOTIVO_OPERACION_TT', 'MOVIMIENTOS_TT', 'NODO', 'PROVEEDOR_TELCO', 'TIPIFICACION_TT'
-      , 'TIPO_NODO', 'TIPO_OPERACION_TT', 'UNIDAD_FUNCIONAL1', 'UNIDAD_FUNCIONAL2')) then
-      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}/${FECHA}');
-    else
-      UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
-    end if;
-    UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
-    UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  Surgio un error en el envio del archivo."');
-    UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al enviar el archivo ${NAME_FLAG} al servidor ${DESTINO_IP}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
-    UTL_FILE.put_line(fich_salida_load, '    echo `date`');
-    UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
-    UTL_FILE.put_line(fich_salida_load, '    exit 1');
-    UTL_FILE.put_line(fich_salida_load, '  fi');
-    UTL_FILE.put_line(fich_salida_load, '  return 0');
-    UTL_FILE.put_line(fich_salida_load, '}');
+    --if ( reg_tabla.TABLE_NAME in ('CALIDAD_PERCIBIDA', 'DICCIONARIO_TT', 'ESPECIFICACION_TT', 'ESTADO_TAREA', 'FORMA_CONTACTO'
+      --, 'MOTIVO_OPERACION_TT', 'MOVIMIENTOS_TT', 'NODO', 'PROVEEDOR_TELCO', 'TIPIFICACION_TT'
+      --, 'TIPO_NODO', 'TIPO_OPERACION_TT', 'UNIDAD_FUNCIONAL1', 'UNIDAD_FUNCIONAL2')) then
+      --UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}/${FECHA}');
+    --else
+      --UTL_FILE.put_line(fich_salida_load, '  scp ${PATH_SALIDA}${NAME_FLAG} ${USER_DESTINO_SCP}@${DESTINO_IP}:${PATH_DESTINO}');
+    --end if;
+    --UTL_FILE.put_line(fich_salida_load, '  if [ $? -ne 0 ]; then');
+    --UTL_FILE.put_line(fich_salida_load, '    SUBJECT="${REQ_NUM}:  Surgio un error en el envio del archivo."');
+    --UTL_FILE.put_line(fich_salida_load, '    echo "Surgio un error al enviar el archivo ${NAME_FLAG} al servidor ${DESTINO_IP}." | mailx -s "${SUBJECT}" "${CTA_MAIL}"');
+    --UTL_FILE.put_line(fich_salida_load, '    echo `date`');
+    --UTL_FILE.put_line(fich_salida_load, '    InsertaFinFallido');
+    --UTL_FILE.put_line(fich_salida_load, '    exit 1');
+    --UTL_FILE.put_line(fich_salida_load, '  fi');
+    --UTL_FILE.put_line(fich_salida_load, '  return 0');
+    --UTL_FILE.put_line(fich_salida_load, '}');
     UTL_FILE.put_line(fich_salida_load, '');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# EJECUCION DEL PROGRAMA                                                       #');
@@ -3783,48 +4072,60 @@ begin
     UTL_FILE.put_line(fich_salida_load, '#Permite los acentos y Ë');
     UTL_FILE.put_line(fich_salida_load, 'export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
     UTL_FILE.put_line(fich_salida_load, 'echo "Inicia Proceso: `date`"');
+    UTL_FILE.put_line(fich_salida_load, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, 'REQ_NUM="' || REQ_NUMBER || '"');
+    /* (20180316) Angel Ruiz. NF: Extraccion desde varios origenes*/
+    open MTDT_FUENTES(reg_tabla.TABLE_NAME);
+    loop
+      fetch MTDT_FUENTES
+      into reg_fuente;
+      exit when MTDT_FUENTES%NOTFOUND;
+      UTL_FILE.put_line(fich_salida_load, 'SIST_ORIGEN' || '_' || reg_fuente.SOURCE || '="' || reg_fuente.SOURCE || '"');
+    end loop;
+    close MTDT_FUENTES;
     UTL_FILE.put_line(fich_salida_load, '#NOMBRE INTERFAZ');
     UTL_FILE.put_line(fich_salida_load, 'INTERFAZ="' || reg_tabla.TABLE_NAME || '"');
     UTL_FILE.put_line(fich_salida_load, '#NOMEBRE DE LA INTERFAZ');
     UTL_FILE.put_line(fich_salida_load, 'NOM_INTERFAZ="' || nom_inter_a_cargar_sin_fecha || '"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_REQ="/DWH/requerimientos"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_SQL="${PATH_REQ}/shells/${REQ_NUM}/ONIX_${INTERFAZ}/sql/"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_SALIDA="${PATH_REQ}/salidasmanual/${REQ_NUM}/ONIX_${INTERFAZ}/datos/"');
+    --UTL_FILE.put_line(fich_salida_load, 'PATH_REQ="/DWH/requerimientos"');
+    --UTL_FILE.put_line(fich_salida_load, 'PATH_SQL="${PATH_REQ}/shells/${REQ_NUM}/${SIST_ORIGEN_' || reg_fuente.SOURCE || '}/sql/"');
+    --UTL_FILE.put_line(fich_salida_load, 'PATH_SQL="${PATH_REQ}/shells/${REQ_NUM}/ONIX_${INTERFAZ}/sql/"');
+    --UTL_FILE.put_line(fich_salida_load, 'PATH_SALIDA="${PATH_REQ}/salidasmanual/${REQ_NUM}/${INTERFAZ}/datos/"');
     --UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/SAP_INFO/shell/"');
-    UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/ONIX_${INTERFAZ}/shell/"');
+    --UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/ONIX_${INTERFAZ}/shell/"');
+    --UTL_FILE.put_line(fich_salida_load, 'PATH_SHELL="${PATH_REQ}/shells/${REQ_NUM}/${SIST_ORIGEN_' || reg_fuente.SOURCE || '}/shell/"');
     UTL_FILE.put_line(fich_salida_load, 'B_CONTEO_BD=0');
     UTL_FILE.put_line(fich_salida_load, 'CONTEO_ARCHIVO=0');
     
     --UTL_FILE.put_line(fich_salida_load, 'SHELL_SCP="${PATH_SHELL}' || REQ_NUMBER || '_EnviaArchivos.sh"');
-    UTL_FILE.put_line(fich_salida_load, 'if [ "`/sbin/ifconfig -a | grep ''10.225.244.'' | awk -F'':'' ''{print substr($2,1,13) }''`" = "10.225.244.21" ]; then');
-    UTL_FILE.put_line(fich_salida_load, '  OWNER="ONIX"');
-    UTL_FILE.put_line(fich_salida_load, '  #CUENTAS PARA MANTENIMIENTO');
-    UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL="ulises.rosales.ext@telefonica.com"');
-    UTL_FILE.put_line(fich_salida_load, '  #BASE DONDE SE CARGARA LA INFORMACION');
-    UTL_FILE.put_line(fich_salida_load, '  BD_SID="QSIEMDESA"');
-    UTL_FILE.put_line(fich_salida_load, '  BD_USR="ONIX"');
-    UTL_FILE.put_line(fich_salida_load, '  BD_PWD=""');
-    UTL_FILE.put_line(fich_salida_load, '  #INFORMACION PARA ENVIO POR SCP');
-    UTL_FILE.put_line(fich_salida_load, '  DESTINO_IP="10.225.173.101"');
-    UTL_FILE.put_line(fich_salida_load, '  USER_DESTINO_SCP="app_bi"');
-    UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/reportes/requerimientos/salidasmanual/' || REQ_NUMBER || '/datos"');
-    UTL_FILE.put_line(fich_salida_load, 'else');
-    UTL_FILE.put_line(fich_salida_load, '  OWNER="ONIX"');
-    UTL_FILE.put_line(fich_salida_load, '  #CUENTAS PARA MANTENIMIENTO');
+    --UTL_FILE.put_line(fich_salida_load, 'if [ "`/sbin/ifconfig -a | grep ''10.225.244.'' | awk -F'':'' ''{print substr($2,1,13) }''`" = "10.225.244.21" ]; then');
+    --UTL_FILE.put_line(fich_salida_load, '  OWNER="ONIX"');
+    --UTL_FILE.put_line(fich_salida_load, '  #CUENTAS PARA MANTENIMIENTO');
+    --UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL="ulises.rosales.ext@telefonica.com"');
+    --UTL_FILE.put_line(fich_salida_load, '  #BASE DONDE SE CARGARA LA INFORMACION');
+    --UTL_FILE.put_line(fich_salida_load, '  BD_SID="QSIEMDESA"');
+    --UTL_FILE.put_line(fich_salida_load, '  BD_USR="ONIX"');
+    --UTL_FILE.put_line(fich_salida_load, '  BD_PWD=""');
+    --UTL_FILE.put_line(fich_salida_load, '  #INFORMACION PARA ENVIO POR SCP');
+    --UTL_FILE.put_line(fich_salida_load, '  DESTINO_IP="10.225.173.101"');
+    --UTL_FILE.put_line(fich_salida_load, '  USER_DESTINO_SCP="app_bi"');
+    --UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/reportes/requerimientos/salidasmanual/' || REQ_NUMBER || '/datos"');
+    --UTL_FILE.put_line(fich_salida_load, 'else');
+    --UTL_FILE.put_line(fich_salida_load, '  OWNER="ONIX"');
+    --UTL_FILE.put_line(fich_salida_load, '  #CUENTAS PARA MANTENIMIENTO');
     UTL_FILE.put_line(fich_salida_load, '  CTA_MAIL=`cat ${PATH_REQ}/shells/Utilerias/Correos_Mtto_ReportesBI.txt`');
-    UTL_FILE.put_line(fich_salida_load, '  #BASE DONDE SE CARGARA LA INFORMACION');
-    UTL_FILE.put_line(fich_salida_load, '  BD_SID="' || BD_SID || '"');
-    UTL_FILE.put_line(fich_salida_load, '  BD_USR="' || BD_USR || '"');
-    UTL_FILE.put_line(fich_salida_load, '  BD_PWD=""');
-    UTL_FILE.put_line(fich_salida_load, '  #INFORMACION PARA ENVIO POR SCP');
-    UTL_FILE.put_line(fich_salida_load, '  DESTINO_IP="10.225.210.136"');
-    UTL_FILE.put_line(fich_salida_load, '  USER_DESTINO_SCP="dwhprod"');
-    UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/DWH/dwhprod/DWH/MEX/Fuente/ValidaIE/XVALIDAR"');
-    UTL_FILE.put_line(fich_salida_load, 'fi');
+    --UTL_FILE.put_line(fich_salida_load, '  #BASE DONDE SE CARGARA LA INFORMACION');
+    --UTL_FILE.put_line(fich_salida_load, '  BD_SID="' || BD_SID || '"');
+    --UTL_FILE.put_line(fich_salida_load, '  BD_USR="' || BD_USR || '"');
+    --UTL_FILE.put_line(fich_salida_load, '  BD_PWD=""');
+    --UTL_FILE.put_line(fich_salida_load, '  #INFORMACION PARA ENVIO POR SCP');
+    --UTL_FILE.put_line(fich_salida_load, '  DESTINO_IP="10.225.210.136"');
+    --UTL_FILE.put_line(fich_salida_load, '  USER_DESTINO_SCP="dwhprod"');
+    --UTL_FILE.put_line(fich_salida_load, '  PATH_DESTINO="/DWH/dwhprod/DWH/MEX/Fuente/ValidaIE/XVALIDAR"');
+    --UTL_FILE.put_line(fich_salida_load, 'fi');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# LIBRERIAS                                                                    #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
@@ -3834,11 +4135,11 @@ begin
     UTL_FILE.put_line(fich_salida_load, 'if [ -z "${LD_UTILArchivo}" ] ; then');
     UTL_FILE.put_line(fich_salida_load, '  . ${PATH_REQ}/shells/Utilerias/UtilArchivo.sh');
     UTL_FILE.put_line(fich_salida_load, 'fi');
-    UTL_FILE.put_line(fich_salida_load, 'LdVarOra');
+    --UTL_FILE.put_line(fich_salida_load, 'LdVarOra');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# LLAMADO DE LAS FUNCIONES ESPECIALES                                          #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
-    UTL_FILE.put_line(fich_salida_load, 'DepuracionDeProducto ${REQ_NUM} ${PATH_SALIDA}${NOM_INTERFAZ}* 2');
+    --UTL_FILE.put_line(fich_salida_load, 'DepuracionDeProducto ${REQ_NUM} ${PATH_SALIDA}${NOM_INTERFAZ}* 2');
     UTL_FILE.put_line(fich_salida_load, '#OBTIENE LA CONTRASENA DE LA B.D.');
     UTL_FILE.put_line(fich_salida_load, 'ObtenContrasena ${BD_SID} ${BD_USR}');
     UTL_FILE.put_line(fich_salida_load, '#OBTIENE LA FECHA');
@@ -3860,17 +4161,17 @@ begin
     UTL_FILE.put_line(fich_salida_load, 'GeneraFlag');
     /* (20160712) Angel Ruiz. Modificacion Temporal. Se trata de comentar la linea que envia los ficheros */
     /* dado que seran concatenados con otra fuente */
-    if ( reg_tabla.TABLE_NAME in ('BANCO', 'CANAL', 'CANAL_OFERTA', 'CART_VENCIDA', 'CAUSA_PAGO'
-          , 'CICLO_FACTURACION', 'CLIENTE', 'CONCEPTO_FACTURA', 'CONCEPTO_PAGO', 'CUENTA'
-          , 'DISTRIBUIDOR', 'ESTATUS_OFERTA', 'ESTATUS_OPERACION', 'FACTURACION_IMEI', 'FORMA_PAGO', 'ICC', 'MOVIMIENTO_ABO', 'OFICINA'
-          , 'ORIGEN_PAGO', 'ORIGEN_VENTA_COMERCIAL', 'PARQUE_ABO_POST', 'PARQUE_ABO_PRE', 'PARQUE_SVA', 'PLAN_TARIFARIO', 'PROMOCION'
-          , 'PUNTO_VENTA', 'TARJETA_PAGO', 'TIPO_CONCEPTO_FACTURA', 'TIPO_CUENTA', 'TRAF_TARIF_DATOS_POST', 'TRAF_TARIF_VOZ_POST'
-          , 'VENDEDOR', 'VENTAS_REGISTRADAS')) then
-      UTL_FILE.put_line(fich_salida_load, '#EnviaArchivos');
-    else
-      UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos');
-    end if;
-    UTL_FILE.put_line(fich_salida_load, 'InsertaFinOK');
+    --if ( reg_tabla.TABLE_NAME in ('BANCO', 'CANAL', 'CANAL_OFERTA', 'CART_VENCIDA', 'CAUSA_PAGO'
+          --, 'CICLO_FACTURACION', 'CLIENTE', 'CONCEPTO_FACTURA', 'CONCEPTO_PAGO', 'CUENTA'
+          --, 'DISTRIBUIDOR', 'ESTATUS_OFERTA', 'ESTATUS_OPERACION', 'FACTURACION_IMEI', 'FORMA_PAGO', 'ICC', 'MOVIMIENTO_ABO', 'OFICINA'
+          --, 'ORIGEN_PAGO', 'ORIGEN_VENTA_COMERCIAL', 'PARQUE_ABO_POST', 'PARQUE_ABO_PRE', 'PARQUE_SVA', 'PLAN_TARIFARIO', 'PROMOCION'
+          --, 'PUNTO_VENTA', 'TARJETA_PAGO', 'TIPO_CONCEPTO_FACTURA', 'TIPO_CUENTA', 'TRAF_TARIF_DATOS_POST', 'TRAF_TARIF_VOZ_POST'
+          --, 'VENDEDOR', 'VENTAS_REGISTRADAS')) then
+      --UTL_FILE.put_line(fich_salida_load, '#EnviaArchivos');
+    --else
+      --UTL_FILE.put_line(fich_salida_load, 'EnviaArchivos');
+    --end if;
+    --UTL_FILE.put_line(fich_salida_load, 'InsertaFinOK');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');
     UTL_FILE.put_line(fich_salida_load, '# FIN DEL SHELL                                                                #');
     UTL_FILE.put_line(fich_salida_load, '################################################################################');

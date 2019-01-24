@@ -18,7 +18,7 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_COM_PRE_SUBSIDIO')
     --and TABLE_NAME in ('SA_FACT_SERIADOS1', 'SA_MOVIMIENTOS_SERIADOS1', 'SA_PARQUE_SERIADOS1')
     --and TABLE_NAME in ('DMD_CANAL', 'DMD_CADENA', 'DMD_SUBTIPO_CANAL', 'DMD_MEDIO_RECARGA', 'DMD_ERROR_RECARGA')
-    --and TABLE_NAME in ('SA_CLIENTE_DIST1', 'DWD_CLIENTE_DISTRIBUIDOR')
+    --and TABLE_NAME in ('SA_CLIENTE_DIST1', 'DWD_CLIENTE_DISTRIBUIDOR', 'SA_TIPO_DOCUMENTO')
     --and TABLE_NAME in ('DWD_SUSCRIPTOR_ITSON')
     --and TABLE_NAME in ('SA_PARQUE_SERIADOS1', 'DMD_MATERIAL', 'DMD_ADUANA', 'DMD_CANAL_DISTRIBUCION', 'DMD_CLASE_ENTREGA'
     --, 'DMD_TIPO_PEDIDO', 'DMD_GAMA', 'DMD_GRUPO_IMPUTACION', 'DMD_MARCA', 'DMD_ZONA_VENTA', 'DMD_SECTOR', 'DMD_ZONA_TRANSPORTE'
@@ -30,7 +30,8 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('DMD_SERIADO', 'DMD_CLASE_MOV', 'DMD_ESTATUS_ENTREGAS', 'DMD_ALMACEN', 'DMD_ESTADO_CLIENTE_DIST')
     --and TABLE_NAME in ('DMD_SERIADO', 'SA_PARQUE_SERIADOS1')
     --and TABLE_NAME in ('DMD_FUNCIONALIDAD_MATERIAL', 'DMD_MATERIAL', 'DMD_SERIADO')
-    and TABLE_NAME in ('DMD_SERIADO')
+    --and TABLE_NAME in ('DMD_SERIADO', 'SA_CLIENTE_DIST1', 'DMD_MATERIAL', 'SA_TIPO_DOCUMENTO', 'SA_PARQUE_SERIADOS1')
+    and TABLE_NAME in ('SA_PARQUE_COMPLEMENTO', 'SA_ABONADO_MVNO')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -86,6 +87,22 @@ cursor MTDT_TABLA
   WHERE
       trim(TABLE_NAME) = table_name_in and
       trim(SCENARIO) = scenario_in;
+
+  CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
+  IS
+    SELECT 
+      TRIM(TABLE_NAME) "TABLE_NAME",
+      TRIM(COLUMN_NAME) "COLUMN_NAME",
+      DATA_TYPE,
+      PK,
+      TRIM(NULABLE) "NULABLE",
+      TRIM(VDEFAULT) "VDEFAULT",
+      TRIM(INDICE) "INDICE"
+    FROM MTDT_MODELO_DETAIL
+    WHERE
+      trim(TABLE_NAME) = table_name_in
+    ORDER BY POSITION;
+  
   
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
@@ -168,7 +185,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   reg_lookupd MTDT_TC_LKUPD%rowtype;
   
   reg_function MTDT_TC_FUNCTION%rowtype;
-  
+  /* (20180220) Angel Ruiz. BUG en la parte de exchage*/
+  r_mtdt_modelo_logico_COLUMNA c_mtdt_modelo_logico_COLUMNA%rowtype;
   
 
   v_nombre_particion VARCHAR2(30);
@@ -542,7 +560,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     return lista_elementos;
   end split_string_coma;
 
-  /* (20170213) Angel Ruiz. Transforma el campo de la funcion poniendole el alias*/
+  /* (20170213) Angel Ruiz. Transforma el campo de la funcion poniendole el alias y el outer*/
   function transformo_funcion_outer (cadena_in in varchar2, alias_in in varchar2, outer_in in integer) return varchar2
   is
     v_campo varchar2(200);
@@ -861,7 +879,10 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             end if;
           else
             /* Se trata del resto de elmentos 'SER', ID_CANAL*/
-            if (instr(lista_elementos(indx), '''') = 0) then
+            if (regexp_instr(lista_elementos(indx), '^ *[0-9]+$') > 0) then
+              /* Se trata de un literal numerico */
+              v_cadena_temp := v_cadena_temp || lista_elementos(indx) || ', ';
+            elsif (instr(lista_elementos(indx), '''') = 0) then
               /* Se trata de un elemento que no es un literal, tipo ID_CANAL */
               if (outer_in = 1) then
                 if (instr(parte_1, '.') = 0) then
@@ -975,7 +996,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           --pos := pos_ant;
         end loop;
         /* Busco VAR_PROFUNDIDAD_BAJAS */
-        sustituto := ' 90 ';  /* Temporalmente pongo 90 dias */
+        sustituto := ' 5 ';  /* Temporalmente pongo 90 dias */
         pos := 0;
         loop
           dbms_output.put_line ('Entro en el LOOP de VAR_PROFUNDIDAD_BAJAS. La cadena es: ' || cadena_resul);
@@ -1109,7 +1130,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           --pos := pos_ant;
         end loop;
         /* Busco VAR_PROFUNDIDAD_BAJAS */
-        sustituto := ' 90 ';  /* Temporalmente pongo 90 dias */
+        sustituto := ' 5 ';  /* Temporalmente pongo 90 dias */
         pos := 0;
         loop
           dbms_output.put_line ('Entro en el LOOP de VAR_PROFUNDIDAD_BAJAS. La cadena es: ' || cadena_resul);
@@ -1456,11 +1477,11 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             if (l_WHERE.count = 1) then
               l_WHERE(l_WHERE.last) := v_IE_COLUMN_LKUP || ' >= ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
               l_WHERE.extend;
-              l_WHERE(l_WHERE.last) := ' AND ' || v_IE_COLUMN_LKUP || ' < ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+              l_WHERE(l_WHERE.last) := ' AND ' || v_IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
             else
               l_WHERE(l_WHERE.last) := ' AND ' || v_IE_COLUMN_LKUP || ' >= ' || v_alias || '.'  || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
               l_WHERE.extend;
-              l_WHERE(l_WHERE.last) := ' AND ' || v_IE_COLUMN_LKUP || ' < ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
+              l_WHERE(l_WHERE.last) := ' AND ' || v_IE_COLUMN_LKUP || ' <= ' || v_alias || '.' || 'MAX' || substr(reg_detalle_in.TABLE_COLUMN_LKUP, 4) || ' (+)';
             end if;
           else
             /* (20150126) Angel Ruiz. Incidencia referente a que siempre se coloca el valor -2 */
@@ -1945,6 +1966,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                       l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
                       l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      if (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  'NVL(' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  'NVL(' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      end if;
                     end if;
                   else
                     /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
@@ -1961,7 +1991,17 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                       dbms_output.put_line ('??????????###Papa. El ie_column es:' || ie_column_lkup(indx) || ' . La table_base_name es: ' || reg_detalle_in.TABLE_BASE_NAME);
                       l_WHERE(l_WHERE.last) :=  transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
-                      l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      --l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      if (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) := ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      end if;
+                      
                     end if;
                   end if;
                 else    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
@@ -1978,7 +2018,16 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                   elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
                     l_WHERE(l_WHERE.last) := transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                   else /* if (v_existe_valor = true) then */
-                    l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                    --l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                    if (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                      l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                    elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                      l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                    elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                      l_WHERE(l_WHERE.last) := ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                    elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                      l_WHERE(l_WHERE.last) :=  ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                    end if;
                   end if;
                 end if;
               else /* if (v_existe_valor = true) then */
@@ -1987,7 +2036,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 elsif (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                   l_WHERE(l_WHERE.last) := transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
                 else
-                  l_WHERE(l_WHERE.last) := ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                  if (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                    l_WHERE(l_WHERE.last) := ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                  elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                  elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                    l_WHERE(l_WHERE.last) := ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
                 end if;
               end if; /* if (v_existe_valor = true) then */
             else /* if (l_WHERE.count = 1) then */
@@ -2008,7 +2065,16 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                     elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
-                      l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      --l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      if (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND NVL(' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND NVL(' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      end if;
                     end if;
                   else
                     /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
@@ -2024,7 +2090,16 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                       dbms_output.put_line ('??????????###. POR FIN!!!.El ie_column es:' || ie_column_lkup(indx) || ' . La table_base_name es: ' || reg_detalle_in.TABLE_BASE_NAME);
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer (ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
-                      l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      --l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      if (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      end if;
                     end if;
                   end if;
                 else /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo NUMBER */
@@ -2041,7 +2116,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                     elsif (regexp_instr(ie_column_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0 or regexp_instr(table_columns_lkup(indx), '[Ll][Tt][Rr][Ii][Mm]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_funcion_outer(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_funcion_outer(table_columns_lkup(indx), v_alias, 1);
                     else
-                      l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      if (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                      elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                        l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                      end if;
                     end if;
                 end if;
               else
@@ -2050,7 +2133,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 elsif (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                   l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
                 else
-                  l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                  if (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                  elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  elsif (instr(ie_column_lkup(indx), '.') = 0 and instr(table_columns_lkup(indx), '.') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || table_columns_lkup(indx) || ' (+)';
+                  elsif (instr(ie_column_lkup(indx), '.') > 0 and instr(table_columns_lkup(indx), '.') = 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
+                  end if;
                 end if;
               end if;
             end if;
@@ -2166,7 +2257,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                     l_WHERE(l_WHERE.last) :=  transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                 else
-                  l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') > 0) then
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') = 0) then
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') > 0) then
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') = 0) then
+                    l_WHERE(l_WHERE.last) := reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  end if;
                 end if;
               end if;
             else  /* sino es el primer campo del Where  */
@@ -2223,7 +2322,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[D][E][C][O][D][E]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[D][E][C][O][D][E]') > 0) then
                     l_WHERE(l_WHERE.last) :=  ' AND ' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                 else
-                  l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  if (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') = 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') = 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') > 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  elsif (instr(reg_detalle_in.IE_COLUMN_LKUP, '.') > 0 and instr(reg_detalle_in.TABLE_COLUMN_LKUP, '.') = 0) then
+                    l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
+                  end if;
                 end if;
               end if;
             end if;
@@ -3192,7 +3299,11 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
-                UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT /*+ APPEND PARALLEL(T_SERIADO,10) */');
+                else
+                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT');
+                end if;
                 UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
                 /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 UTL_FILE.put_line(fich_salida_pkg,'    (');
@@ -3216,7 +3327,13 @@ begin
                 /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
                 /****/
-                UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '    SELECT /*+  FULL(SA_PARQUE_SERIADOS1) PARALLEL(SA_PARQUE_SERIADOS1,10)');
+                  UTL_FILE.put_line(fich_salida_pkg, '           FULL(DMD_SERIADO) PARALLEL(DMD_SERIADO ,10)');
+                  UTL_FILE.put_line(fich_salida_pkg, '           */');
+                else
+                  UTL_FILE.put_line(fich_salida_pkg, '    SELECT');
+                end if;
                 open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
                 primera_col := 1;
                 loop
@@ -3359,7 +3476,11 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');        
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
-                UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND PARALLEL(T_SERIADO,10) */');
+                else
+                  UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+                end if;
                 UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
                 /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 UTL_FILE.put_line(fich_salida_pkg,'    (');
@@ -3383,7 +3504,13 @@ begin
                 /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
                 /****/
-                UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '    SELECT /*+  FULL(SA_PARQUE_SERIADOS1) PARALLEL(SA_PARQUE_SERIADOS1,10)');
+                  UTL_FILE.put_line(fich_salida_pkg, '           FULL(DMD_SERIADO) PARALLEL(DMD_SERIADO ,10)');
+                  UTL_FILE.put_line(fich_salida_pkg, '           */');
+                else
+                  UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+                end if;
                 open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
                 primera_col := 1;
                 loop
@@ -3529,7 +3656,11 @@ begin
                 UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');        
                 UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
                 UTL_FILE.put_line(fich_salida_pkg, '');
-                UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '    INSERT /*+ APPEND PARALLEL(T_SERIADO,10) */');
+                else
+                  UTL_FILE.put_line(fich_salida_pkg,'    INSERT');
+                end if;
                 UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
                 /* parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 UTL_FILE.put_line(fich_salida_pkg,'    (');
@@ -3553,7 +3684,11 @@ begin
                 /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
                 /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
                 /****/
-                UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '    SELECT /*+ FULL(DMD_SERIADO) PARALLEL(DMD_SERIADO ,10) */');
+                else
+                  UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
+                end if;
                 open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
                 primera_col := 1;
                 loop
@@ -3780,8 +3915,16 @@ begin
               if lista_scenarios_presentes (indx) = 'N'
               then
                 --UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := new_reg_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+                /* (20180220) Angel Ruiz. Se añade solo para DMD_SERIADO */
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''ALTER INDEX APP_DISTDM.IDX_NT_T_SERIADO UNUSABLE'';');
+                end if;
                 UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := nreg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
                 UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_new || ''.'');');
+                /* (20180220) Angel Ruiz. Se añade solo para DMD_SERIADO */
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
+                end if;
               end if;
             END LOOP;
            /* Generamos la llamada para cargar los registros EXISTENTES */
@@ -3848,8 +3991,11 @@ begin
               if lista_scenarios_presentes (indx) = 'H'
               then
                 --UTL_FILE.put_line(fich_salida_pkg,'    numero_reg_hist := hst_reg_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
-                UTL_FILE.put_line(fich_salida_pkg,'    numero_reg_hist := hreg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
-                UTL_FILE.put_line(fich_salida_pkg,'    dbms_output.put_line (''El numero de registros historificados es: '' || numero_reg_hist || ''.'');');
+                UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_hist := hreg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+                UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros historificados es: '' || numero_reg_hist || ''.'');');
+                if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+                  UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
+                end if;
               end if;
             END LOOP;
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -3858,6 +4004,11 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
             
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
+            if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
+              UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''ALTER INDEX APP_DISTDM.IDX_NT_T_SERIADO REBUILD PARALLEL 16'';');
+              UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''ALTER INDEX APP_DISTDM.IDX_NT_T_SERIADO NOPARALLEL'';');
+            end if;
+            
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
             
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -3908,8 +4059,42 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el segundo paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
-            --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');    
-            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
+            --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');
+            /* (20180220) Angel Ruiz. BUG en la parte de exchage*/
+            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */' );
+            UTL_FILE.put_line(fich_salida_pkg, '      INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);
+            UTL_FILE.put_line(fich_salida_pkg, '      (');
+            primera_col := 1;
+            OPEN c_mtdt_modelo_logico_COLUMNA (reg_tabla.TABLE_NAME);
+            LOOP
+              FETCH c_mtdt_modelo_logico_COLUMNA
+              INTO r_mtdt_modelo_logico_COLUMNA;
+              EXIT WHEN c_mtdt_modelo_logico_COLUMNA%NOTFOUND;
+              if primera_col = 1 then /* Si es primera columna */
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+                primera_col := 0;
+              else
+                UTL_FILE.put_line(fich_salida_pkg, '     ,' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+              end if;
+            END LOOP; 
+            CLOSE c_mtdt_modelo_logico_COLUMNA;
+            UTL_FILE.put_line(fich_salida_pkg, '      )');
+            UTL_FILE.put_line(fich_salida_pkg, '      SELECT');
+            primera_col := 1;
+            OPEN c_mtdt_modelo_logico_COLUMNA (reg_tabla.TABLE_NAME);
+            LOOP
+              FETCH c_mtdt_modelo_logico_COLUMNA
+              INTO r_mtdt_modelo_logico_COLUMNA;
+              EXIT WHEN c_mtdt_modelo_logico_COLUMNA%NOTFOUND;
+              if primera_col = 1 then /* Si es primera columna */
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+                primera_col := 0;
+              else
+                UTL_FILE.put_line(fich_salida_pkg, '     ,' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+              end if;
+            END LOOP; 
+            CLOSE c_mtdt_modelo_logico_COLUMNA;
+            UTL_FILE.put_line(fich_salida_pkg, '      FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');
             UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
@@ -3936,7 +4121,43 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '      /* Comienza en el segundo paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');    
-            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
+            --UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
+            /* (20180220) Angel Ruiz. BUG en la parte de exchage*/
+            UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */' );
+            UTL_FILE.put_line(fich_salida_pkg, '      INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);
+            UTL_FILE.put_line(fich_salida_pkg, '      (');
+            primera_col := 1;
+            OPEN c_mtdt_modelo_logico_COLUMNA (reg_tabla.TABLE_NAME);
+            LOOP
+              FETCH c_mtdt_modelo_logico_COLUMNA
+              INTO r_mtdt_modelo_logico_COLUMNA;
+              EXIT WHEN c_mtdt_modelo_logico_COLUMNA%NOTFOUND;
+              if primera_col = 1 then /* Si es primera columna */
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+                primera_col := 0;
+              else
+                UTL_FILE.put_line(fich_salida_pkg, '     ,' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+              end if;
+            END LOOP; 
+            CLOSE c_mtdt_modelo_logico_COLUMNA;
+            UTL_FILE.put_line(fich_salida_pkg, '      )');
+            UTL_FILE.put_line(fich_salida_pkg, '      SELECT');
+            primera_col := 1;
+            OPEN c_mtdt_modelo_logico_COLUMNA (reg_tabla.TABLE_NAME);
+            LOOP
+              FETCH c_mtdt_modelo_logico_COLUMNA
+              INTO r_mtdt_modelo_logico_COLUMNA;
+              EXIT WHEN c_mtdt_modelo_logico_COLUMNA%NOTFOUND;
+              if primera_col = 1 then /* Si es primera columna */
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+                primera_col := 0;
+              else
+                UTL_FILE.put_line(fich_salida_pkg, '     ,' || r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME);
+              end if;
+            END LOOP; 
+            CLOSE c_mtdt_modelo_logico_COLUMNA;
+            UTL_FILE.put_line(fich_salida_pkg, '      FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
+            
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');            
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
@@ -4635,7 +4856,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_tabla (table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
             UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || '''''' and owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_tabla varchar(30);BEGIN select table_name into nombre_tabla from all_tables where table_name = '''''' || table_name_in || '''''' and owner = '''''' || ''' || OWNER_SA || ''' || ''''''; END;'';');
             UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
             UTL_FILE.put_line(fich_salida_pkg,'  exception');
             UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');
@@ -4645,7 +4866,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'  FUNCTION existe_particion (partition_name_in IN VARCHAR2, table_name_in IN VARCHAR2) return number');
             UTL_FILE.put_line(fich_salida_pkg,'  IS');
             UTL_FILE.put_line(fich_salida_pkg,'  BEGIN');
-            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || '''''' and table_owner = '''''' || ''' || OWNER_DM || ''' || ''''''; END;'';');
+            UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''DECLARE nombre_particion varchar(30);BEGIN select partition_name into nombre_particion from all_tab_partitions where partition_name = '''''' || partition_name_in || '''''' and table_name = '''''' || table_name_in || '''''' and table_owner = '''''' || ''' || OWNER_SA || ''' || ''''''; END;'';');
             UTL_FILE.put_line(fich_salida_pkg,'    return 1;');
             UTL_FILE.put_line(fich_salida_pkg,'  exception');
             UTL_FILE.put_line(fich_salida_pkg,'  when NO_DATA_FOUND then');

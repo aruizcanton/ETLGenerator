@@ -12,7 +12,8 @@
       DELAYED,
       upper(trim(TYPE_VALIDATION)) TYPE_VALIDATION
   FROM MTDT_INTERFACE_SUMMARY
-  where CONCEPT_NAME in ('MOVIMIENTOS_SERIADOS', 'MOVIMIENTOS_SERIADOS1');
+  --where CONCEPT_NAME in ('MOVIMIENTOS_SERIADOS', 'MOVIMIENTOS_SERIADOS1')
+  ;
 
   CURSOR dtd_interfaz_summary_history
   IS
@@ -25,7 +26,9 @@
       DELAYED,
       HISTORY
     FROM MTDT_INTERFACE_SUMMARY
-    where HISTORY is not null and CONCEPT_NAME in ('MOVIMIENTOS_SERIADOS', 'MOVIMIENTOS_SERIADOS1');
+    where HISTORY is not null 
+    --and CONCEPT_NAME in ('MOVIMIENTOS_SERIADOS', 'MOVIMIENTOS_SERIADOS1')
+    ;
   
   CURSOR dtd_interfaz_detail (concep_name_in IN VARCHAR2, source_in IN VARCHAR2)
   IS
@@ -225,7 +228,7 @@ BEGIN
         end if;
 
         /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
-        fecha:=to_date('20150101', 'YYYYMMDD');
+        fecha:=to_date('20171001', 'YYYYMMDD');
         while (fecha <= (sysdate+90))
         loop
           if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
@@ -445,7 +448,7 @@ BEGIN
         END LOOP;
         IF (no_encontrado = 'Y') THEN
           /* Ocurre que hay campos de particionado que no formal parte del indice por lo que no se puede crear un indice local*/
-          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || reg_summary.CONCEPT_NAME || '_P ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
+          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || OWNER_SA || '.' || reg_summary.CONCEPT_NAME || '_P ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
@@ -465,10 +468,10 @@ BEGIN
               DBMS_OUTPUT.put_line(lista_pk (indx) || ',');
             END IF;
           END LOOP;
-          DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary.CONCEPT_NAME || '_P;');
+          DBMS_OUTPUT.put_line('USING INDEX ' || OWNER_SA || '.' || reg_summary.CONCEPT_NAME || '_P;');
         ELSE
           /* Podemos crear un Indice PK local */
-          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || reg_summary.CONCEPT_NAME || '_P ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
+          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || OWNER_SA || '.' || reg_summary.CONCEPT_NAME || '_P ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
@@ -488,13 +491,13 @@ BEGIN
               DBMS_OUTPUT.put_line(lista_pk (indx) || ',');
             END IF;
           END LOOP;
-          DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary.CONCEPT_NAME || '_P;');
+          DBMS_OUTPUT.put_line('USING INDEX ' || OWNER_SA || '.' || reg_summary.CONCEPT_NAME || '_P;');
         END IF;
       ELSE
         if (lista_pk.COUNT = 0 and lista_par.COUNT>0) then
           /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
           /* Creamos un indice local por el campo de particionado */
-          DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary.CONCEPT_NAME || '_L ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' (');
+          DBMS_OUTPUT.put_line('CREATE INDEX '  || OWNER_SA || '.' || reg_summary.CONCEPT_NAME || '_L ON ' || OWNER_SA || '.SA_' || reg_summary.CONCEPT_NAME || ' (');
           FOR indy IN lista_par.FIRST .. lista_par.LAST
           LOOP
               IF indy = lista_par.LAST THEN
@@ -1007,7 +1010,7 @@ BEGIN
         end if;
 
         /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
-        fecha:=to_date('20150101', 'YYYYMMDD');
+        fecha:=to_date('20171001', 'YYYYMMDD');
         while (fecha <= (sysdate+90))
         loop
           if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
@@ -1227,7 +1230,7 @@ BEGIN
         END LOOP;
         IF (no_encontrado = 'Y') THEN
           /* Ocurre que hay campos de particionado que no formal parte del indice por lo que no se puede crear un indice local*/
-          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || reg_summary_history.CONCEPT_NAME || '_HP ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME);
+          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || '_HP ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
@@ -1247,10 +1250,10 @@ BEGIN
               DBMS_OUTPUT.put_line(lista_pk (indx) || ',');
             END IF;
           END LOOP;
-          DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary_history.CONCEPT_NAME || '_HP;');
+          DBMS_OUTPUT.put_line('USING INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || '_HP;');
         ELSE
           /* Podemos crear un Indice PK local */
-          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || reg_summary_history.CONCEPT_NAME || '_HP ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME);
+          DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || '_HP ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_pk.FIRST .. lista_pk.LAST
           LOOP
@@ -1270,13 +1273,13 @@ BEGIN
               DBMS_OUTPUT.put_line(lista_pk (indx) || ',');
             END IF;
           END LOOP;
-          DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary_history.CONCEPT_NAME || '_HP;');
+          DBMS_OUTPUT.put_line('USING INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || '_HP;');
         END IF;
       ELSE
         if (lista_pk.COUNT = 0 and lista_par.COUNT>0) then
           /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
           /* Creamos un indice local por el campo de particionado */
-          DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary_history.CONCEPT_NAME || '_HL ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME || ' (');
+          DBMS_OUTPUT.put_line('CREATE INDEX '  || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || '_HL ON ' || OWNER_SA || '.SAH_' || reg_summary_history.CONCEPT_NAME || ' (');
           FOR indy IN lista_par.FIRST .. lista_par.LAST
           LOOP
               IF indy = lista_par.LAST THEN
@@ -1405,7 +1408,7 @@ BEGIN
               v_nombre_particion := reg_summary_history.CONCEPT_NAME;
             end if;
             /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
-            fecha:=to_date('20150101', 'YYYYMMDD');
+            fecha:=to_date('20171001', 'YYYYMMDD');
             while (fecha <= (sysdate+90))
             loop
               if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
@@ -1625,7 +1628,7 @@ BEGIN
             END LOOP;
             IF (no_encontrado = 'Y') THEN
               /* Ocurre que hay campos de particionado que no formal parte del indice por lo que no se puede crear un indice local*/
-              DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || reg_summary_history.CONCEPT_NAME || 'DHP ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME);
+              DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || 'DHP ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME);
               DBMS_OUTPUT.put_line('(');
               FOR indx IN lista_pk.FIRST .. lista_pk.LAST
               LOOP
@@ -1645,10 +1648,10 @@ BEGIN
                   DBMS_OUTPUT.put_line(lista_pk (indx) || ',');
                 END IF;
               END LOOP;
-              DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary_history.CONCEPT_NAME || 'DHP;');
+              DBMS_OUTPUT.put_line('USING INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || 'DHP;');
             ELSE
               /* Podemos crear un Indice PK local */
-              DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || reg_summary_history.CONCEPT_NAME || 'DHP ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME);
+              DBMS_OUTPUT.put_line('CREATE UNIQUE INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || 'DHP ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME);
               DBMS_OUTPUT.put_line('(');
               FOR indx IN lista_pk.FIRST .. lista_pk.LAST
               LOOP
@@ -1668,13 +1671,13 @@ BEGIN
                   DBMS_OUTPUT.put_line(lista_pk (indx) || ',');
                 END IF;
               END LOOP;
-              DBMS_OUTPUT.put_line('USING INDEX ' || reg_summary_history.CONCEPT_NAME || 'DHP;');
+              DBMS_OUTPUT.put_line('USING INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || 'DHP;');
             END IF;
           ELSE
             if (lista_pk.COUNT = 0 and lista_par.COUNT>0) then
               /* Tenemos el caso de que la tabla no tiene PK pero si esta particionada */
               /* Creamos un indice local por el campo de particionado */
-              DBMS_OUTPUT.put_line('CREATE INDEX '  || reg_summary_history.CONCEPT_NAME || 'DHL ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME || ' (');
+              DBMS_OUTPUT.put_line('CREATE INDEX ' || OWNER_SA || '.' || reg_summary_history.CONCEPT_NAME || 'DHL ON ' || OWNER_SA || '.SADH_' || reg_summary_history.CONCEPT_NAME || ' (');
               FOR indy IN lista_par.FIRST .. lista_par.LAST
               LOOP
                   IF indy = lista_par.LAST THEN

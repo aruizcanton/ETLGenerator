@@ -41,7 +41,7 @@ DECLARE
   longitud_campo INTEGER;
   clave_foranea INTEGER;  /* 0 Si la tabla no tiene clave foranea. 1 si la tiene  */
   primera_col INTEGER;
-  cadena_values VARCHAR2(500);
+  cadena_values VARCHAR2(3000);
   concept_name VARCHAR2 (30);
   nombre_tabla_reducido VARCHAR2(30);
   v_nombre_particion VARCHAR2(30);
@@ -639,7 +639,7 @@ BEGIN
           END LOOP;
           if (no_encontrado = 'Y') then
             /* Ocurre que hay campos de particionado que no formal parte del indice por lo que no se puede crear un indice local*/
-            DBMS_OUTPUT.put_line('CREATE INDEX ' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || '_I ON ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
+            DBMS_OUTPUT.put_line('CREATE INDEX ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || '_I ON ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
             DBMS_OUTPUT.put_line('(');
             FOR indx IN lista_ind.FIRST .. lista_ind.LAST
             LOOP
@@ -652,7 +652,7 @@ BEGIN
             DBMS_OUTPUT.put_line('NOLOGGING GLOBAL;');
           else
             /* Podemos crear un Indice PK local */
-            DBMS_OUTPUT.put_line('CREATE INDEX ' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || '_I ON ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
+            DBMS_OUTPUT.put_line('CREATE INDEX ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME || '_I ON ' || OWNER_DM || '.' || r_mtdt_modelo_logico_TABLA.TABLE_NAME);
             DBMS_OUTPUT.put_line('(');
             FOR indx IN lista_ind.FIRST .. lista_ind.LAST
             LOOP
@@ -776,7 +776,7 @@ BEGIN
         end if;
         /* (20160324) Angel Ruiz. NF: Indices en las tablas del modelo */
         if (lista_ind.COUNT > 0) then
-          DBMS_OUTPUT.put_line('CREATE INDEX T_' || nombre_tabla_reducido || '_I ON ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
+          DBMS_OUTPUT.put_line('CREATE INDEX ' || OWNER_DM || '.T_' || nombre_tabla_reducido || '_I ON ' || OWNER_DM || '.T_' || nombre_tabla_reducido);
           DBMS_OUTPUT.put_line('(');
           FOR indx IN lista_ind.FIRST .. lista_ind.LAST
           LOOP
