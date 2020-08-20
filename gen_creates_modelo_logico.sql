@@ -10,7 +10,8 @@ DECLARE
       TRIM(CI) "CI",
       TRIM(PARTICIONADO) "PARTICIONADO"
     FROM MTDT_MODELO_SUMMARY
-    WHERE TRIM(CI) <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
+    WHERE TRIM(CI) <> 'P'
+    AND TRIM(TABLE_NAME) LIKE '%_DEMO';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
     
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
   IS
@@ -170,7 +171,7 @@ BEGIN
 
         /* (20150821) ANGEL RUIZ. FUNCIONALIDAD PARA PARTICIONADO */
         if (regexp_count(substr(r_mtdt_modelo_logico_COLUMNA.TABLE_NAME, 1, 4), '??F_',1,'i') >0 AND 
-        upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_DIA') then 
+        (upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_DIA' OR upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'CVE_DAY' OR upper(r_mtdt_modelo_logico_COLUMNA.COLUMN_NAME) = 'DAY')) then 
           /* SE TRATA DE UNA TABLA DE HECHOS CON COLUMNA CVE_DIA ==> PARTICIONADO DIARIO */
           v_tipo_particionado := 'D';   /* Particionado Diario */
           /* (20160324) Angel Ruiz. NF: Indices en las tablas del modelo*/
@@ -226,7 +227,10 @@ BEGIN
         end if;
         if (v_tipo_particionado = 'D') then
           /* Se trata de un particionado diario */
-          DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_DIA)');
+          /* (20191223) Angel Ruiz. BUG*/
+          --DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_DIA)');
+          DBMS_OUTPUT.put_line('PARTITION BY RANGE (' || lista_par(lista_par.last) || ')');
+          /* (20191223) Angel Ruiz. Fin BUG*/
           DBMS_OUTPUT.put_line('(');
           /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
           if (length(nombre_tabla_reducido) <= 18) then
@@ -536,7 +540,10 @@ BEGIN
           DBMS_OUTPUT.put_line(');');
         elsif (v_tipo_particionado = 'M') then
           /* Se trata de un particionado Mensual */
-          DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          /* (20191223) Angel Ruiz. BUG.*/
+          --DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          DBMS_OUTPUT.put_line('PARTITION BY RANGE (' || lista_par(lista_par.last) || ')');
+          /* (20191223) Angel Ruiz. Fin.*/
           DBMS_OUTPUT.put_line('(');
           /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
           if (length(nombre_tabla_reducido) <= 18) then
@@ -557,7 +564,10 @@ BEGIN
         elsif (v_tipo_particionado = 'M24') then
           /* (20150918) Angel Ruiz. N.F.: Se trata de implementar el particionado para BSC donde hay 24 particiones siempre */
           /* Las particiones se crean una vez y asi permanecen ya que el espacio de analisis se extiende 24 meses */
-          DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          /* (20191223) Angel Ruiz. BUG*/
+          --DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          DBMS_OUTPUT.put_line('PARTITION BY RANGE (' || lista_par(lista_par.last) || ')');
+          /* (20191223) Angel Ruiz. Fin BUG */
           DBMS_OUTPUT.put_line('(');
           /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
           if (length(nombre_tabla_reducido) <= 18) then
@@ -578,8 +588,10 @@ BEGIN
           if (r_mtdt_modelo_logico_TABLA.TABLESPACE is not null) then
             DBMS_OUTPUT.put_line('TABLESPACE ' || r_mtdt_modelo_logico_TABLA.TABLESPACE);
           end if;
-          
-          DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          /* (20191223) Angel Ruiz.BUG. */
+          --DBMS_OUTPUT.put_line('PARTITION BY RANGE (CVE_MES)');
+          DBMS_OUTPUT.put_line('PARTITION BY RANGE (' || lista_par(lista_par.last) || ')');
+          /* (20191223) Angel Ruiz. BUG. */
           DBMS_OUTPUT.put_line('(');
           /* (20150224) Angel Ruiz. Al generar le modelo para DIST me da un error por nombre demasiado largo */
           if (length(nombre_tabla_reducido) <= 18) then

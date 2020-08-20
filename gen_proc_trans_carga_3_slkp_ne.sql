@@ -31,7 +31,9 @@ SELECT
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS', 'DMF_FACT_SERIADOS');
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_CLASE_VALORACION','DMF_FACT_SERIADOS','DMF_PMP','DMF_MOVIMIENTOS_SERIADOS');
-    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PARQUE_SERIADOS', 'DMF_ESTATUS_ENTREGAS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_FACT_SERIADOS', 'DMF_PARQUE_SERIADOS', 'DMF_MOVIMIENTOS_SERIADOS');
+    trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_MOVIMIENTOS_SERIADOS');
+    --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP_DEMO');
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
   is
     SELECT 
@@ -1791,14 +1793,26 @@ SELECT
                       if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
                         valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
                       else
-                        valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                        /* (20190723) Angel Ruiz. Meto una excepcion por una cosa que arregla Stephany en producción*/
+                        if ((reg_detalle_in.TABLE_NAME = 'DMF_MOVIMIENTOS_SERIADOS' and reg_detalle_in.TABLE_COLUMN = 'CVE_ALMACEN' and l_registro.COLUMN_NAME = 'COD_CENTRO')
+                        OR (reg_detalle_in.TABLE_NAME = 'DMF_MOVIMIENTOS_SERIADOS' and reg_detalle_in.TABLE_COLUMN = 'CVE_ALMACEN_DESTINO' and l_registro.COLUMN_NAME = 'COD_CENTRO_DESTINO')) then
+                          valor_retorno := valor_retorno || 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ', -1) IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                        else
+                          valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                        end if;
                       end if;
                     else
                       /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
                       if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
                         valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || nombre_campo || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
                       else
-                        valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                        /* (20190723) Angel Ruiz. Meto una excepcion por una cosa que arregla Stephany en producción*/
+                        if ((reg_detalle_in.TABLE_NAME = 'DMF_MOVIMIENTOS_SERIADOS' and reg_detalle_in.TABLE_COLUMN = 'CVE_ALMACEN' and l_registro.COLUMN_NAME = 'COD_CENTRO')
+                        OR (reg_detalle_in.TABLE_NAME = 'DMF_MOVIMIENTOS_SERIADOS' and reg_detalle_in.TABLE_COLUMN = 'CVE_ALMACEN_DESTINO' and l_registro.COLUMN_NAME = 'COD_CENTRO_DESTINO')) then
+                          valor_retorno := valor_retorno || 'OR NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ', -1) IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                        else                        
+                          valor_retorno := valor_retorno || 'OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
+                        end if;
                       end if;
                     end if;
                   else 
@@ -1873,6 +1887,19 @@ SELECT
                   valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', -2)';
                 end if;
               end if;
+            elsif (l_registro1.DATA_TYPE = 'DATE') then
+              /* (20190520) Angel Ruiz. Hay un BUG. Es el caso de que el tipo de campo sea una fecha. En ese caso no debe poner NVL*/
+              if (v_alias_incluido = 1) then
+                valor_retorno :=  '    ' || sustituye_comillas_dinam(reg_detalle_in.VALUE);
+              else
+                if (regexp_instr(reg_detalle_in.VALUE, '[Cc][Aa][Ss][Ee]') > 0) then
+                  valor_retorno :=  '    ' || sustituye_comillas_dinam (reg_detalle_in.VALUE);
+                elsif (instr(reg_detalle_in.VALUE, '.') = 0) then
+                  valor_retorno :=  '    ' || v_alias || '.' || reg_detalle_in.VALUE;
+                else
+                  valor_retorno :=  '    ' || reg_detalle_in.VALUE;
+                end if;
+              end if;              
             else
               if (v_alias_incluido = 1) then
                 valor_retorno :=  '    NVL(' || sustituye_comillas_dinam(reg_detalle_in.VALUE) || ', ''''GENERICO'''')';

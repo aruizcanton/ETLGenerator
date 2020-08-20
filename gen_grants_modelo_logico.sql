@@ -30,7 +30,8 @@ DECLARE
       TRIM(TABLESPACE) "TABLESPACE",
       TRIM(CI) "CI"
     FROM MTDT_MODELO_SUMMARY
-    WHERE TRIM(CI) <> 'P';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
+    WHERE TRIM(CI) <> 'P'
+    AND TRIM(TABLE_NAME) LIKE '%_DEMO';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
     
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
   IS
