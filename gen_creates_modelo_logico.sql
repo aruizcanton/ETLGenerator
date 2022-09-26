@@ -10,8 +10,8 @@ DECLARE
       TRIM(CI) "CI",
       TRIM(PARTICIONADO) "PARTICIONADO"
     FROM MTDT_MODELO_SUMMARY
-    WHERE TRIM(CI) <> 'P'
-    AND TRIM(TABLE_NAME) LIKE '%_DEMO';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
+    WHERE TRIM(CI) <> 'P';
+    --AND TRIM(TABLE_NAME) LIKE '%_DEMO';    /* Las que poseen un valor "P" en esta columna son las tablas de PERMITED_VALUES, por lo que no hya que generar su modelo */
     
   CURSOR c_mtdt_modelo_logico_COLUMNA (table_name_in IN VARCHAR2)
   IS
@@ -826,7 +826,7 @@ BEGIN
       /****************************************************************************************************/
       /* (20150826) ANGEL RUIZ. Cambio la creacion de la secuencia para que se cree secuencia para todas las tablas DIMENSIONES o HECHOS */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
-        --DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
+        DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
         DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
         DBMS_OUTPUT.put_line('MINVALUE 1 START WITH 1 INCREMENT BY 1;');
         DBMS_OUTPUT.put_line('');        
