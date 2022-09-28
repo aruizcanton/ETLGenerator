@@ -35,7 +35,7 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_ALMACEN1')
     --and TABLE_NAME in ('DMD_MATERIAL_DEMO')
     --and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_PARQUE_SERIADOS1')
-    and TABLE_NAME in ('SA_ABONADO_MVNO')
+    and TABLE_NAME in ('MDD_DEPARTAMENTOS_MEDAL', 'MDD_PARAMETROS_MEDAL')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -169,7 +169,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       TABLE_COLUMN_LKUP "TABLE_COLUMN_LKUP",
       TABLE_LKUP_COND "TABLE_LKUP_COND",
       IE_COLUMN_LKUP "IE_COLUMN_LKUP",
-      TRIM("VALUE") "VALUE"
+      /* (20220926) Angel Ruiz. Da error de tipos inconsistentes.*/
+      --TRIM("VALUE") "VALUE",
+      CAST(VALUE AS VARCHAR2(2000)) "VALUE"
     FROM
       MTDT_TC_DETAIL
   WHERE
@@ -947,21 +949,23 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     if (lon_cadena > 0) then
       /* Busco VAR_FUN_NAME_LOOKUP */
       sustituto := nombre_funcion_lookup;
-      loop
-        dbms_output.put_line ('Entro en el LOOP de proc_campo_value_condicion. La cadena es: ' || cadena_resul);
-        pos := instr(cadena_resul, 'VAR_FUN_NAME_LOOKUP', pos+1);
-        exit when pos = 0;
-        dbms_output.put_line ('Pos es mayor que 0');
-        dbms_output.put_line ('Primer valor de Pos: ' || pos);
-        cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-        dbms_output.put_line ('La cabeza es: ' || cabeza);
-        dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-        cola := substr(cadena_resul, pos + length ('VAR_FUN_NAME_LOOKUP'));
-        dbms_output.put_line ('La cola es: ' || cola);
-        cadena_resul := cabeza || sustituto || cola;
+      cadena_resul := regexp_replace(cadena_resul, '#VAR_FUN_NAME_LOOKUP#', sustituto);
+      
+      --loop
+        --dbms_output.put_line ('Entro en el LOOP de proc_campo_value_condicion. La cadena es: ' || cadena_resul);
+        --pos := instr(cadena_resul, 'VAR_FUN_NAME_LOOKUP', pos+1);
+        --exit when pos = 0;
+        --dbms_output.put_line ('Pos es mayor que 0');
+        --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+        --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        --dbms_output.put_line ('La cabeza es: ' || cabeza);
+        --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+        --cola := substr(cadena_resul, pos + length ('VAR_FUN_NAME_LOOKUP'));
+        --dbms_output.put_line ('La cola es: ' || cola);
+        --cadena_resul := cabeza || sustituto || cola;
         --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
         --pos := pos_ant;
-      end loop;
+      --end loop;
     end if;  
     return cadena_resul;
   end;
@@ -983,117 +987,124 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       cadena_resul:= cadena_in;
       if lon_cadena > 0 then
         /* Busco VAR_FCH_CARGA */
-        sustituto := ' to_date ( fch_datos_in, ''yyyymmdd'') ';
-        loop
-          dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
-          pos := instr(cadena_resul, 'VAR_FCH_CARGA', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+        sustituto := ' to_date ( fch_carga_in, ''yyyymmdd'') ';
+        cadena_resul := regexp_replace(cadena_resul, '#VAR_FCH_CARGA#', sustituto);
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP. La cedena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, 'VAR_FCH_CARGA', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
           --dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('VAR_FCH_CARGA'));
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('VAR_FCH_CARGA'));
           --dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
+          --cadena_resul := cabeza || sustituto || cola;
           --pos_ant := pos + length (' to_date ( fch_datos_in, ''yyyymmdd'') ');
           --pos := pos_ant;
-        end loop;
+        --end loop;
         /* Busco VAR_PROFUNDIDAD_BAJAS */
         sustituto := ' 5 ';  /* Temporalmente pongo 90 dias */
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de VAR_PROFUNDIDAD_BAJAS. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, 'VAR_PROFUNDIDAD_BAJAS', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('VAR_PROFUNDIDAD_BAJAS'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
+        cadena_resul := regexp_replace(cadena_resul, '#VAR_PROFUNDIDAD_BAJAS#', sustituto);
+        --pos := 0;
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP de VAR_PROFUNDIDAD_BAJAS. La cadena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, '#VAR_PROFUNDIDAD_BAJAS#', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('VAR_PROFUNDIDAD_BAJAS'));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+        --end loop;
         /* Busco OWNER_DM */
         sustituto := OWNER_DM;
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_DM#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_DM#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
+        cadena_resul := regexp_replace(cadena_resul, '#OWNER_DM#', sustituto);
+        --pos := 0;
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, '#OWNER_DM#', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('#OWNER_DM#'));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+        --end loop;
         /* Busco OWNER_SA */
-        sustituto := OWNER_SA; 
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_SA#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_SA#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
+        sustituto := OWNER_SA;
+        cadena_resul := regexp_replace(cadena_resul, '#OWNER_SA#', sustituto);
+        --pos := 0;
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, '#OWNER_SA#', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('#OWNER_SA#'));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+        --end loop;
         /* Busco OWNER_T */
-        sustituto := OWNER_T; 
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#OWNER_T#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_T#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
+        sustituto := OWNER_T;
+        cadena_resul := regexp_replace(cadena_resul, '#OWNER_T#', sustituto);
+        --pos := 0;
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP de OWNER_DM. La cadena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, '#OWNER_T#', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('#OWNER_T#'));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+        --end loop;
         /* Busco OWNER_MTDT */
-        sustituto := OWNER_MTDT; 
-        pos := 0;
-        loop
-          pos := instr(cadena_resul, '#OWNER_MTDT#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#OWNER_MTDT#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
+        sustituto := OWNER_MTDT;
+        cadena_resul := regexp_replace(cadena_resul, '#OWNER_MTDT#', sustituto);
+        --pos := 0;
+        --loop
+          --pos := instr(cadena_resul, '#OWNER_MTDT#', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('#OWNER_MTDT#'));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+        --end loop;
         /* Busco VAR_MARGEN_COMISION */
         sustituto := ' 0.3 ';  /* Temporalmente pongo 90 dias */
-        pos := 0;
-        loop
-          dbms_output.put_line ('Entro en el LOOP de VAR_MARGEN_COMISION. La cadena es: ' || cadena_resul);
-          pos := instr(cadena_resul, '#VAR_MARGEN_COMISION#', pos+1);
-          exit when pos = 0;
-          dbms_output.put_line ('Pos es mayor que 0');
-          dbms_output.put_line ('Primer valor de Pos: ' || pos);
-          cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
-          dbms_output.put_line ('La cabeza es: ' || cabeza);
-          dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
-          cola := substr(cadena_resul, pos + length ('#VAR_MARGEN_COMISION#'));
-          dbms_output.put_line ('La cola es: ' || cola);
-          cadena_resul := cabeza || sustituto || cola;
-        end loop;
+        cadena_resul := regexp_replace(cadena_resul, '#VAR_MARGEN_COMISION#', sustituto);
+        --pos := 0;
+        --loop
+          --dbms_output.put_line ('Entro en el LOOP de VAR_MARGEN_COMISION. La cadena es: ' || cadena_resul);
+          --pos := instr(cadena_resul, '#VAR_MARGEN_COMISION#', pos+1);
+          --exit when pos = 0;
+          --dbms_output.put_line ('Pos es mayor que 0');
+          --dbms_output.put_line ('Primer valor de Pos: ' || pos);
+          --cabeza := substr(cadena_resul, (posicion_ant + 1), (pos - posicion_ant - 1));
+          --dbms_output.put_line ('La cabeza es: ' || cabeza);
+          --dbms_output.put_line ('La  sustitutoria es: ' || sustituto);
+          --cola := substr(cadena_resul, pos + length ('#VAR_MARGEN_COMISION#'));
+          --dbms_output.put_line ('La cola es: ' || cola);
+          --cadena_resul := cabeza || sustituto || cola;
+        --end loop;
 
       end if;
       return cadena_resul;
@@ -1244,8 +1255,10 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     ie_column_lkup    list_strings := list_strings();
     tipo_columna  VARCHAR2(30);
     mitabla_look_up VARCHAR2(800);
-    l_registro          ALL_TAB_COLUMNS%rowtype;
-    l_registro1         ALL_TAB_COLUMNS%rowtype;
+    l_registro          v_MTDT_CAMPOS_DETAIL%rowtype;
+    --l_registro          ALL_TAB_COLUMNS%rowtype;
+    --l_registro1         ALL_TAB_COLUMNS%rowtype;
+    l_registro1         v_MTDT_CAMPOS_DETAIL%rowtype;
     v_value VARCHAR(200);
     nombre_campo  VARCHAR2(300);
     v_alias_incluido PLS_Integer:=0;
@@ -1447,12 +1460,12 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
             SELECT * INTO l_registro
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-            COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            FROM v_MTDT_CAMPOS_DETAIL
+            WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+            UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx)));
             if (l_WHERE.count = 1) then
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
@@ -1462,8 +1475,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
               end if;
             else
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''NI#'')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
@@ -1493,12 +1506,12 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
             SELECT * INTO l_registro
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-            COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+            FROM v_MTDT_CAMPOS_DETAIL
+            WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+            UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.IE_COLUMN_LKUP));
             if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''NI#'')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
@@ -1508,8 +1521,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
               end if;
             else  /* sino es el primer campo del Where  */
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''NI#'')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
@@ -1693,7 +1706,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             then
               nombre_campo := extrae_campo (ie_column_lkup(indx));
               v_existe_valor:=false;
-              for registro in (SELECT * FROM ALL_TAB_COLUMNS
+              for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
               WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
               UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(nombre_campo)))
               loop
@@ -1704,7 +1717,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               end if;
             else
               v_existe_valor:=false;
-              for registro in (SELECT * FROM ALL_TAB_COLUMNS
+              for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
               WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
               UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx))))
               loop
@@ -1717,7 +1730,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
           END LOOP;
         else
           v_existe_valor:=false;
-          for registro in (SELECT * FROM ALL_TAB_COLUMNS
+          for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
           WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_NAME) and
           UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.TABLE_COLUMN)))
           loop
@@ -1760,7 +1773,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 then
                   nombre_campo := extrae_campo (ie_column_lkup(indx));
                   v_existe_valor:=false;
-                  for registro in (SELECT * FROM ALL_TAB_COLUMNS
+                  for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
                   WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
                   UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(nombre_campo)))
                   loop
@@ -1768,29 +1781,29 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                   end loop;
                   if (v_existe_valor=true) then
                     SELECT * INTO l_registro
-                    FROM ALL_TAB_COLUMNS
-                    WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-                    COLUMN_NAME = TRIM(nombre_campo);
+                    FROM v_MTDT_CAMPOS_DETAIL
+                    WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+                    UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(nombre_campo));
                   end if;
                 else
                   dbms_output.put_line ('El campo por el que voy a hacer LookUp de la TABLE_BASE es: ' || TRIM(ie_column_lkup(indx)));
                   v_existe_valor:=false;
-                  for registro in (SELECT * FROM ALL_TAB_COLUMNS
-                  WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
+                  for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
+                  WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
                   UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx))))
                   loop
                     v_existe_valor:=true;
                   end loop;
                   if (v_existe_valor=true) then
                     SELECT * INTO l_registro
-                    FROM ALL_TAB_COLUMNS
-                    WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-                    COLUMN_NAME = TRIM(ie_column_lkup(indx));
+                    FROM v_MTDT_CAMPOS_DETAIL
+                    WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+                    UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx)));
                   end if;
                 end if;
                 if (v_existe_valor=true) then
                   v_numero_campos:=v_numero_campos+1;
-                  if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+                  if (instr(l_registro.TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
                     if (v_numero_campos = 1) then
                       /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
                       if (instr(ie_column_lkup(indx), 'DECODE') > 0 or instr(ie_column_lkup(indx), 'decode') > 0) then
@@ -1827,14 +1840,14 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               END LOOP;
               /* (20160630) Angel Ruiz. NF: Se admiten Queries como tablas de LookUp y con ALIAS */
               SELECT * INTO l_registro1
-              FROM ALL_TAB_COLUMNS
-              WHERE TABLE_NAME =  reg_detalle_in.TABLE_NAME and
-              COLUMN_NAME = reg_detalle_in.TABLE_COLUMN;
+              FROM v_MTDT_CAMPOS_DETAIL
+              WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_NAME)) and
+              UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.TABLE_COLUMN));
               dbms_output.put_line ('Estoy donde quiero.');
               dbms_output.put_line ('El nombre de TABLE_NAME ES: ' || reg_detalle_in.TABLE_NAME);
               dbms_output.put_line ('El nombre de TABLE_COLUMN ES: ' || reg_detalle_in.TABLE_COLUMN);
-              dbms_output.put_line ('El tipo de DATOS es: ' || l_registro1.DATA_TYPE);
-              if (l_registro1.DATA_TYPE = 'NUMBER') then
+              dbms_output.put_line ('El tipo de DATOS es: ' || l_registro1.TYPE);
+              if (l_registro1.TYPE = 'NUMBER') then
                 if (v_alias_incluido = 1) then
                 /* (20160629) Angel Ruiz. NF: Se incluye la posibilidad de incluir el ALIAS en tablas de LKUP que sean SELECT */
                   valor_retorno := valor_retorno || ') THEN -3 ELSE ' || 'NVL(' || reg_detalle_in.VALUE || ', -2) END';
@@ -1862,10 +1875,10 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             end if; /* (20170207) Angel Ruiz. if (v_no_se_generara_case = false) then */
           else /* if (table_columns_lkup.COUNT > 1) then */
             SELECT * INTO l_registro1
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_NAME and
-            COLUMN_NAME = reg_detalle_in.TABLE_COLUMN;
-            if (l_registro1.DATA_TYPE = 'NUMBER') then
+            FROM v_MTDT_CAMPOS_DETAIL
+            WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_NAME)) and
+            UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.TABLE_COLUMN));
+            if (l_registro1.TYPE = 'NUMBER') then
               if (v_alias_incluido = 1) then
                 valor_retorno :=  '    NVL(' || reg_detalle_in.VALUE || ', -2)';
               else
@@ -1921,7 +1934,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               /* (20170207) Angel Ruiz. BUG. Hay campos de los q no se puede hayar su tipo pq tienen muchas funciones */
               /****************************************/
               v_existe_valor:=false;
-              for registro in (SELECT * FROM ALL_TAB_COLUMNS
+              for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
               WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
               UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(nombre_campo)))
               loop
@@ -1929,13 +1942,13 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               end loop;
               if (v_existe_valor=true) then
                 SELECT * INTO l_registro
-                FROM ALL_TAB_COLUMNS
-                WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-                COLUMN_NAME = TRIM(nombre_campo);
+                FROM v_MTDT_CAMPOS_DETAIL
+                WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+                UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(nombre_campo));
               end if;
             else
               v_existe_valor:=false;
-              for registro in (SELECT * FROM ALL_TAB_COLUMNS
+              for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
               WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
               UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx))))
               loop
@@ -1943,9 +1956,9 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               end loop;
               if (v_existe_valor = true) then
                 SELECT * INTO l_registro
-                FROM ALL_TAB_COLUMNS
-                WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-                COLUMN_NAME = TRIM(ie_column_lkup(indx));
+                FROM v_MTDT_CAMPOS_DETAIL
+                WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+                UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx)));
               end if;
             end if;
             if v_existe_valor = true then
@@ -1955,8 +1968,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               dbms_output.put_line ('??????????###??? Count 1. El ie_column es:' || ie_column_lkup(indx) || ' . La table_base_name es: ' || reg_detalle_in.TABLE_BASE_NAME);
               if (v_existe_valor = true) then
                 dbms_output.put_line ('??????????. Despues del v_existe_valor=true. El ie_column es:' || ie_column_lkup(indx) || ' . La table_base_name es: ' || reg_detalle_in.TABLE_BASE_NAME);
-                if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                  if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                  if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                     /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
                     if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  'NVL(' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
@@ -2055,8 +2068,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               dbms_output.put_line ('??????????###???. El count no es 1. El ie_column es:' || ie_column_lkup(indx) || ' . La table_base_name es: ' || reg_detalle_in.TABLE_BASE_NAME);
               
               if (v_existe_valor = true) then
-                if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                  if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                  if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                     /* (20160302) Angel Ruiz. NF: DECODE en las columnas de LookUp */
                     if (regexp_instr(ie_column_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(table_columns_lkup(indx), '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_decode(ie_column_lkup(indx), reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_decode(table_columns_lkup(indx), v_alias, 1);
@@ -2180,21 +2193,21 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               nombre_campo := extrae_campo (reg_detalle_in.IE_COLUMN_LKUP);
               dbms_output.put_line('Estoy dentro del if DE FUNCIONES. el valor de nombre_campo es: $' || nombre_campo || '$');
               v_existe_valor:=false;
-              for registro in (SELECT * FROM ALL_TAB_COLUMNS
-              WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
+              for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
+              WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
               UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(nombre_campo)))
               loop
                 v_existe_valor:=true;
               end loop;
               if (v_existe_valor=true) then
                 SELECT * INTO l_registro
-                FROM ALL_TAB_COLUMNS
+                FROM v_MTDT_CAMPOS_DETAIL
                 WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
                 COLUMN_NAME = trim(nombre_campo);
               end if;
             else
               v_existe_valor:=false;
-              for registro in (SELECT * FROM ALL_TAB_COLUMNS
+              for registro in (SELECT * FROM v_MTDT_CAMPOS_DETAIL
               WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(reg_detalle_in.TABLE_BASE_NAME) and
               UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.IE_COLUMN_LKUP)))
               loop
@@ -2202,15 +2215,15 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               end loop;
               if (v_existe_valor=true) then
                 SELECT * INTO l_registro
-                FROM ALL_TAB_COLUMNS
-                WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-                COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+                FROM v_MTDT_CAMPOS_DETAIL
+                WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+                UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.IE_COLUMN_LKUP));
               end if;
             end if;
             if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
               if (v_existe_valor = true) then /* (20170207) Angel Ruiz. BUG. Hay columnas que no se encuentran en el metadato */
-                if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                  if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                  if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                     if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) := 'NVL(' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' ||  ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                     elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
@@ -2274,8 +2287,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
               end if;
             else  /* sino es el primer campo del Where  */
               if (v_existe_valor = true) then /* (20170207) Angel Ruiz. BUG. Hay columnas que no se encuentran en el metadato */
-                if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                  if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+                if (instr(l_registro.TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                  if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                     if (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Dd][Ee][Cc][Oo][Dd][Ee]') > 0) then
                       l_WHERE(l_WHERE.last) :=  ' AND NVL(' || transformo_decode(reg_detalle_in.IE_COLUMN_LKUP, reg_detalle_in.TABLE_BASE_NAME, 0) || ', ''NI#'')' || ' = ' || transformo_decode(reg_detalle_in.TABLE_COLUMN_LKUP, v_alias, 1);
                     elsif (regexp_instr(reg_detalle_in.IE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0 or regexp_instr(reg_detalle_in.TABLE_COLUMN_LKUP, '[Nn][Vv][Ll]') > 0) then
@@ -2377,10 +2390,10 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       when 'HARDC' then
         /* (20170201) Angel Ruiz. BUG*/
         if reg_detalle_in.VALUE <> 'NULL' then
-          select * into l_registro FROM ALL_TAB_COLUMNS
-          where TABLE_NAME = UPPER(reg_detalle_in.TABLE_NAME)
-          and COLUMN_NAME = UPPER(reg_detalle_in.TABLE_COLUMN);
-          if (l_registro.DATA_TYPE <> 'NUMBER') then
+          select * into l_registro FROM v_MTDT_CAMPOS_DETAIL
+          where UPPER(TRIM(TABLE_NAME)) = UPPER(TRIM(reg_detalle_in.TABLE_NAME))
+          and UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.TABLE_COLUMN));
+          if (l_registro.TYPE <> 'NUMBER') then
             valor_retorno := '    ' || '''' || reg_detalle_in.VALUE || '''';
           else
             valor_retorno := '    ' || reg_detalle_in.VALUE;
@@ -2567,11 +2580,11 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             FOR indx IN table_columns_lkup.FIRST .. table_columns_lkup.LAST
             LOOP
               SELECT * INTO l_registro
-              FROM ALL_TAB_COLUMNS
-              WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-              COLUMN_NAME = TRIM(ie_column_lkup(indx));
+              FROM v_MTDT_CAMPOS_DETAIL
+              WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+              UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx)));
             
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
                 if (indx = 1) then
                   valor_retorno := valor_retorno || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IS NULL OR ' || reg_detalle_in.TABLE_BASE_NAME || '.' || l_registro.COLUMN_NAME || ' IN (''''NI#'''', ''''NO INFORMADO'''') ';
                 else
@@ -2607,12 +2620,12 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             
             /* Recojo de que tipo son los campos con los que vamos a hacer LookUp */
             SELECT * INTO l_registro
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-            COLUMN_NAME = TRIM(ie_column_lkup(indx));
+            FROM v_MTDT_CAMPOS_DETAIL
+            WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+            UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(ie_column_lkup(indx)));
             if (l_WHERE.count = 1) then
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) :=  'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) ||  ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
@@ -2622,8 +2635,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 l_WHERE(l_WHERE.last) :=  reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
               end if;
             else
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ', ''''NI#'''')' || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || ie_column_lkup(indx) || ' = ' || v_alias || '.' || table_columns_lkup(indx) || ' (+)';
@@ -2654,12 +2667,12 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Tabla es: ' || reg_detalle_in.TABLE_BASE_NAME);
             dbms_output.put_line('ESTOY EN EL LOOKUP. La Columna es: ' || reg_detalle_in.IE_COLUMN_LKUP);
             SELECT * INTO l_registro
-            FROM ALL_TAB_COLUMNS
-            WHERE TABLE_NAME =  reg_detalle_in.TABLE_BASE_NAME and
-            COLUMN_NAME = reg_detalle_in.IE_COLUMN_LKUP;
+            FROM v_MTDT_CAMPOS_DETAIL
+            WHERE UPPER(TRIM(TABLE_NAME)) = UPPER(TRIM(reg_detalle_in.TABLE_BASE_NAME)) and
+            UPPER(TRIM(COLUMN_NAME)) = UPPER(TRIM(reg_detalle_in.IE_COLUMN_LKUP));
             if (l_WHERE.count = 1) then /* si es el primer campo del WHERE */
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then    /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) := 'NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
@@ -2669,8 +2682,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
                 l_WHERE(l_WHERE.last) := reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP ||  ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
               end if;
             else  /* sino es el primer campo del Where  */
-              if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
-                if (l_registro.DATA_LENGTH <3 and l_registro.NULLABLE = 'Y') then
+              if (instr(l_registro.TYPE, 'VARCHAR') > 0) then     /* Estamos haciendo JOIN con la tabla de LookUp COD_* por un campo CARACTER */
+                if (l_registro.LENGTH <3 and l_registro.NULABLE = 'Y') then
                   l_WHERE(l_WHERE.last) :=  ' AND NVL(' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ', ''''NI#'''')' || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
                 else
                   l_WHERE(l_WHERE.last) :=  ' AND ' || reg_detalle_in.TABLE_BASE_NAME || '.' || reg_detalle_in.IE_COLUMN_LKUP || ' = ' || v_alias || '.' || reg_detalle_in.TABLE_COLUMN_LKUP || ' (+)';
@@ -2828,7 +2841,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     mitabla_look_up VARCHAR2(200);
     v_nombre_func_lookup             VARCHAR2(40);
     v_nombre_tabla                          VARCHAR2(30);
-    l_registro          ALL_TAB_COLUMNS%rowtype;
+    l_registro          v_MTDT_CAMPOS_DETAIL%rowtype;
 
   begin
     /* Se trata de hacer el LOOK UP con la tabla dimension */
@@ -2903,11 +2916,11 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       LOOP
         dbms_output.put_line ('#### El campo que busco en el LookUp es: ' || lkup_columns(indx));
         SELECT * INTO l_registro
-        FROM ALL_TAB_COLUMNS
-        WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
-        COLUMN_NAME = trim(lkup_columns(indx));
+        FROM v_MTDT_CAMPOS_DETAIL
+        WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_lookup_in.TABLE_LKUP)) and
+        UPPER(TRIM(COLUMN_NAME)) = UPPER(trim(lkup_columns(indx)));
 
-        if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+        if (instr(l_registro.TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
           if (indx = 1) then
             UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN ' || 'IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
           else
@@ -3010,7 +3023,7 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
     mitabla_look_up VARCHAR2(200);
     v_nombre_func_lookup             VARCHAR2(40);
     v_nombre_tabla                          VARCHAR2(30);
-    l_registro          ALL_TAB_COLUMNS%rowtype;
+    l_registro          v_MTDT_CAMPOS_DETAIL%rowtype;
 
   begin
     /* Se trata de hacer el LOOK UP con la tabla dimension */
@@ -3048,11 +3061,11 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
       FOR indx IN lkup_columns.FIRST .. lkup_columns.LAST
       LOOP
         SELECT * INTO l_registro
-        FROM ALL_TAB_COLUMNS
-        WHERE TABLE_NAME =  reg_lookup_in.TABLE_LKUP and
-        COLUMN_NAME = trim(lkup_columns(indx));
+        FROM v_MTDT_CAMPOS_DETAIL
+        WHERE UPPER(TRIM(TABLE_NAME)) =  UPPER(TRIM(reg_lookup_in.TABLE_LKUP)) and
+        UPPER(TRIM(COLUMN_NAME)) = UPPER(trim(lkup_columns(indx)));
 
-        if (instr(l_registro.DATA_TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
+        if (instr(l_registro.TYPE, 'VARCHAR') > 0) then  /* se trata de un campo VARCHAR */
           if (indx = 1) then
             UTL_FILE.put_line (fich_salida_pkg, '  if (' || lkup_columns(indx) || '_IN ' || 'IS NULL OR ' || lkup_columns(indx) || '_IN' || ' = ''NI#'' OR ' || lkup_columns(indx) || '_IN' || ' = ''NO INFORMADO''');
           else
