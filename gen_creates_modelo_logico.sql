@@ -826,7 +826,7 @@ BEGIN
       /****************************************************************************************************/
       /* (20150826) ANGEL RUIZ. Cambio la creacion de la secuencia para que se cree secuencia para todas las tablas DIMENSIONES o HECHOS */
       if (r_mtdt_modelo_logico_TABLA.CI = 'N') then
-        DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
+        --DBMS_OUTPUT.put_line('DROP SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5) || ';');
         DBMS_OUTPUT.put_line('CREATE SEQUENCE ' || OWNER_DM || '.SEQ_' || SUBSTR(r_mtdt_modelo_logico_TABLA.TABLE_NAME,5));
         DBMS_OUTPUT.put_line('MINVALUE 1 START WITH 1 INCREMENT BY 1;');
         DBMS_OUTPUT.put_line('');        

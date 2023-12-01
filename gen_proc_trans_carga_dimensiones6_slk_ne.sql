@@ -35,8 +35,8 @@ cursor MTDT_TABLA
     --and TABLE_NAME in ('SA_ALMACEN1')
     --and TABLE_NAME in ('DMD_MATERIAL_DEMO')
     --and TABLE_NAME in ('SA_MOVIMIENTOS_SERIADOS', 'SA_PARQUE_SERIADOS1')
-    --and TABLE_NAME in ('MDD_DEPARTAMENTOS_MEDAL', 'MDD_PARAMETROS_MEDAL', 'MDD_CATALOGO_ACCIONES')
-    and TABLE_NAME in ('MDD_DEPARTAMENTOS_MEDAL', 'MDD_PARAMETROS_MEDAL')
+    --and TABLE_NAME in ('MDD_DEPARTAMENTOS_MEDAL', 'MDD_PARAMETROS_MEDAL')
+    and TABLE_NAME in ('OPERADORES_NIC', 'OPERADORES_PAN')
     order by
     TABLE_TYPE;
     --and TRIM(TABLE_NAME) not in;
@@ -268,6 +268,8 @@ CURSOR MTDT_TC_FUNCTION (table_name_in IN VARCHAR2)
   mitabla_tbsn          VARCHAR2(25000);
   v_alias_tbsn_incluido NUMBER(1);
   v_existe_select_tbsn  NUMBER(1);
+  v_num_pasos PLS_INTEGER:=0;
+  v_paso_actual                      PLS_INTEGER:=0;
   
   
   
@@ -3077,8 +3079,7 @@ begin
   SELECT VALOR INTO TABLESPACE_SA FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'TABLESPACE_SA';
   SELECT VALOR INTO v_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
   SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';
-  SELECT VALOR INTO PAIS FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PAIS_DM';  
-
+  SELECT VALOR INTO PAIS FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PAIS_DM';
   /* (20141222) FIN*/
 
   open MTDT_TABLA;
@@ -3093,8 +3094,8 @@ begin
             /* Angel Ruiz (20141201) Hecho porque hay paquetes que no compilan */
              if (length(reg_tabla.TABLE_NAME) < 25) then
               /* (20221006) ANGEL RUIZ. Recorto la longitud d elos nombres.*/
-              --nombre_proceso := reg_tabla.TABLE_NAME;
-              nombre_proceso := nombre_tabla_reducido;
+              nombre_proceso := reg_tabla.TABLE_NAME;
+              --nombre_proceso := nombre_tabla_reducido;
             else
               nombre_proceso := nombre_tabla_reducido;
             end if;
@@ -3109,7 +3110,7 @@ begin
             fich_salida_hist := UTL_FILE.FOPEN ('SALIDA',nombre_fich_hist,'W');
             dbms_output.put_line ('El nombre del PAQUETE es: ' || '.pkg_' || nombre_proceso);
 
-            UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AS');
+            UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AUTHID CURRENT_USER AS');
             lista_scenarios_presentes.delete;
             /******/
             /* COMIEZO LA GENERACION DEL PACKAGE DEFINITION */
@@ -3984,24 +3985,33 @@ begin
            UTL_FILE.put_line(fich_salida_pkg, '    end if;');
            UTL_FILE.put_line(fich_salida_pkg, '    if (siguiente_paso_a_ejecutar = 1) then');
            UTL_FILE.put_line(fich_salida_pkg, '');
-           UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
+           --UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
            --UTL_FILE.put_line(fich_salida_pkg, '      SET TRANSACTION NAME ''TRAN_' || reg_tabla.TABLE_NAME || ''';');
            UTL_FILE.put_line(fich_salida_pkg, '');
            UTL_FILE.put_line(fich_salida_pkg, '      /* Truncamos la tabla antes de insertar los nuevos registros por si se lanza dos veces*/');
            UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_T || '.T_' || nombre_tabla_reducido || ''';');    
-           
+
+           /****************************************************************************************/
+           /* (20220930) ANGEL RUIZ. NUEVA FUNCIONALIDAD. Cada ESCENARIO será un PASO de EJECUCIÓN */
+           /****************************************************************************************/           
+           v_num_pasos := 0;
            /* Generamos las llamadas a los procedimientos para realizar las cargas */
            /* Generamos la llamada para cargar los registros NUEVOS */
             FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
             LOOP
               if lista_scenarios_presentes (indx) = 'N'
               then
+                v_num_pasos := v_num_pasos + 1;
                 --UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := new_reg_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
                 /* (20180220) Angel Ruiz. Se añade solo para DMD_SERIADO */
                 if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
                   UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''ALTER INDEX APP_DISTDM.IDX_NT_T_SERIADO UNUSABLE'';');
                 end if;
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(v_num_pasos) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+                UTL_FILE.put_line(fich_salida_pkg, '      commit;');
                 UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_new := nreg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(v_num_pasos) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || 'numero_reg_new' || ', 0, 0, 0);');
+                UTL_FILE.put_line(fich_salida_pkg, '      commit;');
                 UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_new || ''.'');');
                 /* (20180220) Angel Ruiz. Se añade solo para DMD_SERIADO */
                 if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
@@ -4014,17 +4024,43 @@ begin
             LOOP
               if lista_scenarios_presentes (indx) = 'E'
               then
+                v_num_pasos := v_num_pasos + 1;
                 --UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_updt := upt_reg_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+                UTL_FILE.put_line(fich_salida_pkg,'      inicio_paso_tmr := cast (systimestamp as timestamp);');
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(v_num_pasos) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+                UTL_FILE.put_line(fich_salida_pkg, '      commit;');
                 UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_updt := ureg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(v_num_pasos) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || '0, numero_reg_updt, 0, 0);');
+                UTL_FILE.put_line(fich_salida_pkg, '      commit;');                
                 UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros actualizados es: '' || numero_reg_updt || ''.'');');
               end if;
             END LOOP;
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
-            UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_new, numero_reg_updt);');
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             UTL_FILE.put_line(fich_salida_pkg, '    end if;');
+            if (v_num_pasos = 2) then
+              UTL_FILE.put_line(fich_salida_pkg, '    if (siguiente_paso_a_ejecutar = 2) then');
+              UTL_FILE.put_line(fich_salida_pkg, '');
+              FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
+              LOOP
+                if lista_scenarios_presentes (indx) = 'E'
+                then
+                  v_num_pasos := v_num_pasos + 1;
+                  --UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_updt := upt_reg_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+                  UTL_FILE.put_line(fich_salida_pkg,'      inicio_paso_tmr := cast (systimestamp as timestamp);');
+                  UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(v_num_pasos) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+                  UTL_FILE.put_line(fich_salida_pkg, '      commit;');
+                  UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_updt := ureg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
+                  UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(v_num_pasos) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || '0, numero_reg_updt, 0, 0);');                
+                  UTL_FILE.put_line(fich_salida_pkg, '      commit;');
+                  UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros actualizados es: '' || numero_reg_updt || ''.'');');
+                end if;
+              END LOOP;
+              
+              UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
+              UTL_FILE.put_line(fich_salida_pkg, '    end if;');
+            
+            end if;
             
         /***********/
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -4038,6 +4074,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
             UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ne_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            
             UTL_FILE.put_line(fich_salida_pkg,'      commit;        /* commit de la insercion del fin fallido*/');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -4073,8 +4110,11 @@ begin
               if lista_scenarios_presentes (indx) = 'H'
               then
                 --UTL_FILE.put_line(fich_salida_pkg,'    numero_reg_hist := hst_reg_' || reg_tabla.TABLE_NAME || ' (fch_carga_in, fch_datos_in);');
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+                UTL_FILE.put_line(fich_salida_pkg, '      commit;');
                 UTL_FILE.put_line(fich_salida_pkg,'      numero_reg_hist := hreg_' || nombre_proceso || ' (fch_carga_in, fch_datos_in);');
                 UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''El numero de registros historificados es: '' || numero_reg_hist || ''.'');');
+                UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' numero_reg_hist, 0, 0, 0);');                
                 if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
                   UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
                 end if;
@@ -4083,7 +4123,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
+            --UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'', ' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_hist);');
             
             UTL_FILE.put_line(fich_salida_pkg, '      COMMIT;');
             if (reg_tabla.TABLE_NAME='DMD_SERIADO') then
@@ -4103,7 +4143,7 @@ begin
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
             UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
             UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
-            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '     ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_dh_' || reg_tabla.TABLE_NAME || '.sh'',' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
             UTL_FILE.put_line(fich_salida_pkg,'      commit;');
             UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
             UTL_FILE.put_line(fich_salida_pkg, '');
@@ -4132,16 +4172,21 @@ begin
             UTL_FILE.put_line(fich_salida_pkg, '      /* Comienza en el primer paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
             UTL_FILE.put_line(fich_salida_pkg, '');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');            
+            UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg,'      SELECT COUNT(*) INTO num_reg FROM ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ';');
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME ' || reg_tabla.TABLE_NAME || ' TO ' || nombre_tabla_reducido || '_OLD''' || ';');    
             UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''TRUNCATE TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ''';');    
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, 0, num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' 0, 0, num_reg, 0);');            
+            --UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), 0, 0, num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el segundo paso */');
             UTL_FILE.put_line(fich_salida_pkg, '      inicio_paso_tmr := cast (systimestamp as timestamp);');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '      commit;');            
             /* (20180220) Angel Ruiz. BUG en la parte de exchage*/
             UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */' );
             UTL_FILE.put_line(fich_salida_pkg, '      INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);
@@ -4178,7 +4223,8 @@ begin
             CLOSE c_mtdt_modelo_logico_COLUMNA;
             UTL_FILE.put_line(fich_salida_pkg, '      FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' num_reg, 0, 0, 0);');            
+            --UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             --UTL_FILE.put_line(fich_salida_pkg, '      /* comienza el tercer paso */');
@@ -4205,6 +4251,8 @@ begin
             --UTL_FILE.put_line(fich_salida_pkg, '      EXECUTE IMMEDIATE ''RENAME T_' || nombre_tabla_reducido || ' TO ' || reg_tabla.TABLE_NAME || ''';');    
             --UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */ INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' SELECT * FROM ' || OWNER_DM || '.T_' || nombre_tabla_reducido || ';');
             /* (20180220) Angel Ruiz. BUG en la parte de exchage*/
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+            UTL_FILE.put_line(fich_salida_pkg, '      commit;');            
             UTL_FILE.put_line(fich_salida_pkg, '      INSERT /*+ APPEND */' );
             UTL_FILE.put_line(fich_salida_pkg, '      INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);
             UTL_FILE.put_line(fich_salida_pkg, '      (');
@@ -4242,7 +4290,8 @@ begin
             
             UTL_FILE.put_line(fich_salida_pkg, '      num_reg := sql%rowcount;');            
             UTL_FILE.put_line(fich_salida_pkg, '');
-            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
+            UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' num_reg, 0, 0, 0);');            
+            --UTL_FILE.put_line(fich_salida_pkg, '      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), num_reg);');
             UTL_FILE.put_line(fich_salida_pkg, '      commit;');
             UTL_FILE.put_line(fich_salida_pkg, '      siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');    
             
@@ -4847,7 +4896,7 @@ begin
             fich_salida_pkg := UTL_FILE.FOPEN ('SALIDA',nombre_fich_pkg,'W');
             nombre_tabla_reducido := substr(reg_tabla.TABLE_NAME, 4); /* Le quito al nombre de la tabla los caracteres DMD_ o DMF_ */
         
-            UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' AS');
+            UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_SA || '.pkg_' || reg_tabla.TABLE_NAME || ' AUTHID CURRENT_USER AS');
             UTL_FILE.put_line(fich_salida_pkg,'');
 
             --lista_scenarios_presentes.delete;

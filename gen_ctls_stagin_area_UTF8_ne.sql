@@ -77,6 +77,7 @@ DECLARE
       OWNER_DM                            VARCHAR2(60);
       OWNER_MTDT                       VARCHAR2(60);
       NAME_DM                                VARCHAR(60);
+      PAIS                              VARCHAR2(60);
       nombre_proceso                      VARCHAR(30);
       parte_entera                              VARCHAR2(60);
       parte_decimal                           VARCHAR2(60);
@@ -136,6 +137,7 @@ BEGIN
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
   SELECT VALOR INTO v_REQ_NUMER FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'REQ_NUMBER';
+  SELECT VALOR INTO PAIS FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PAIS_DM';
   /* (20141219) FIN*/
 
   OPEN dtd_interfaz_summary;
@@ -626,7 +628,7 @@ BEGIN
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
-    UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_MEX.sh');
+    UTL_FILE.put_line(fich_salida_sh, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_' || PAIS || '.sh');
     
     /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     if (reg_summary.CONCEPT_NAME = 'ESTATUS_ENTREGAS') then
@@ -704,9 +706,11 @@ BEGIN
     --UTL_FILE.put_line(fich_salida_sh, 'set -x');
     UTL_FILE.put_line(fich_salida_sh, '#Permite los acentos y U');
     
+    /* (20230714) Angel Ruiz. Suprimo el juego de caracteres ya que es mejor ponerlo en el fichero de entorno -INICIO*/
     --UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1');
-    UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.UTF8');
-    UTL_FILE.put_line(fich_salida_sh, 'export NLS_LANG');
+    --UTL_FILE.put_line(fich_salida_sh, 'NLS_LANG=AMERICAN_AMERICA.UTF8');
+    --UTL_FILE.put_line(fich_salida_sh, 'export NLS_LANG');
+    /* (20230714) Angel Ruiz. Suprimo el juego de caracteres ya que es mejor ponerlo en el fichero de entorno -FIN*/    
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');
     UTL_FILE.put_line(fich_salida_sh, '# VARIABLES ESPECIFICAS PARA EL PROCESO                                        #');
     UTL_FILE.put_line(fich_salida_sh, '################################################################################');

@@ -208,7 +208,9 @@ BEGIN
         END LOOP;
       END IF;
       DBMS_OUTPUT.put_line(')'); /* Parentesis final del create*/ 
-      DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+      IF (TABLESPACE_SA is not null) THEN
+        DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+      END IF;
       /* tomamos el campo por el que va a estar particionada la tabla */
       if lista_par.COUNT > 0 then
         FOR indx IN lista_par.FIRST .. lista_par.LAST
@@ -228,18 +230,18 @@ BEGIN
         end if;
 
         /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
-        fecha:=to_date('20171001', 'YYYYMMDD');
-        while (fecha <= (sysdate+90))
-        loop
-          if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
-            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(fecha+1,'YYYYMMDD') || ''',''YYYYMMDD''))');
-          else
-            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(fecha+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');
-          end if;
-          fecha:=fecha+1;
-        end loop;
+        --fecha:=to_date('20230701', 'YYYYMMDD');
+        --while (fecha <= (sysdate+90))
+        --loop
+        --  if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
+        --    DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(fecha+1,'YYYYMMDD') || ''',''YYYYMMDD''))');
+        --  else
+        --    DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(fecha+1,'YYYYMMDD') || ''',''YYYYMMDD'')),');
+        --  end if;
+        --  fecha:=fecha+1;
+        --end loop;
         /* (20170612) Angel Ruiz. FIN */
-        /*
+        
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-90,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-89,'YYYYMMDD') || ''',''YYYYMMDD'')),');
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-89,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-88,'YYYYMMDD') || ''',''YYYYMMDD'')),');
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-88,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate-87,'YYYYMMDD') || ''',''YYYYMMDD'')),');
@@ -421,7 +423,6 @@ BEGIN
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+88,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+89,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+89,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+90,'YYYYMMDD') || ''',''YYYYMMDD'')),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (TO_DATE(''' || TO_CHAR(sysdate+91,'YYYYMMDD') || ''',''YYYYMMDD''))');
-        */
         DBMS_OUTPUT.put_line(')');
       end if;
       DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
@@ -602,7 +603,9 @@ BEGIN
             END LOOP;
           END IF;
           DBMS_OUTPUT.put_line(')'); /* Parentesis final del create*/ 
-          DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+          IF (TABLESPACE_SA is not null) THEN
+            DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+          END IF;
           DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
           DBMS_OUTPUT.put_line(''); /* FIN CREATE */
           lista_pk.DELETE;      /* Borramos los elementos de la lista */
@@ -990,7 +993,9 @@ BEGIN
       end if;
       DBMS_OUTPUT.put_line(')'); /* Parentesis final del create*/
       DBMS_OUTPUT.put_line('NOLOGGING');
-      DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+      IF (TABLESPACE_SA is not null) THEN
+        DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+      END IF;
       /* tomamos el campo por el que va a estar particionada la tabla */
       if lista_par.COUNT > 0 then
         FOR indx IN lista_par.FIRST .. lista_par.LAST
@@ -1010,18 +1015,18 @@ BEGIN
         end if;
 
         /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
-        fecha:=to_date('20171001', 'YYYYMMDD');
-        while (fecha <= (sysdate+90))
-        loop
-          if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
-            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || ')');
-          else
-            DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || '),');
-          end if;
-          fecha:=fecha+1;
-        end loop;
+        --fecha:=to_date('20171001', 'YYYYMMDD');
+        --while (fecha <= (sysdate+90))
+        --loop
+        --  if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
+        --    DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || ')');
+        --  else
+        --    DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || '),');
+        --  end if;
+        --  fecha:=fecha+1;
+        --end loop;
         /* (20170612) Angel Ruiz. FIN */
-        /*
+        
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-89,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-88,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-87,'YYYYMMDD') || '),');   
@@ -1203,7 +1208,6 @@ BEGIN
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+89,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+90,'YYYYMMDD') || '),');   
         DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+91,'YYYYMMDD') || ')');
-        */
         DBMS_OUTPUT.put_line(')');
       end if;
       DBMS_OUTPUT.put_line(';'); /* FIN CREATE */
@@ -1389,7 +1393,9 @@ BEGIN
           end if;
           DBMS_OUTPUT.put_line(')'); /* Parentesis final del create*/
           DBMS_OUTPUT.put_line('NOLOGGING');
-          DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+          IF (TABLESPACE_SA is not null) THEN
+            DBMS_OUTPUT.put_line('TABLESPACE ' || TABLESPACE_SA);
+          END IF;
           /* tomamos el campo por el que va a estar particionada la tabla */
           if lista_par.COUNT > 0 then
             FOR indx IN lista_par.FIRST .. lista_par.LAST
@@ -1408,18 +1414,17 @@ BEGIN
               v_nombre_particion := reg_summary_history.CONCEPT_NAME;
             end if;
             /* (20170612) Angel Ruiz. Modificacion puntual para la entrega. Genero particionado desde el año 2015 */
-            fecha:=to_date('20171001', 'YYYYMMDD');
-            while (fecha <= (sysdate+90))
-            loop
-              if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
-                DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || ')');
-              else
-                DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || '),');
-              end if;
-              fecha:=fecha+1;
-            end loop;
+            --fecha:=to_date('20171001', 'YYYYMMDD');
+            --while (fecha <= (sysdate+90))
+            --loop
+            --  if (to_char(fecha, 'YYYYMMDD') = to_char((sysdate+90), 'YYYYMMDD')) then
+            --    DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || ')');
+            --  else
+            --    DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(fecha,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(fecha+1,'YYYYMMDD') || '),');
+            --  end if;
+            --  fecha:=fecha+1;
+            --end loop;
             /* (20170612) Angel Ruiz. FIN */
-            /*
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-89,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-88,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate-88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate-87,'YYYYMMDD') || '),');   
@@ -1601,7 +1606,6 @@ BEGIN
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+88,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+89,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+89,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+90,'YYYYMMDD') || '),');   
             DBMS_OUTPUT.put_line('PARTITION ' || v_nombre_particion ||'_' || TO_CHAR(sysdate+90,'YYYYMMDD') || ' VALUES LESS THAN (' || TO_CHAR(sysdate+91,'YYYYMMDD') || ')');
-            */
             DBMS_OUTPUT.put_line(')');
           end if;
           DBMS_OUTPUT.put_line(';'); /* FIN CREATE */

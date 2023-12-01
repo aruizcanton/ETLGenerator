@@ -36,13 +36,24 @@ SELECT
     -- MDF_MEDALIA_COMP_PREPAGO
     --, 'MDF_MEDAL_COMP_PREPAGO' , 'MDF_JSON_INVITACION_MEDAL_PRE'
     trim(MTDT_TC_SCENARIO.TABLE_NAME) in (
-    'MDF_TMP_COMP_MEDAL', 'MDF_MEDAL_RECARGAS_APP',
-    'MDF_MEDAL_COMP_PREPAGO'
-    , 'MDF_JSON_INV_MEDAL_PRE', 'MDF_COMP_MEDAL_B2B', 'MDF_JSON_INV_MEDAL', 'MDF_BP_TEMP_ROAMERS_SAL'
-    , 'MDF_MEDAL_TMP_ARPU_CLI', 'MDF_BP_NAVEGACION_3M', 'MDF_FTP_COMP_PREP', 
-    'MDF_INV_MEDAL_B2B', 'MDF_MEDAL_INV_PREPAGO', 'MDF_TMP_COMP_PREP', 'MDF_TMP_INV_MEDAL',
-    'MDF_TMP_BAJAS_MEDAL', 'MDF_TMP_INV_MEDAL_DIA', 'MDF_TMP_INV_MEDAL_PREP'
-    --'MDF_APP_OPERACION', 'MDF_HDR_EXPORTACION'
+    --'MDF_TMP_COMP_MEDAL', 'MDF_FTP_COMP_MEDAL', 'MDF_MEDAL_RECARGAS_APP',
+    --'MDF_MEDAL_COMP_PREPAGO'
+    --, 'MDF_JSON_INV_MEDAL_PRE', 'MDF_COMP_MEDAL_B2B', 'MDF_JSON_INV_MEDAL', 'MDF_BP_TEMP_ROAMERS_SAL'
+    --, 'MDF_MEDAL_TMP_ARPU_CLI', 'MDF_BP_NAVEGACION_3M', 'MDF_FTP_COMP_PREP', 
+    --'MDF_INV_MEDAL_B2B', 'MDF_MEDAL_INV_PREPAGO', 'MDF_TMP_COMP_PREP', 'MDF_TMP_INV_MEDAL',
+    --'MDF_TMP_BAJAS_MEDAL', 'MDF_TMP_INV_MEDAL_DIA', 'MDF_TMP_INV_MEDAL_PREP'
+    --, 'MDF_PARQUE_CANAL_RS'
+    --'MDF_MEDAL_INV_PREPAGO', 'MDF_TMP_INV_MEDAL', 'MDF_TMP_INV_MEDAL_PREP', 'MDF_MUESTRAS_USO'
+    'MDF_SIMCARD_TO'
+    --, 'MDF_TARJETAS_TO', 
+    , 'MDF_CLIENTE_TO'
+    --, 'MDF_FACTURAS_TO'
+    --, 'MIG_SIMCARD_TO'
+    --, 'MIG_TARJETAS_TO', 'MIG_CLIENTE_TO', 'MIG_FACTURAS_TO'
+    --, 'MDF_VENDEDOR_TO'
+    , 'MDF_ABONADO_TO'
+    --, 'MIG_ABONADO_TO', 'MDF_ABONADO_SS_TO'
+    --, 'MIG_ABONADO_SS_TO', 'MDF_CLIENTE_BODEGA_TO', 'MIG_CLIENTE_BODEGA_TO'
     );
     --trim(MTDT_TC_SCENARIO.TABLE_NAME) in ('DMF_PMP_DEMO');
   cursor MTDT_SCENARIO (table_name_in IN VARCHAR2)
@@ -62,7 +73,8 @@ SELECT
     FROM 
       MTDT_TC_SCENARIO
     WHERE
-      TRIM(TABLE_NAME) = table_name_in;
+      TRIM(TABLE_NAME) = table_name_in
+    ORDER BY SCENARIO;
   
   CURSOR MTDT_TC_DETAIL (table_name_in IN VARCHAR2, scenario_in IN VARCHAR2)
   IS
@@ -169,6 +181,7 @@ SELECT
   nombre_tabla_T_agr                VARCHAR2(30);
   v_existen_retrasados              VARCHAR2(1) := 'N';
   v_numero_indices                  PLS_INTEGER:=0;
+  v_paso_actual                      PLS_INTEGER:=0;
 
 
 /************/
@@ -1125,6 +1138,8 @@ SELECT
     v_no_se_generara_case             BOOLEAN:=false;
     v_existe_valor  BOOLEAN;
     v_numero_campos PLS_integer;
+    v_nombre_tabla_reducido varchar2(50);
+    v_nombre_paquete varchar2(50);
     
   begin
     /* Seleccionamos el escenario primero */
@@ -2510,6 +2525,13 @@ SELECT
         end if;
       when 'FUNCTION' then
         /* se trata de la regla FUNCTION */
+        /* (20150306) ANGEL RUIZ. Hay un error que corrijo */
+        v_nombre_tabla_reducido := substr(reg_detalle_in.TABLE_NAME, 5);
+        if (length(reg_detalle_in.TABLE_NAME) < 25) then
+        v_nombre_paquete := reg_detalle_in.TABLE_NAME;
+        else
+        v_nombre_paquete := v_nombre_tabla_reducido;
+        end if;
         if (reg_detalle_in.LKUP_COM_RULE is not null) then
           /* Ocurre que tenemos una regla compuesta, un LKUP con una condicion */
           cadena := trim(reg_detalle_in.LKUP_COM_RULE);
@@ -2522,7 +2544,7 @@ SELECT
           constante := substr(cadena, pos_del_else+length('ELSE'),pos_del_end-(pos_del_else+length('ELSE')));
           valor_retorno := 'CASE WHEN ' || trim(condicion_pro) || ' THEN NVL(' || v_alias || '.' || reg_detalle_in.VALUE || ', -2) ELSE ' || trim(constante) || ' END';
         else
-          valor_retorno :=  '    ' || 'PKG_' || reg_detalle_in.TABLE_NAME || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
+          valor_retorno :=  '    ' || 'PKG_' || v_nombre_paquete || '.' || 'LK_' || reg_detalle_in.TABLE_LKUP || ' (' || reg_detalle_in.IE_COLUMN_LKUP || ')';
         end if;
       when 'DLOAD' then
         valor_retorno :=  '    ' || ''' || ''TO_DATE ('''''' || fch_datos_in || '''''', ''''YYYYMMDD'''') '' || ''';
@@ -3030,8 +3052,8 @@ begin
   SELECT VALOR INTO OWNER_MTDT FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_MTDT';
   SELECT VALOR INTO NAME_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'NAME_DM';
   SELECT VALOR INTO OWNER_TC FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'OWNER_TC';  
-  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';  
-  SELECT VALOR INTO PAIS FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PAIS_DM';  
+  SELECT VALOR INTO PREFIJO_DM FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PREFIJO_DM';
+  SELECT VALOR INTO PAIS FROM MTDT_VAR_ENTORNO WHERE NOMBRE_VAR = 'PAIS_DM';
   /* (20141223) FIN*/
 
   open MTDT_TABLA;
@@ -3051,8 +3073,8 @@ begin
     /* Angel Ruiz (20150311) Hecho porque hay paquetes que no compilan porque el nombre es demasiado largo*/
     if (length(reg_tabla.TABLE_NAME) < 25) then
       /* (20221006) ANGEL RUIZ. Recorto la longitud d elos nombres.*/
-      --nombre_proceso := reg_tabla.TABLE_NAME;
-      nombre_proceso := nombre_tabla_reducido;
+      nombre_proceso := reg_tabla.TABLE_NAME;
+      --nombre_proceso := nombre_tabla_reducido;
     else
       nombre_proceso := nombre_tabla_reducido;
     end if;
@@ -3070,7 +3092,7 @@ begin
       nombre_tabla_T := nombre_tabla_reducido;
     end if;
     
-    UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AS');
+    UTL_FILE.put_line (fich_salida_pkg,'CREATE OR REPLACE PACKAGE ' || OWNER_DM || '.pkg_' || nombre_proceso || ' AUTHID CURRENT_USER AS');
     lista_scenarios_presentes.delete;
     /******/
     /* COMIEZO LA GENERACION DEL PACKAGE DEFINITION */
@@ -3102,75 +3124,13 @@ begin
       dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
       /* Elaboramos la implementacion de las funciones de LOOK UP antes de nada */
       
-      if (reg_scenario.SCENARIO = 'N')      /*  Procesamos el escenario NUEVO  */
-      then
-        /* Tenemos el escenario Nuevo */
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-        lista_scenarios_presentes.EXTEND;
-        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'N';
-      --end if;
-      
-      /************************/
-      elsif (reg_scenario.SCENARIO = 'OPE')    /*  Procesamos el escenario OPE  */
-      then
-        /* Tenemos el escenario OPE */
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-        lista_scenarios_presentes.EXTEND;
-        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'OPE';
-      --end if;
-      /************************/
-
-      elsif (reg_scenario.SCENARIO = 'ALT')    /*  Procesamos el escenario ALT  */
-      then
-        /* Tenemos el escenario ALT */
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-        lista_scenarios_presentes.EXTEND;
-        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'ALT';
-      --end if;
-
-      /************************/
-
-      elsif (reg_scenario.SCENARIO = 'ICC')    /*  Procesamos el escenario ICC  */
-      then
-        /* Tenemos el escenario ICC */
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-        lista_scenarios_presentes.EXTEND;
-        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'ICC';
-      --end if;
-
-      /************************/
-
-      elsif (reg_scenario.SCENARIO = 'NUM')    /*  Procesamos el escenario NUM  */
-      then
-        /* Tenemos el escenario NUM */
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-        lista_scenarios_presentes.EXTEND;
-        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := 'NUM';
-      --end if;
-      else
-        /* (20161117) Angel Ruiz. Tenemos cualquier otro escenario */
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ' || reg_scenario.SCENARIO || '_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
-        UTL_FILE.put_line(fich_salida_pkg, '' ); 
-        /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
-        lista_scenarios_presentes.EXTEND;
-        lista_scenarios_presentes(lista_scenarios_presentes.LAST) := reg_scenario.SCENARIO;
-      end if;
+      /* (20161117) Angel Ruiz. Tenemos cualquier otro escenario */
+      UTL_FILE.put_line(fich_salida_pkg, '' ); 
+      UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ' || reg_scenario.SCENARIO || '_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER;');
+      UTL_FILE.put_line(fich_salida_pkg, '' ); 
+      /* Guardamos una lista con los escenarios que posee la tabla que vamos a cargar */
+      lista_scenarios_presentes.EXTEND;
+      lista_scenarios_presentes(lista_scenarios_presentes.LAST) := reg_scenario.SCENARIO;
       
     end loop; /* fin del LOOP MTDT_SCENARIO  */
     close MTDT_SCENARIO;
@@ -3489,682 +3449,11 @@ begin
       into reg_scenario;
       exit when MTDT_SCENARIO%NOTFOUND;
       dbms_output.put_line ('Estoy en el segundo LOOP. La tabla que tengo es: ' || reg_tabla.TABLE_NAME || '. El escenario es: ' || reg_scenario.SCENARIO);
-      if (reg_scenario.SCENARIO = 'N')  /* Proceso el escenario NEW */
-      then
-        /* SCENARIO NUEVO */
-          dbms_output.put_line ('Estoy dentro del scenario NUEVO');
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION new_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
-          UTL_FILE.put_line(fich_salida_pkg, '  IS');
-          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
-          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          /* (20150825) Angel Ruiz. N.F.: SEQG */
-          if (v_nombre_seqg <> 'N') then
-            /* existe una regla para esta tabla de SEQG */
-            UTL_FILE.put_line(fich_salida_pkg, '    /* Recupero el valor de la secuencia general para esta tabla */');
-            UTL_FILE.put_line(fich_salida_pkg, '    SELECT ' || OWNER_DM || '.SEQ_' || nombre_tabla_reducido || '.NEXTVAL' || ' into var_seqg FROM DUAL;');
-            UTL_FILE.put_line(fich_salida_pkg, '');
-          end if;
-          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
-          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND*/');
-          --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND, PARALLEL (T_' || nombre_tabla_reducido || '_'' || fch_datos_in || '') */');
-          UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
       
-          /****/
-          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          /****/
-          UTL_FILE.put_line(fich_salida_pkg,'    ''(');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
-            end if;
-          end loop;
-          close MTDT_TC_DETAIL;
-          UTL_FILE.put_line(fich_salida_pkg,')');
-          dbms_output.put_line ('Despues del INTO');
-          /****/
-          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          /****/
-          /****/
-          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          /****/
-          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
-          l_FROM.delete;
-          l_WHERE.delete;
-          /* Fin de la inicialización */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT ');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            columna := genera_campo_select (reg_detail);
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg,columna);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
-            end if;        
-          end loop;
-          close MTDT_TC_DETAIL;
-          /****/
-          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          /****/      
-          /****/
-          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
-          /****/    
-          dbms_output.put_line ('Despues del SELECT');
-          --dbms_output.put_line ('El valor que han cogifo v_FROM:' || v_FROM);
-          --dbms_output.put_line ('El valor que han cogifo v_WHERE:' || v_WHERE);
-          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-          --UTL_FILE.put_line(fich_salida_pkg, '   app_mvnosa.'  || reg_scenario.TABLE_BASE_NAME || ''' || ''_'' || fch_datos_in;');
-          UTL_FILE.put_line(fich_salida_pkg, '   ' || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-          v_hay_look_up:='N';
-          /* (20150311) ANGEL RUIZ. se produce un error al generar ya que la tabla de hechos no tiene tablas de LookUp */
-          if l_FROM.count > 0 then
-            FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-            LOOP
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
-              v_hay_look_up := 'Y';
-            END LOOP;
-          end if;
-          /* FIN */
-          --UTL_FILE.put_line(fich_salida_pkg,'    ' || v_FROM);
-          dbms_output.put_line ('Despues del FROM');
-          if (reg_scenario.FILTER is not null) then
-            /* Procesamos el campo FILTER */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            dbms_output.put_line ('Antes de procesar el campo FILTER');
-            campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
-            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
-            dbms_output.put_line ('Despues de procesar el campo FILTER');
-            if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          else
-            if (v_hay_look_up = 'Y') then
-              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-              /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          end if;
-          UTL_FILE.put_line(fich_salida_pkg, ''';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          
-          --UTL_FILE.put_line(fich_salida_pkg,'    ' || reg_scenario.TABLE_BASE_NAME || '.CVE_DIA = '' || fch_datos ;');
-          UTL_FILE.put_line(fich_salida_pkg,'');
-          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
-          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
       
-          UTL_FILE.put_line(fich_salida_pkg,'    exception');
-          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
-          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
-          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
-          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros.'');');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
-          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
-          UTL_FILE.put_line(fich_salida_pkg, '  END new_' || nombre_proceso || ';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-      --end if;   /* FIN de la generacion de la funcion new */
-      /*************/
-      /*************/
-      elsif (reg_scenario.SCENARIO = 'OPE')  /* Proceso el escenario OPE */
-      then
-        /* SCENARIO OPE */
-          dbms_output.put_line ('Dentro de OPE');
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION ope_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
-          UTL_FILE.put_line(fich_salida_pkg, '  IS');
-          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
-          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          /* (20150825) Angel Ruiz. N.F.: SEQG */
-          if (v_nombre_seqg <> 'N') then
-            /* existe una regla para esta tabla de SEQG */
-            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
-            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
-            UTL_FILE.put_line(fich_salida_pkg, '');
-          end if;
-          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
-
-          --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
-          UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
-          
-  
-          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
-          --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
       
-          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          
-          UTL_FILE.put_line(fich_salida_pkg,'    ''(');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
-            end if;
-          end loop;
-          close MTDT_TC_DETAIL;
-          UTL_FILE.put_line(fich_salida_pkg,')');
-          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          dbms_output.put_line ('Despues del INTO');
-          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
-          l_FROM.delete;
-          l_WHERE.delete;
-          /* Fin de la inicialización */
-          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
-          dbms_output.put_line ('Entro en el SELECT');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            columna := genera_campo_select (reg_detail);
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg,columna);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
-            end if;        
-          end loop;
-          close MTDT_TC_DETAIL;
-          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          dbms_output.put_line ('Despues de generar el SELECT');
-          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-          UTL_FILE.put_line(fich_salida_pkg, '    ' || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-          v_hay_look_up:='N';
-          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-          LOOP
-            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
-            v_hay_look_up := 'Y';
-          END LOOP;
-          /* FIN */
-          dbms_output.put_line ('Despues de generar el FROM');
-          /* INICIO generacion parte  WHERE  */
-
-          if (reg_scenario.FILTER is not null) then
-            /* Procesamos el campo FILTER */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            dbms_output.put_line ('Antes de procesar el campo FILTER');
-            campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
-            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
-            dbms_output.put_line ('Despues de procesar el campo FILTER');
-            if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          else
-            if (v_hay_look_up = 'Y') then
-              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-              /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');         
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          end if;
-          UTL_FILE.put_line(fich_salida_pkg, ''';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
-          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
       
-          UTL_FILE.put_line(fich_salida_pkg,'    exception');
-          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
-          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
-          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
-          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
-          --UTL_FILE.put_line(fich_salida_pkg,'      return sqlcode;');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros OPE.'');');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
-          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
-          UTL_FILE.put_line(fich_salida_pkg, '  END ope_' || nombre_proceso || ';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-      --end if;   /* FIN de la generacion de la funcion ope */
-      /*************/
-      /*************/
-      elsif (reg_scenario.SCENARIO = 'ALT')  /* Proceso el escenario ALT */
-      then
-        /* SCENARIO ALT */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION alt_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
-          UTL_FILE.put_line(fich_salida_pkg, '  IS');
-          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
-          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          /* (20150825) Angel Ruiz. N.F.: SEQG */
-          if (v_nombre_seqg <> 'N') then
-            /* existe una regla para esta tabla de SEQG */
-            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
-            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
-            UTL_FILE.put_line(fich_salida_pkg, '');
-          end if;
-          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
-
-          --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
-          UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
-  
-          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
-          --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
-     
-          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          
-          UTL_FILE.put_line(fich_salida_pkg,'    ''(');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
-            end if;
-          end loop;
-          close MTDT_TC_DETAIL;
-          UTL_FILE.put_line(fich_salida_pkg,')');
-          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
-          l_FROM.delete;
-          l_WHERE.delete;
-          /* Fin de la inicialización */
-          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            columna := genera_campo_select (reg_detail);
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg,columna);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
-            end if;        
-          end loop;
-          close MTDT_TC_DETAIL;
-          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-
-          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-          UTL_FILE.put_line(fich_salida_pkg, '    '  || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-          v_hay_look_up:='N';
-          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-          LOOP
-            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
-            v_hay_look_up := 'Y';
-          END LOOP;
-          /* FIN */
-
-          if (reg_scenario.FILTER is not null) then
-            /* Procesamos el campo FILTER */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            dbms_output.put_line ('Antes de procesar el campo FILTER');
-            campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
-            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
-            dbms_output.put_line ('Despues de procesar el campo FILTER');
-            if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          else
-            if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          end if;
-          UTL_FILE.put_line(fich_salida_pkg, ''';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
-          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
       
-          UTL_FILE.put_line(fich_salida_pkg,'    exception');
-          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
-          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
-          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
-          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
-          --UTL_FILE.put_line(fich_salida_pkg,'      return sqlcode;');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros ALT.'');');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
-          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
-          UTL_FILE.put_line(fich_salida_pkg, '  END alt_' || nombre_proceso || ';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-      --end if;   /* FIN de la generacion de la funcion ope */
-      
-      /*************/
-      /*************/
-      elsif (reg_scenario.SCENARIO = 'ICC')  /* Proceso el escenario ICC */
-      then
-        /* SCENARIO ICC */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION icc_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
-          UTL_FILE.put_line(fich_salida_pkg, '  IS');
-          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
-          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          /* (20150825) Angel Ruiz. N.F.: SEQG */
-          if (v_nombre_seqg <> 'N') then
-            /* existe una regla para esta tabla de SEQG */
-            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
-            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
-            UTL_FILE.put_line(fich_salida_pkg, '');
-          end if;
-          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
-  
-          --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
-          UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
-          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
-          --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
-      
-          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          
-          UTL_FILE.put_line(fich_salida_pkg,'    ''(');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
-            end if;
-          end loop;
-          close MTDT_TC_DETAIL;
-          UTL_FILE.put_line(fich_salida_pkg,')');
-          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
-          l_FROM.delete;
-          l_WHERE.delete;
-          /* Fin de la inicialización */
-          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            columna := genera_campo_select (reg_detail);
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg,columna);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
-            end if;        
-          end loop;
-          close MTDT_TC_DETAIL;
-          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-
-          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-          UTL_FILE.put_line(fich_salida_pkg, '    '  || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-          v_hay_look_up:='N';
-          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-          LOOP
-            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
-            v_hay_look_up := 'Y';
-          END LOOP;
-          /* FIN */
-          if (reg_scenario.FILTER is not null) then
-            /* Procesamos el campo FILTER */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            dbms_output.put_line ('Antes de procesar el campo FILTER');
-            campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
-            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
-            dbms_output.put_line ('Despues de procesar el campo FILTER');
-            if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          else
-            if (v_hay_look_up = 'Y') then
-              UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-              /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          end if;
-          UTL_FILE.put_line(fich_salida_pkg, ''';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
-          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
-      
-          UTL_FILE.put_line(fich_salida_pkg,'    exception');
-          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
-          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
-          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
-          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
-          --UTL_FILE.put_line(fich_salida_pkg,'      return sqlcode;');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros ICC.'');');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
-          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
-          UTL_FILE.put_line(fich_salida_pkg, '  END icc_' || nombre_proceso || ';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-      --end if;   /* FIN de la generacion de la funcion ICC */
-      
-      /**************/
-      /**************/
-      elsif (reg_scenario.SCENARIO = 'NUM')  /* Proceso el escenario NUM */
-      then
-        /* SCENARIO NUM */
-          UTL_FILE.put_line(fich_salida_pkg, '  FUNCTION num_' || nombre_proceso || ' (fch_carga_in IN VARCHAR2, fch_datos_in IN VARCHAR2, fch_registro_in IN VARCHAR2) return NUMBER');
-          UTL_FILE.put_line(fich_salida_pkg, '  IS');
-          UTL_FILE.put_line(fich_salida_pkg, '  num_filas_insertadas NUMBER;');
-          UTL_FILE.put_line(fich_salida_pkg, '  var_fch_inicio date := sysdate;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  var_seqg number;');          
-          UTL_FILE.put_line(fich_salida_pkg, '  BEGIN');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          /* (20150825) Angel Ruiz. N.F.: SEQG */
-          if (v_nombre_seqg <> 'N') then
-            /* existe una regla para esta tabla de SEQG */
-            UTL_FILE.put_line(fich_salida_pkg, '  /* Recupero el valor de la secuencia general para esta tabla */');
-            UTL_FILE.put_line(fich_salida_pkg, '  SELECT ' || v_nombre_seqg || ' into var_seqg FROM DUAL;');
-            UTL_FILE.put_line(fich_salida_pkg, '');
-          end if;
-          /* (20150825) Angel Ruiz. FIN N.F.: SEQG */
-  
-          --UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT /*+ APPEND*/');
-          UTL_FILE.put_line(fich_salida_pkg,'    EXECUTE IMMEDIATE ''INSERT');
-          UTL_FILE.put_line(fich_salida_pkg,'    INTO ' || OWNER_DM || '.T_' || nombre_tabla_T || '_'' || fch_datos_in ||');
-  
-          --UTL_FILE.put_line(fich_salida_pkg,'    INSERT /*+ APPEND, PARALLEL (' || reg_scenario.TABLE_NAME || ') */');
-          --UTL_FILE.put_line(fich_salida_pkg,'    INTO TMP_' || reg_scenario.TABLE_NAME);
-      
-          /* genero la parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          
-          UTL_FILE.put_line(fich_salida_pkg,'    ''(');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg, '    ' || reg_detail.TABLE_COLUMN);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,'    ,' || reg_detail.TABLE_COLUMN);
-            end if;
-          end loop;
-          close MTDT_TC_DETAIL;
-          UTL_FILE.put_line(fich_salida_pkg,')');
-          /* Fin generacion parte  INTO (CMPO1, CAMPO2, CAMPO3, ...) */
-          /* Inicializamos las listas que van a contener las tablas del FROM y las clausulas WHERE*/
-          l_FROM.delete;
-          l_WHERE.delete;
-          /* Fin de la inicialización */
-          /* Inicio generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    SELECT');
-          open MTDT_TC_DETAIL (reg_scenario.TABLE_NAME, reg_scenario.SCENARIO);
-          primera_col := 1;
-          loop
-            fetch MTDT_TC_DETAIL
-            into reg_detail;
-            exit when MTDT_TC_DETAIL%NOTFOUND;
-            columna := genera_campo_select (reg_detail);
-            if primera_col = 1 then
-              UTL_FILE.put_line(fich_salida_pkg,columna);
-              primera_col := 0;
-            else
-              UTL_FILE.put_line(fich_salida_pkg,',' || columna);
-            end if;        
-          end loop;
-          close MTDT_TC_DETAIL;
-          /* Fin generacion parte  SELECT (CAMPO1, CAMPO2, CAMPO3, ...) */
-
-          /* INICIO generacion parte  FROM (TABLA1, TABLA2, TABLA3, ...) */
-          UTL_FILE.put_line(fich_salida_pkg,'    FROM');
-          UTL_FILE.put_line(fich_salida_pkg, '    '  || procesa_campo_filter_dinam(reg_scenario.TABLE_BASE_NAME));
-          /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-          v_hay_look_up:='N';
-          FOR indx IN l_FROM.FIRST .. l_FROM.LAST
-          LOOP
-            UTL_FILE.put_line(fich_salida_pkg, '   ' || l_FROM(indx));
-            v_hay_look_up := 'Y';
-          END LOOP;
-          /* FIN */
-          
-          if (reg_scenario.FILTER is not null) then
-            /* Procesamos el campo FILTER */
-            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-            dbms_output.put_line ('Antes de procesar el campo FILTER');
-            campo_filter := procesa_campo_filter_dinam(reg_scenario.FILTER);
-            UTL_FILE.put_line(fich_salida_pkg, campo_filter);
-            dbms_output.put_line ('Despues de procesar el campo FILTER');
-            if (v_hay_look_up = 'Y') then
-            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              UTL_FILE.put_line(fich_salida_pkg, '   ' || 'AND');
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          else
-            if (v_hay_look_up = 'Y') then
-	            UTL_FILE.put_line(fich_salida_pkg,'    WHERE');
-	            /* Hay tablas de LookUp. Hay que poner las condiciones de los Where*/
-              dbms_output.put_line ('Entro en el que hay Tablas de LookUp');          
-              /* (20150109) Angel Ruiz. Anyadimos las tablas necesarias para hacer los LOOK_UP */
-              FOR indx IN l_WHERE.FIRST .. l_WHERE.LAST
-              LOOP
-                UTL_FILE.put_line(fich_salida_pkg, '   ' || l_WHERE(indx));
-              END LOOP;
-              /* FIN */
-            end if;
-          end if;
-          UTL_FILE.put_line(fich_salida_pkg, ''';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-          UTL_FILE.put_line(fich_salida_pkg,'    num_filas_insertadas := sql%rowcount;');
-          --UTL_FILE.put_line(fich_salida_pkg,'    commit;');
-          UTL_FILE.put_line(fich_salida_pkg,'    RETURN num_filas_insertadas;');
-      
-          UTL_FILE.put_line(fich_salida_pkg,'    exception');
-          UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
-          UTL_FILE.put_line(fich_salida_pkg,'      return sql%rowcount;');
-          UTL_FILE.put_line(fich_salida_pkg,'    when OTHERS then');
-          --UTL_FILE.put_line(fich_salida_pkg,'      rollback;');
-          --UTL_FILE.put_line(fich_salida_pkg,'      return sqlcode;');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Se ha producido un error al insertar los nuevos registros NUM.'');');
-          UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
-          UTL_FILE.put_line(fich_salida_pkg,'      raise;');
-          UTL_FILE.put_line(fich_salida_pkg, '  END num_' || nombre_proceso || ';');
-          UTL_FILE.put_line(fich_salida_pkg, '');
-      else
         /* (20161117) Angel Ruiz. NF: Puede venir cualquier escenario */
         /* CUALQUIER OTRO SCENARIO */
           dbms_output.put_line ('Estoy dentro del scenario $' || reg_scenario.SCENARIO || '$');
@@ -4308,7 +3597,11 @@ begin
           UTL_FILE.put_line(fich_salida_pkg, '');
         /* (20161117) Angel Ruiz. FIN NF: Puede venir cualquier escenario */
 
-      end if;   /* FIN de la generacion de las funciones*/
+
+
+
+
+
       
       /**************/
       /**************/
@@ -4334,8 +3627,7 @@ begin
     --UTL_FILE.put_line(fich_salida_pkg, '    MTDT_MONITOREO.FCH_CARGA =  to_date(fch_carga_in, ''yyyymmdd'')  AND');
     --UTL_FILE.put_line(fich_salida_pkg, '    MTDT_MONITOREO.CVE_PASO = 1 AND');
     --UTL_FILE.put_line(fich_salida_pkg, '    MTDT_MONITOREO.CVE_RESULTADO = 0;');
-    UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '/* LLEVO A CABO LA DECLARACION DE LAS VARIABLES */');
+    UTL_FILE.put_line(fich_salida_pkg, '  /* LLEVO A CABO LA DECLARACION DE LAS VARIABLES */');
     --UTL_FILE.put_line(fich_salida_pkg, '  reg_monitoreo MTDT_MONITOREO%rowtype;');
     /* (20161117) Angel Ruiz. NF: Pueden aparecer cualquier tipo de escenario */
     FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
@@ -4372,87 +3664,72 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '      if (forzado_in = ''F'') then');
     UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := 1;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if;');
-    UTL_FILE.put_line(fich_salida_pkg, '      if (siguiente_paso_a_ejecutar = 1) then');
     UTL_FILE.put_line(fich_salida_pkg, '');
     
     /**********************/
     /**********************/
-    --UTL_FILE.put_line(fich_salida_pkg, '        dbms_output.put_line (''Inicio de la pasada del bucle del proceso de carga: ''' || ' || ''' || 'load_he_' || reg_tabla.TABLE_NAME || ''' || ''.'');');
-    UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
-    --UTL_FILE.put_line(fich_salida_pkg, '        pkg_' || reg_tabla.TABLE_NAME || '.' || 'pre_proceso (fch_carga_in, to_char(reg_monitoreo.FCH_DATOS,''yyyymmdd''));');
-    if (v_nombre_tabla_agr <> 'No Existe') then
-      /* Ocurre que como existe un escenario de desagregacion en el pre-proceso hemos desagregado */
-      /* lo que significa que usamos un prototipo diferente de la funcion pre-proceso */
-      UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_del := pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in, forzado_in);');
-    else
-      UTL_FILE.put_line(fich_salida_pkg, '        pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in, forzado_in);');
-    end if;
-    UTL_FILE.put_line(fich_salida_pkg, '');
     /* Generamos las llamadas a los procedimientos para realizar las cargas */
-    /* Generamos la llamada para cargar los registros NUEVOS */
-    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
+    
+    /****************************************************************************************/
+    /* (20220930) ANGEL RUIZ. NUEVA FUNCIONALIDAD. Cada ESCENARIO será un PASO de EJECUCIÓN */
+    /****************************************************************************************/
+    v_paso_actual := 0;
+    while (v_paso_actual < (lista_scenarios_presentes.COUNT))
     LOOP
-      if lista_scenarios_presentes (indx) = 'N'
-      then
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_' || lista_scenarios_presentes (indx) || ' := ' || 'pkg_' || nombre_proceso || '.' || 'new_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr, ''YYYYMMDDHH24MISS''));');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_' || lista_scenarios_presentes (indx) || ';');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros insertados es: '' || numero_reg_' || lista_scenarios_presentes (indx) || ' || ''.'');');
+      UTL_FILE.put_line(fich_salida_pkg, '      if (siguiente_paso_a_ejecutar = ' || to_char(v_paso_actual +1) || ') then');
+      if (v_paso_actual + 1 = 1) then
+        /* Solo en el primer paso es cuando generamos el codigo para le preproceso */
+        if (v_nombre_tabla_agr <> 'No Existe') then
+          /* Ocurre que como existe un escenario de desagregacion en el pre-proceso hemos desagregado */
+          /* lo que significa que usamos un prototipo diferente de la funcion pre-proceso */
+          UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_del := pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in, forzado_in);');
+        else
+          UTL_FILE.put_line(fich_salida_pkg, '        pkg_' || nombre_proceso || '.' || 'pre_proceso (fch_carga_in, fch_datos_in, forzado_in);');
+        end if;
+        UTL_FILE.put_line(fich_salida_pkg, '');
       end if;
+      FOR indx IN (lista_scenarios_presentes.FIRST + v_paso_actual)  .. lista_scenarios_presentes.LAST
+      LOOP
+      
+        UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
+        UTL_FILE.put_line(fich_salida_pkg, '        commit;');
+        UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.insert_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(indx) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+        UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_' || lista_scenarios_presentes (indx) || ' := ' || 'pkg_' || nombre_proceso || '.' || lista_scenarios_presentes (indx) || '_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
+        UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_tot := numero_reg_tot + numero_reg_' || lista_scenarios_presentes (indx) || ';');
+        UTL_FILE.put_line(fich_salida_pkg, '        dbms_output.put_line (''El numero de registros ' || lista_scenarios_presentes (indx) || ' es: '' || numero_reg_' || lista_scenarios_presentes (indx) || ' || ''.'');');
+        /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
+        if (reg_tabla.PARTICIONADO = 'M24') then
+          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(indx) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || 'numero_reg_' || lista_scenarios_presentes (indx) || ', 0, 0, 0);');
+        else
+          if (v_nombre_tabla_agr <> 'No Existe') then
+            /* Hay un escenario de desagregacion. Hemos borrado registros despues de desagregar y los reflejamos en el monitoreo */
+            if (v_existen_retrasados = 'S') then
+              /* (20160309) Angel Ruiz. Si existen retrasados, quiere decir que hay reg. salvaguardados */
+              UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(indx) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || 'numero_reg_' || lista_scenarios_presentes (indx) || ', 0, numero_reg_del, numero_reg_salvaguardados);');
+            else  /* (20160309) Angel Ruiz. Si no hay retrasados, no hay reg. salvaguardados */
+              UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(indx) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || 'numero_reg_' || lista_scenarios_presentes (indx) || ', 0, numero_reg_del);');
+            end if;
+          else
+            if (v_existen_retrasados = 'S') then
+              /* (20160309) Angel Ruiz. Si existen retrasados, quiere decir que hay reg. salvaguardados */
+              UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(indx) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || 'numero_reg_' || lista_scenarios_presentes (indx) || ', 0, 0, numero_reg_salvaguardados);');
+            else
+              UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || to_char(indx) || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || 'numero_reg_' || lista_scenarios_presentes (indx) || ', 0, 0, 0);');
+            end if;
+          end if;
+        end if;
+        UTL_FILE.put_line(fich_salida_pkg, '        commit;');
+        UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');
+      END LOOP;
+      
+      UTL_FILE.put_line(fich_salida_pkg, '      end if;');
+      UTL_FILE.put_line(fich_salida_pkg, '');
+      v_paso_actual := v_paso_actual + 1;
     END LOOP;
-    /* Generamos la llamada para cargar los registros OPE */
-    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
-    LOOP
-      if lista_scenarios_presentes (indx) = 'OPE'
-      then
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_ope := ' || 'pkg_' || nombre_proceso || '.' || 'ope_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_ope;');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_ope || ''.'');');
-      end if;
-    END LOOP;
-    /* Generamos la llamada para cargar los registros ALT */
-    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
-    LOOP
-      if lista_scenarios_presentes (indx) = 'ALT'
-      then
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_alt := ' || 'pkg_' || nombre_proceso || '.' || 'alt_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_alt;');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ope es: '' || numero_reg_alt || ''.'');');
-      end if;
-    END LOOP;
-    /* Generamos la llamada para cargar los registros ALT */
-    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
-    LOOP
-      if lista_scenarios_presentes (indx) = 'ICC'
-      then
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_icc := ' || 'pkg_' || nombre_proceso || '.' || 'icc_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_icc;');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros icc es: '' || numero_reg_icc || ''.'');');
-      end if;
-    END LOOP;
-    /* Generamos la llamada para cargar los registros NUM */
-    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
-    LOOP
-      if lista_scenarios_presentes (indx) = 'NUM'
-      then
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_num := ' || 'pkg_' || nombre_proceso || '.' || 'num_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_num;');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros num es: '' || numero_reg_num || ''.'');');
-      end if;
-    END LOOP;
-    /* (20161117) Angel Ruiz. NF: Pueden venir cualquier tipo de escenario */
-    /* Generamos la llamada para cargar el resto de registros del resto de escenario*/
-    FOR indx IN lista_scenarios_presentes.FIRST .. lista_scenarios_presentes.LAST
-    LOOP
-      if lista_scenarios_presentes (indx) != 'N' and lista_scenarios_presentes (indx) != 'OPE' and lista_scenarios_presentes (indx) != 'ALT' and lista_scenarios_presentes (indx) != 'ICC' and lista_scenarios_presentes (indx) != 'NUM'
-      then
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_' || lista_scenarios_presentes (indx) || ' := ' || 'pkg_' || nombre_proceso || '.' || lista_scenarios_presentes (indx) || '_' || nombre_proceso || ' (fch_carga_in, fch_datos_in, TO_CHAR(inicio_paso_tmr,''YYYYMMDDHH24MISS''));');
-        UTL_FILE.put_line(fich_salida_pkg,'        numero_reg_tot := numero_reg_tot + numero_reg_' || lista_scenarios_presentes (indx) || ';');
-        UTL_FILE.put_line(fich_salida_pkg,'        dbms_output.put_line (''El numero de registros ' || lista_scenarios_presentes (indx) || ' es: '' || numero_reg_' || lista_scenarios_presentes (indx) || ' || ''.'');');
-      end if;
-    END LOOP;
-    /* (20161117) Angel Ruiz. FIN NF: Pueden venir cualquier tipo de escenario */
+    
     UTL_FILE.put_line(fich_salida_pkg, '');
-    --UTL_FILE.put_line(fich_salida_pkg, '         pkg_' || reg_tabla.TABLE_NAME || '.' || 'pos_proceso (fch_carga_in, to_char(reg_monitoreo.FCH_DATOS, ''yyyymmdd''));');
+
+    /* (20220930) ANGEL RUIZ. FIN NUEVA FUNCIONALIDAD. Cada ESCENARIO será un PASO de EJECUCIÓN */
 
     /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
     DBMS_OUTPUT.PUT_LINE('--ANTES DE HOLA HOLA HOLA');
@@ -4463,39 +3740,15 @@ begin
         UTL_FILE.put_line(fich_salida_pkg, '        /* Salvaguardamos la informacion que ya estaba grabada en la particion */');
         UTL_FILE.put_line(fich_salida_pkg, '        numero_reg_salvaguardados := pkg_' || nombre_proceso || '.' || 'pos_proceso (fch_carga_in, fch_datos_in);');
       end if;
-    end if;
+    end if;    
+    /* (20150918) Angel Ruiz. Fin NF */
+
+
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, por eso aparece un 1 en el campo de paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        /* Este tipo de procesos solo tienen un paso, y ha terminado OK por eso aparece un 0 en el siguiente campo */');
-    /* (20150918) Angel Ruiz. NF: Si se trata  de un particionado tipo BSC, M24, no hay salvaguarda de información */
-    if (reg_tabla.PARTICIONADO = 'M24') then
-      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, 0);');
-    else
-      if (v_nombre_tabla_agr <> 'No Existe') then
-        /* Hay un escenario de desagregacion. Hemos borrado registros despues de desagregar y los reflejamos en el monitoreo */
-        if (v_existen_retrasados = 'S') then
-          /* (20160309) Angel Ruiz. Si existen retrasados, quiere decir que hay reg. salvaguardados */
-          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, numero_reg_del, numero_reg_salvaguardados);');
-        else  /* (20160309) Angel Ruiz. Si no hay retrasados, no hay reg. salvaguardados */
-          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, numero_reg_del);');
-        end if;
-      else
-        if (v_existen_retrasados = 'S') then
-          /* (20160309) Angel Ruiz. Si existen retrasados, quiere decir que hay reg. salvaguardados */
-          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, numero_reg_salvaguardados);');
-        else
-          UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_tot, 0, 0, 0);');
-        end if;
-      end if;
-    end if;
-    /* (20150918) Angel Ruiz. Fin NF */
     UTL_FILE.put_line(fich_salida_pkg,'        COMMIT;');
-    UTL_FILE.put_line(fich_salida_pkg,'      end if;');
-    --UTL_FILE.put_line(fich_salida_pkg,'      if (forzado_in = ''F'') then');
-    --UTL_FILE.put_line(fich_salida_pkg,'        /* Cuando se trata de una ejecucion Forzada hacemos la llamada al Exchange */');
-    --UTL_FILE.put_line(fich_salida_pkg,'        ' || OWNER_DM || '.pkg_' || nombre_proceso || '.' || 'lex_' || nombre_proceso || '(fch_carga_in, fch_datos_in, ''F'');');    
-    --UTL_FILE.put_line(fich_salida_pkg,'      end if;');
     
     UTL_FILE.put_line(fich_salida_pkg,'    exception');
     --UTL_FILE.put_line(fich_salida_pkg,'    when NO_DATA_FOUND then');
@@ -4504,10 +3757,11 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
     UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
     UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
+    UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');    
     UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
-    UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '  END lhe_' || nombre_proceso || ';');
-    UTL_FILE.put_line(fich_salida_pkg, '');
+    UTL_FILE.put_line(fich_salida_pkg,'');
+    UTL_FILE.put_line(fich_salida_pkg,'  END lhe_' || nombre_proceso || ';');
+    UTL_FILE.put_line(fich_salida_pkg,'');
   
     /**************/
     
@@ -4553,6 +3807,8 @@ begin
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
     /* (20150904) Angel Ruiz. NF: No hay exchange_partition ya que se vienen datos de todas las particiones */
     if (reg_tabla.PARTICIONADO = 'M24') then
+      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', 1' || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+      UTL_FILE.put_line(fich_salida_pkg, '        commit;');
       UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''MERGE INTO ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME || ' A');    
       UTL_FILE.put_line(fich_salida_pkg, '        USING ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' B');
       UTL_FILE.put_line(fich_salida_pkg, '        ON (');
@@ -4620,6 +3876,8 @@ begin
       end if;
     /* (20150904) Angel Ruiz. FIN NF: No hay exchange_partition ya que se vienen datos de todas las particiones */
     else
+      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', 1' || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+      UTL_FILE.put_line(fich_salida_pkg, '        commit;');
       UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''ALTER TABLE ' || OWNER_DM || '.' || reg_tabla.TABLE_NAME);    
       --UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION PA_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in || '' ');    
       UTL_FILE.put_line(fich_salida_pkg, '        EXCHANGE PARTITION ' || v_nombre_particion || ''' || ''_'' || fch_datos_in || '' ');    
@@ -4636,26 +3894,37 @@ begin
     end if;
     UTL_FILE.put_line(fich_salida_pkg, '');
     if (reg_tabla.PARTICIONADO = 'M24') then
-      UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_num, 0, 0, 0);');    
+      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', 1' || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' numero_reg_num, 0, 0, 0);');      
+      --UTL_FILE.put_line(fich_salida_pkg, '         ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_he_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''), numero_reg_num, 0, 0, 0);');    
     else
-      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+      UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', 1' || ', 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' 0, 0, 0, 0);');      
+      --UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '1, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     end if;
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
+    UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');
     UTL_FILE.put_line(fich_salida_pkg, '        /* comienza el segundo paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
+    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '        commit;');
     UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' 0, 0, 0, 0);');    
+    --UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
+    UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if; ');
     UTL_FILE.put_line(fich_salida_pkg, '      if (siguiente_paso_a_ejecutar = 2) then');
     UTL_FILE.put_line(fich_salida_pkg, '        /* comienza el segundo paso */');
     UTL_FILE.put_line(fich_salida_pkg, '        inicio_paso_tmr := cast (systimestamp as timestamp);');
-    --UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE APP_MVNODM.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in;');    
+    --UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE APP_MVNODM.T_' || nombre_tabla_reducido || ''' || ''_'' || fch_datos_in;');
+    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.insert_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '        commit;');    
     UTL_FILE.put_line(fich_salida_pkg, '        EXECUTE IMMEDIATE ''DROP TABLE ' || OWNER_DM || '.T_' || nombre_tabla_T || ''' || ''_'' || fch_datos_in || '' CASCADE CONSTRAINTS PURGE'';');    
     UTL_FILE.put_line(fich_salida_pkg, '');
-    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
+    UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.upd_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''),' || ' 0, 0, 0, 0);');    
+    --UTL_FILE.put_line(fich_salida_pkg, '        ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' || NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'',' || '2, 0, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');
     UTL_FILE.put_line(fich_salida_pkg, '        commit;');
+    UTL_FILE.put_line(fich_salida_pkg, '        siguiente_paso_a_ejecutar := siguiente_paso_a_ejecutar+1;');
     UTL_FILE.put_line(fich_salida_pkg, '      end if; ');
     --UTL_FILE.put_line(fich_salida_pkg, '    end loop;');
     UTL_FILE.put_line(fich_salida_pkg, '');
@@ -4666,6 +3935,7 @@ begin
     UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''EL PROCESO HA ACABADO CON ERRORES.'');');
     UTL_FILE.put_line(fich_salida_pkg,'      dbms_output.put_line (''Error code: '' || sqlcode || ''. Mensaje: '' || sqlerrm);');
     UTL_FILE.put_line(fich_salida_pkg,'      ROLLBACK;');
+    UTL_FILE.put_line(fich_salida_pkg,'      ' || OWNER_MTDT || '.pkg_' || PREFIJO_DM || 'F_MONITOREO_' ||  NAME_DM || '.inserta_monitoreo (''' || 'load_ex_' || reg_tabla.TABLE_NAME || '.sh'', ' || 'siguiente_paso_a_ejecutar, 1, inicio_paso_tmr, systimestamp, to_date(fch_datos_in, ''yyyymmdd''), to_date(fch_carga_in, ''yyyymmdd''));');    
     UTL_FILE.put_line(fich_salida_pkg,'      RAISE;');
     UTL_FILE.put_line(fich_salida_pkg, '');
     UTL_FILE.put_line(fich_salida_pkg, '  END lex_' || nombre_proceso || ';');
@@ -4981,7 +4251,6 @@ begin
     UTL_FILE.put_line(fich_salida_exchange, '# EJECUCION DEL PROGRAMA EN PRO C O QUERYS                                     #');
     UTL_FILE.put_line(fich_salida_exchange, '################################################################################');
     UTL_FILE.put_line(fich_salida_exchange, '. ${' || NAME_DM || '_ENTORNO}/entorno' || NAME_DM || '_' || PAIS ||'.sh');
-
 
     /* (20180319) Angel Ruiz. Introduzco una excepcion para DMF_ESTATUS_ENTREGAS. */
     if (reg_tabla.TABLE_NAME = 'DMF_ESTATUS_ENTREGAS') then
